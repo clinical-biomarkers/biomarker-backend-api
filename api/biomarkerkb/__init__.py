@@ -12,12 +12,16 @@ def create_app():
     app = Flask(__name__, instance_relative_config = True)
 
     # load configurations  
+    # TODO : figure out how to deal with these 
     app.config['MONGO_URI'] = f'mongodb://running_biomarkerkb:27017/biomarkerkbdb'
+    app.config['JWT_SECRET_KEY'] = f''
 
     CORS(app)
+    jwt = JWTManager(app)
     mongo = PyMongo(app)
 
     # setup the api using the flask_restx library 
-    api = Api(app, version = '1.0', title = 'BiomarkerKB APIs', description = 'Documentation for the BiomarkerKB dataset APIs')
+    api = Api(app, version = '1.0', title = 'BiomarkerKB APIs', description = 'Biomarker Knowledgebase API')
     api.add_namespace(dataset_api)
 
+    return app
