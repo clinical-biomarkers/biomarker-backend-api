@@ -10,11 +10,11 @@ def create_app():
 
     # create flask instance 
     app = Flask(__name__, instance_relative_config = True)
-    # apply Cross-Origin Resource Sharing (CORS) to the app
-    CORS(app)
 
-    # configure the mongodb connection 
+    # load configurations  
     app.config['MONGO_URI'] = f'mongodb://running_biomarkerkb:27017/biomarkerkbdb'
+
+    CORS(app)
     mongo = PyMongo(app)
 
     # setup the api using the flask_restx library 
