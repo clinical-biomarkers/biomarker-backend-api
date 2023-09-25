@@ -30,7 +30,7 @@
             "user":"superadmin",
             "password":"superpass"
         },
-        "biomarkerkb":{
+        "biomarkerkbdb":{
             "db":"biomarkerkbdb",
             "user":"biomarkeradmin",
             "password":"biomarkerpass"
