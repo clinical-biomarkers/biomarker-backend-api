@@ -8,12 +8,12 @@ data_model = api.model('Data', {
     'field2': fields.String(description = 'Field 2 description')
 })
 
-@api.route('/getall')
 class DatasetGetAll(Resource):
     @api.doc('getall_dataset')
     @api.response(200, 'Success', data_model)
     @api.marshal_list_with(data_model)
     def get(self):
-
         data = app.mongo.db.biomarker_collection.find() 
         return list(data)
+
+api.add_resource(DatasetGetAll, '/getall')

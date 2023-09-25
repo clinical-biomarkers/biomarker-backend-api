@@ -2,7 +2,7 @@ import os
 from flask import Flask 
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS 
-from flask_restx import Api, Resource, fields
+from flask_restx import Api
 from .dataset import api as dataset_api 
 from flask_pymongo import PyMongo
 
