@@ -51,8 +51,8 @@ def main():
     for c in {api_container_name, mongo_container_name}:
         cmd = f'docker ps --all | grep {c}'
         container_id = subprocess.getoutput(cmd).split(' ')[0].strip()
-        print(subprocess.getoutput(cmd))
         if container_id.strip() != '':
+            print(f'Found container: {c}')
             cmd_list.append(f'docker rm -f {container_id}')
 
     # check if docker network already exists
@@ -60,7 +60,8 @@ def main():
     network_cmd_output = subprocess.getoutput(network_cmd).split() 
     if network_cmd_output != []: 
         if network_cmd_output[1] == mongo_network_name:
-            cmd_list.append(f'docker network rm {mongo_container_name} | true')
+            print(f'Found network: {network_cmd_output[1]}')
+            cmd_list.append(f'docker network rm {mongo_network_name} | true')
     
     # create docker network command 
     cmd_list.append(f'docker network create -d bridge {mongo_network_name}')
