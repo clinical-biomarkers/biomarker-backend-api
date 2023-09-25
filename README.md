@@ -50,7 +50,20 @@ python create_mongodb_container.py -s $SER
 docker ps --all 
 ```
 
-The first command will navigate you into the api directory. The second command will run the script. The `$SER` argument should be replaced with the server you are running on (dev, tst, beta, prd). The last command lists all docker containers. You should see the docker mongodb docker container that the script created, in the format of `running_biomarkerkb_mongo_$SER` where `$SER` is the specified server. 
+The first command will navigate you into the api directory. The second command will run the script. The `$SER` argument should be replaced with the server you are running on (dev, tst, beta, prd). The last command lists all docker containers. You should see the docker mongodb docker container that the script created, in the format of `running_biomarkerkb_mongo_$SER` where `$SER` is the specified server.
+
+Expected output should look something like this:
+
+```bash
+Found container: running_biomarkerkb_mongo_dev
+Found network: biomarkerkb_backend_network_dev
+e6c50502da1b
+
+5e1146780c4fa96a6af6e4555cd119368e9907c4d50ad4790f9f5e54e13bf043
+7baa10fed7e89181c902b24f7af9991e07b00c0f3f31f7df58cccba80aef1a2c
+```
+
+The first two print statements indicate that an old instance of the container and docker network were found. These will be removed by the script. The `e6c50502da1b` is the ID of the removed container. This indicates that the `docker rm -f ...` command executed successfully and removed the existing container. The second to last line is the ID of the newly created docker network. The last line is the ID of the newly created docker container. 
 
 ## Initialize MongoDB User 
 
