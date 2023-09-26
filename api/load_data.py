@@ -35,6 +35,8 @@ def main():
     host = f'mongodb://127.0.0.1:{mongo_port}'
     # database 
     db_name = config_obj['dbinfo']['dbname']
+    # collection 
+    db_collection = config_obj['dbinfo'][db_name]['collection']
     # database user info 
     db_user = config_obj['dbinfo'][db_name]['user']
     db_pass = config_obj['dbinfo'][db_name]['password']
@@ -63,7 +65,7 @@ def main():
     with open(fp, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            dbh.biomarker_collection.insert_one(row)
+            dbh[db_collection].insert_one(row)
 
 if __name__ == '__main__': 
     main() 
