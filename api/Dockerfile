@@ -12,4 +12,6 @@ RUN pip install -r requirements.txt
 COPY ./dist/biomarkerkb-1.0-py3-none-any.whl .
 RUN pip install biomarkerkb-1.0-py3-none-any.whl
 
+COPY . .
+
 ENTRYPOINT ["gunicorn", "-b", ":80", "biomarkerkb:create_app()"]
