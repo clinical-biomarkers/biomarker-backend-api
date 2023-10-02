@@ -1,5 +1,10 @@
 # API 
 
+- [Documentation](#documentation)
+    - [Endpoints](#endpoints)
+    - [Models](#models)
+- [Directory Strucutre](#directory-structure)
+
 ## Documentation 
 
 ### Endpoints 
