@@ -85,6 +85,12 @@ python load_data.py -s $SER -f $FP
 
 Where the `$SER` argument is the specified server and `$FP` is the filepath to the seed csv data. 
 
+If testing on a local machine, you can test using code or a GUI option such as MongoDB Compass. The connection string should look something along the lines of:
+
+```bash 
+mongodb://biomarkeradmin:biomarkerpass@localhost:27017/?authMechanism=SCRAM-SHA-1&authSource=biomarkerkbdb
+```
+
 ## Creating and Starting Docker Container for the APIs 
 
 To create the API container, run the `create_api_container.py` script from the `/api` directory. 
@@ -95,6 +101,12 @@ docker ps --all
 ```
 
 The first command will run the script. The `$SER` argument should be replaced with the server you are running on (dev, tst, beta, prd). The last command lists all docker containers. You should see the api container that the script created, in the format of `running_biomarkerkb_api_$SER` where `$SER` is the specified server. 
+
+After the container is up and running, you can manually test the API using Python's `request` library, curl, or in the web browser. An example API call:
+
+```bash
+http://localhost:8081/dataset/randomsample?sample=5
+```
 
 # Config Files
 
