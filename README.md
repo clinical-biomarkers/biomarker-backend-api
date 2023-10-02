@@ -124,15 +124,11 @@ The config files can be found at `/api/config.json` and `/app/config.json`.
             "dev": "development server api port"
         },
         "mail":{
-            "server": "", 
-            "port": "",
-            "sender": ""
+            "server": "not used for now", 
+            "port": "not used for now",
+            "sender": "not used for now"
         },
         "data_path": "prefix filepath for the bind-mounted directory",
-        "search_options": {
-            "metadata": "",
-            "data": ""
-        },
         "dbinfo": {
             "dbname": "database name",
             "port": { 
