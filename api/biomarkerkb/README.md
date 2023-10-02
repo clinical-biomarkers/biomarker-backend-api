@@ -16,6 +16,8 @@ Returns the entire dataset.
     - x-fields (optional): optional fields mask
 - Return schema: [`data_model`](#models)
 
+---
+
 `GET /dataset/randomsample`  
 Returns a random subset of the dataset.
 - Example call: `http://{HOST}:8081/dataset/randomsample?sample={NUMBER}`
