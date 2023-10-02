@@ -38,7 +38,7 @@ The following must be available on your server:
 Clone the repository onto your host machine:
 
 ```bash
-git clone [placeholder]
+git clone https://github.com/biomarker-ontology/biomarkerkb-backend-datasetviewer.git
 ```
 
 ## Creating and Starting Docker Container for MongoDB 
