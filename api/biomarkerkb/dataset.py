@@ -1,5 +1,4 @@
 from flask_restx import Namespace, Resource, fields
-from .db import get_db
 from flask import current_app as app 
 from flask import request
 
@@ -29,7 +28,7 @@ class DatasetGetAll(Resource):
     @api.response(200, 'Success', data_model)
     @api.marshal_list_with(data_model)
     def get(self):
-        data = get_db()[get_collection_name()].find() 
+        data = app.mongo.db[get_collection_name()].find() 
         return list(data)
 
 class DatasetRandomSample(Resource):
@@ -46,7 +45,7 @@ class DatasetRandomSample(Resource):
             return {'message': 'Invalid sample size provided'}, 400
         if sample_size <= 0:
             return {'message': 'Sample size must be a positive integer.'}, 400
-        data = get_db()[get_collection_name()].aggregate([{'$sample': {'size': sample_size}}])
+        data = app.mongo.db[get_collection_name()].aggregate([{'$sample': {'size': sample_size}}])
         return list(data)
 
 api.add_resource(DatasetGetAll, '/getall')
