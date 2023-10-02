@@ -2,7 +2,7 @@ from flask import Flask
 from flask_cors import CORS 
 from flask_restx import Api
 from .dataset import api as dataset_api 
-from .db import init_app as init_db_app
+from flask_pymongo import PyMongo
 
 def create_app():
 
@@ -17,7 +17,8 @@ def create_app():
         app.config.from_pyfile('./config/config_dev.py')
 
     CORS(app)
-    init_db_app(app)
+    mongo = PyMongo(app)
+    app.mongo = mongo 
 
     # setup the api using the flask_restx library 
     api = Api(app, version = '1.0', title = 'BiomarkerKB APIs', description = 'Biomarker Knowledgebase API')
