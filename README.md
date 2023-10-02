@@ -18,6 +18,7 @@ Work in progress.
         - [Bind-Mounted Directory](#bind-mounted-directory)
         - [Data Storage Structure](#data-storage-structure)
 
+API documentation can be found [here](https://github.com/biomarker-ontology/biomarkerkb-backend-datasetviewer/tree/main/api/biomarkerkb#endpoints).
 
 # Server Requirements 
 
@@ -107,6 +108,8 @@ After the container is up and running, you can manually test the API using Pytho
 ```bash
 http://localhost:8081/dataset/randomsample?sample=5
 ```
+
+API documentation can be found [here](https://github.com/biomarker-ontology/biomarkerkb-backend-datasetviewer/tree/main/api/biomarkerkb#endpoints).
 
 # Config Files
 
