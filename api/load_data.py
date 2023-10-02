@@ -62,6 +62,7 @@ def main():
     dbh = client[db_name] 
 
     # open the input csv file and populate the database collection 
+    # TODO rework this logic to bulk load 
     with open(fp, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
