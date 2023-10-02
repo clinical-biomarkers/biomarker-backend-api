@@ -1,5 +1,5 @@
 from flask_restx import Namespace, Resource, fields
-from db import get_db
+from .db import get_db
 from flask import current_app as app 
 from flask import request
 
