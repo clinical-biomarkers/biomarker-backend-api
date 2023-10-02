@@ -12,10 +12,6 @@
         "sender":"no-reply@glygen.gwu.edu"
     },
     "data_path":"/data/shared/biomarkerkb/",
-    "search_options":{
-        "metadata":"dataset metadata",
-        "data":"dataset body"
-    },
     "dbinfo":{
         "dbname":"biomarkerkbdb",
         "port":{ 
