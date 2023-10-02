@@ -73,10 +73,16 @@ def main():
     # -e MAIL_SERVER={mail_server} -e MAIL_PORT={mail_port} -e MAIL_SENDER={mail_sender}
     cmd_list.append(cmd)
 
+    def run_command(cmd):
+        result = subprocess.run(cmd, shell = True, text = True, encoding = 'utf-8', errors = 'replace', capture_output = True)
+        if result.returncode != 0:
+            print(f'Command failed with error code {result.returncode}: {result.stderr}')
+        else:
+            print(result.stdout)
+
     # run the commands 
     for cmd in cmd_list:
-        x = subprocess.getoutput(cmd)
-        print(x)
+        run_command(cmd)
 
 if __name__ == '__main__':
     main() 
