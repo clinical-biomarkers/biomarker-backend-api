@@ -1,4 +1,3 @@
-import bson 
 from flask import current_app as app 
 from flask import g 
 from flask_pymongo import PyMongo
@@ -11,4 +10,4 @@ def get_db():
     return g.db 
 
 def init_app(app):
-    mongo.init_app(app)
+    mongo.init_app(app, uri = app.config['MONGO_URI'])
