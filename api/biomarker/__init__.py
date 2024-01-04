@@ -21,7 +21,7 @@ def create_app():
     app.mongo = mongo 
 
     # setup the api using the flask_restx library 
-    api = Api(app, version = '1.0', title = 'BiomarkerKB APIs', description = 'Biomarker Knowledgebase API')
+    api = Api(app, version = '1.0', title = 'Biomarker APIs', description = 'Biomarker Knowledgebase API')
     api.add_namespace(dataset_api)
 
     return app
