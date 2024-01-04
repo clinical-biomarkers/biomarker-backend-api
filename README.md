@@ -9,16 +9,9 @@ Work in progress.
     - [Initialize MongoDB User](#initialize-mongodb-user)
     - [Populate Database](#populate-database)
     - [Creating and Starting Docker Container for the APIs](#creating-and-starting-docker-container-for-the-apis)
-- [Config Files](#config-files)
-    - [API Config Definitions](#api-config-definitions)
-    - [App Config Definitions](#app-config-definitions)
-- [Background Information](#background-information)
-    - [MongoDB Overview](#mongodb-overiew)
-    - [Docker Implementation](#docker-implementation)
-        - [Bind-Mounted Directory](#bind-mounted-directory)
-        - [Data Storage Structure](#data-storage-structure)
+- [Config File Definitions](#config-file-definitions)
 
-API documentation can be found [here](https://github.com/biomarker-ontology/biomarkerkb-backend-datasetviewer/tree/main/api/biomarkerkb#endpoints).
+API documentation can be found [here](./api/biomarker/README.md).
 
 # Server Requirements 
 
@@ -111,11 +104,7 @@ http://localhost:8081/dataset/randomsample?sample=5
 
 API documentation can be found [here](https://github.com/biomarker-ontology/biomarkerkb-backend-datasetviewer/tree/main/api/biomarkerkb#endpoints).
 
-# Config Files
-
-The config files can be found at `/api/config.json` and `/app/config.json`. 
-
-## API Config Definitions
+# Config File Definitions
 
 ```json
     {
@@ -154,34 +143,3 @@ The config files can be found at `/api/config.json` and `/app/config.json`.
         }
     }
 ```
-
-## App Config Definitions
-
-# Background Information 
-
-## MongoDB Overiew
-
-MongoDB is a document-oriented database manager. In MongoDB, a database is a container for collections. Collections can be thought of conceptually as tables (such as in a relational database). Collections hold documents. Documents are analogous to rows in a relational database table. Documents are stored in a JSON-like format called BSON.  
-
-In MongoDB, databases and collections are created lazily. The database is not actually created until some data is written to them, simply referencing a database does not create it.  
-
-MongoDB's user and role information is stored in the `admin` database, so users and corresponding roles are applied immediately even if the database itself doesn't physically exist yet. 
-
-## Docker Implementation
-
-### Bind-Mounted Directories  
-
-Our created Docker Mongo container mounts a volume from the host machine to the container. Specifically, in the `create_mongodb_container.py` file, the following portion of the Docker command creates the volume mount.  
-```bash 
--v {data_path}/db/{server}:/data/db
-``` 
-This means that a specific directory on the host machine (`{data_path}/db/{server}`) is made accessible within the container at the specified file path, `/data/db` (this is the default directory inside the Mongo container where MongoDB sotres its own internal database files, including data files, index files, and journal files).  
-
-The created Docker api container also includes the `-v` flag. However, this container has two volume mounts. In the `create_api_container.py` file, the following portion fo the Docker command creates the volume mounts. 
-```bash
--v {data_path}:{data_path} -v /software/pipes:/hostpipe 
-```
-
-### Data Storage Structure 
-
-As discussed above, the `{data_path}/db/{server}` directory is dedicated to MongoDB's internal storage. The seed data (CSV file) should be stored in a different location on the host machine. 
