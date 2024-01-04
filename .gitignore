@@ -9,3 +9,4 @@ dist/
 build/
 *egg-info/
 test.py
+misc_documentation.md
