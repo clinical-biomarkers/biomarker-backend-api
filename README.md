@@ -119,8 +119,7 @@ API documentation can be found [here](https://github.com/biomarker-ontology/biom
         },
         "data_path": "prefix filepath for the bind-mounted directory",
         "dbinfo": {
-            "dbname": "database collection name for the JSON records",
-            "iddb": "database collection for the hash-ID map",
+            "dbname": "database name",
             "port": { 
                 "prd": "production server database port",
                 "beta": "beta server database port",
@@ -133,12 +132,12 @@ API documentation can be found [here](https://github.com/biomarker-ontology/biom
                 "user": "admin username",
                 "password": "admin password"
             },
-            "biomarkerkb": {
-                "db": "biomarkerkbdb database",
+            "biomarkerdb_api": {
+                "db": "database name",
                 "collection": "data collection",
                 "id_collection": "ID map",
-                "user": "biomarkerkb database username",
-                "password": "biomarkerkb database password"
+                "user": "biomarker database username",
+                "password": "biomarker database password"
             }
         }
     }
@@ -165,11 +164,15 @@ flowchart TD
 
 The core fields are defined as in the Biomarker-Partnership RFC (which can be found in [this](https://github.com/biomarker-ontology/biomarker-partnership) repository). 
 
-When loading data into the project, the core field values are extracted, cleaned, and concatenated. The resulting string is hashed and that hash value is checked for a potential collision in the MongoDB `id_map_collection`. If no collision is found, a new entry is added to the `id_map_collection` which stores a one to one map between a hash value and a a human readable ordinal ID. 
+When loading data into the project, the core field values are extracted, cleaned, and concatenated. The resulting string is hashed and that hash value is checked for a potential collision in the MongoDB `id_map_collection`. If no collision is found, a new entry is added to the `id_map_collection` which stores the hash value and a a human readable ordinal ID. The core values string that generated the hash value is also stored with each entry for potential debugging purposes. 
 
 Example: 
 ```json 
 {
-    "<HASH_VALUE>": "<ORDINAL_ID>"
+    "hash_value": "<VALUE>",
+    "ordinal_id": "<VALUE>",
+    "core_values_str": "<VALUE>"
 }
 ```
+
+The ordinal ID format is two letters followed by four digits. The ID space goes from `AA0000` to `ZZ9999`.
