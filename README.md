@@ -10,6 +10,8 @@ Work in progress.
     - [Populate Database](#populate-database)
     - [Creating and Starting Docker Container for the APIs](#creating-and-starting-docker-container-for-the-apis)
 - [Config File Definitions](#config-file-definitions)
+- [Internal Backend Documentation](#internal-backend-documentation)
+    - [ID Assignment System](#id-assignment-system)
 
 API documentation can be found [here](./api/biomarker/README.md).
 
@@ -74,10 +76,10 @@ Where the `$SER` argument is the specified server. This should only be run once.
 To load data, run the `load_data.py` script from the `/api` directory. 
 
 ```bash 
-python load_data.py -s $SER -f $FP 
+python load_data.py -s $SER -v $VER
 ```
 
-Where the `$SER` argument is the specified server and `$FP` is the filepath to the seed csv data. 
+Where the `$SER` argument is the specified server and `$VER` is the filepath to the data release to load. 
 
 If testing on a local machine, you can test using code or a GUI option such as MongoDB Compass. The connection string should look something along the lines of:
 
@@ -115,14 +117,10 @@ API documentation can be found [here](https://github.com/biomarker-ontology/biom
             "tst": "test server api port",
             "dev": "development server api port"
         },
-        "mail":{
-            "server": "not used for now", 
-            "port": "not used for now",
-            "sender": "not used for now"
-        },
         "data_path": "prefix filepath for the bind-mounted directory",
         "dbinfo": {
-            "dbname": "database name",
+            "dbname": "database collection name for the JSON records",
+            "iddb": "database collection for the hash-ID map",
             "port": { 
                 "prd": "production server database port",
                 "beta": "beta server database port",
@@ -137,9 +135,41 @@ API documentation can be found [here](https://github.com/biomarker-ontology/biom
             },
             "biomarkerkb": {
                 "db": "biomarkerkbdb database",
+                "collection": "data collection",
+                "id_collection": "ID map",
                 "user": "biomarkerkb database username",
                 "password": "biomarkerkb database password"
             }
         }
     }
+```
+
+# Internal Backend Documentation
+
+## ID Assignment System
+
+The high level workflow for the ID assignment system is as follows:
+
+```mermaid
+flowchart TD
+    A[Data Release with JSON Data] --> B{load_data.py}
+    B --> C[Extracts the core field elements]
+    C --> D[Preprocesses core field values]
+    D --> E[Concatenates core fields in alphabetical order]
+    E --> F[Resulting string is hashed]
+    F --> G[Check the id_map collection for potential collision]
+    G --> H[If collision:\nDon't load and add to output message]
+    G --> I[If no collision:\nAssign new ordinal ID in id_map collection]
+    I --> J[Assign new ordinal ID to record and load into MongoDB]
+```
+
+The core fields are defined as in the Biomarker-Partnership RFC (which can be found in [this](https://github.com/biomarker-ontology/biomarker-partnership) repository). 
+
+When loading data into the project, the core field values are extracted, cleaned, and concatenated. The resulting string is hashed and that hash value is checked for a potential collision in the MongoDB `id_map_collection`. If no collision is found, a new entry is added to the `id_map_collection` which stores a one to one map between a hash value and a a human readable ordinal ID. 
+
+Example: 
+```json 
+{
+    "<HASH_VALUE>": "<ORDINAL_ID>"
+}
 ```
