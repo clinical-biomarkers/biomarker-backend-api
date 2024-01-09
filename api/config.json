@@ -1,18 +1,18 @@
 {
     "project":"biomarker-api",
     "api_port":{
-        "prd":"8081",
-        "beta":"8881",
-        "tst":"8081",
-        "dev":"8081"
+        "prd":"8089",
+        "beta":"8889",
+        "tst":"8089",
+        "dev":"8089"
     },
     "data_path":"/data/shared/biomarkerdb/",
     "dbinfo":{
         "dbname":"biomarkerdb_api",
         "port":{ 
-            "prd":"7070",
+            "prd":"7071",
             "beta":"7770",
-            "tst":"6060",
+            "tst":"6061",
             "dev":"27017"
         },
         "bridge_network":"biomarker_api_backend_network",
