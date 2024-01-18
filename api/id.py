@@ -139,7 +139,7 @@ def add_hash_and_increment_ordinal(hash_value: str, core_values_str: str, dbh, i
         The newly assigned ordinal ID to be used as the human readable biomarker ID.
     '''
     # grab the current max ordinal ID
-    max_entry = dbh[id_collection].find_one(sort=[('ordinal_id', pymongo.DESCENDING)])['ordinal_id']
+    max_entry = dbh[id_collection].find_one(sort=[('ordinal_id', pymongo.DESCENDING)])
     max_ordinal_id = max_entry['ordinal_id'] if max_entry else 'AA0000'
 
     # increment the ordinal ID
