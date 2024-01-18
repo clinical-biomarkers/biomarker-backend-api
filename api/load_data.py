@@ -8,7 +8,7 @@ import logging
 
 BATCH_SIZE = 1000
 
-def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: str) -> str:
+def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: str) -> tuple:
     ''' Processes the data for the current data file and inserts into the database if applicable.
 
     Parameters
@@ -26,8 +26,8 @@ def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: st
     
     Returns
     -------
-    str
-        A message indicating the status of the insert operation.
+    tuple
+        The updated data with the new biomarker ids and a message indicating the status of the insert operation.
     '''
     bulk_ops = []
     output_messages = []
@@ -38,7 +38,7 @@ def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: st
         hash_value, core_values_str = generate_custom_id(document)
         # if there is a hash collision, don't add and add to output messages
         if check_collision(hash_value, dbh, id_collection):
-            output_message = f'Collision detected for record in:\n\tFile: {fp}:\n\tDocument: {document}\n\tCore Values Str: {core_values_str}.'
+            output_message = f'\nCollision detected for record in:\n\tFile: {fp}:\n\tDocument: {document}\n\tCore Values Str: {core_values_str}\n\tHash Value: {hash_value}\n'
             print(output_message)
             output_messages.append(output_message)
         else: 
@@ -59,7 +59,7 @@ def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: st
     if not output_messages:
         return f'Successfully inserted all data records for the file: {fp}.' 
     else:
-        return '\n'.join(output_messages)
+        return data, '\n'.join(output_messages)
 
 def setup_logging(log_path: str) -> None:
     ''' Configures the logger to write to a file.
@@ -144,8 +144,10 @@ def main():
     for fp in glob.glob(data_release_glob_pattern):
         with open(fp, 'r') as f:
             data = json.load(f)
-            output_message = process_data(data, dbh, db_collection, id_collection, fp)
+            updated_data, output_message = process_data(data, dbh, db_collection, id_collection, fp)
             logging.info(output_message)
+        with open(fp, 'w') as f:
+            json.dump(updated_data, f, indent = 4)
     
     logging.info(f'Finished loading data for server: {server} and data release version: {data_ver}. ---------------------')
 
