@@ -146,7 +146,7 @@ def main():
     dbh = client[db_name] 
 
     # setup logging in current directory
-    log_path = f'load_data_{server}.log'
+    log_path = f'./collision_reports/load_data_{server}.log'
     setup_logging(log_path)
     logging.info(f'Loading data for server: {server} and data release version: {data_ver}. #####################')
 
