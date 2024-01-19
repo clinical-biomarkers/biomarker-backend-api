@@ -10,3 +10,5 @@ build/
 *egg-info/
 test.py
 misc_documentation.md
+*.log 
+collision_reports/
