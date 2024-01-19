@@ -3,18 +3,14 @@ from flask_cors import CORS
 from flask_restx import Api
 from .dataset import api as dataset_api 
 from flask_pymongo import PyMongo
+import os
 
 def create_app():
 
     # create flask instance 
     app = Flask(__name__)
 
-    app.config['ENV'] = 'development'
-
-    if app.config['ENV'] == 'production':
-        app.config.from_pyfile('./config/config.py')
-    else:
-        app.config.from_pyfile('./config/config_dev.py')
+    app.config['MONGO_URI'] = os.getenv('MONGODB_CONNSTRING')
 
     CORS(app)
     mongo = PyMongo(app)
