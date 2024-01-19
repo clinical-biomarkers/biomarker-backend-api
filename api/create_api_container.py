@@ -58,6 +58,8 @@ def main():
     cmd_list = []
     # command to package the api 
     cmd_list.append('python setup.py bdist_wheel')
+    # if no python error, use this
+    # cmd_list.append('python3 setup.py bdist_wheel')
     # command to build a docker image from the dockerfile 
     cmd_list.append(f'docker build -t {api_image} .')
     
@@ -75,6 +77,8 @@ def main():
 
     def run_command(cmd):
         result = subprocess.run(cmd, shell = True, text = True, encoding = 'utf-8', errors = 'replace', capture_output = True)
+        # for python 3.6 and below
+        # result = subprocess.run(cmd, shell = True, universal_newlines = True, errors = 'replace', stdout = subprocess.PIPE, stderr = subprocess.PIPE)
         if result.returncode != 0:
             print(f'Command failed with error code {result.returncode}: {result.stderr}')
         else:
