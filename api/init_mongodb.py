@@ -50,11 +50,11 @@ def main():
     # establish the database connection and create the db user 
     try: 
         client = pymongo.MongoClient(host, 
-                                     username = admin_user,
-                                     password = admin_pass,
-                                     authSource = admin_db,
-                                     authMechanism = 'SCRAM-SHA-1',
-                                     serverSelectionTimeoutMS = 10000)
+                                    username = admin_user,
+                                    password = admin_pass,
+                                    authSource = admin_db,
+                                    authMechanism = 'SCRAM-SHA-1',
+                                    serverSelectionTimeoutMS = 10000)
         # test the connection 
         client.server_info() 
         # create db user 
