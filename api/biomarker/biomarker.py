@@ -1,7 +1,7 @@
 from flask_restx import Namespace, Resource
 from flask import current_app as app
 from flask import request
-from data_models import data_model
+from .data_models import data_model
 
 api = Namespace('biomarker', description = 'Biomarker operations API')
 
