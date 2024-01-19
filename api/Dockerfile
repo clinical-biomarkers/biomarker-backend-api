@@ -14,4 +14,4 @@ RUN pip install biomarker-1.0-py3-none-any.whl
 
 COPY . .
 
-ENTRYPOINT ["gunicorn", "-b", ":80", "biomarker:create_app()"]
+ENTRYPOINT FLASK_APP=biomarker gunicorn -b :80 'biomarker:create_app()' --timeout 120 --graceful-timeout 60
