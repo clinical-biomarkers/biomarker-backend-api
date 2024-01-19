@@ -18,7 +18,7 @@ class DatasetGetAll(Resource):
     def get(self):
         page = request.args.get('page', default = 1, type = int)
         per_page = request.args.get('per_page', default = 50, type = int)
-        data = app.mongo_db[get_collection_name()].find().skip((page - 1) * per_page).limit(per_page)
+        data = app.mongo_db[get_collection_name()].find({}, {'_id': 0}).skip((page - 1) * per_page).limit(per_page)
         return list(data)
 
 class DatasetRandomSample(Resource):
@@ -33,7 +33,10 @@ class DatasetRandomSample(Resource):
             sample_size = request.args.get('sample', default = 1, type = int)
         except ValueError:
             return {'message': 'Invalid sample size provided. Sample must be a positive integer.'}, 400
-        data = app.mongo_db[get_collection_name()].aggregate([{'$sample': {'size': sample_size}}])
+        data = app.mongo_db[get_collection_name()].aggregate([
+            {'$sample': {'size': sample_size}},
+            {'$project': {'_id': 0}}
+            ])
         return list(data)
 
 api.add_resource(DatasetGetAll, '/getall')
