@@ -51,14 +51,14 @@ specimen_model = api.model('Specimen', {
 })
 
 evidence_list_model = api.model('EvidenceList', {
-    fields.String(
+    'evidence': fields.String(
         required = True,
         description = 'The evidence.'
     )
 })
 
 tag_model = api.model('Tag', {
-    fields.String(
+    'tag': fields.String(
         required = True,
         description = 'The tag.'
     )
