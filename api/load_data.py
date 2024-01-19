@@ -6,6 +6,8 @@ import pymongo
 from id import *
 from optparse import OptionParser
 import logging 
+from datetime import datetime
+import copy
 
 BATCH_SIZE = 1000
 
@@ -33,29 +35,33 @@ def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: st
     bulk_ops = []
     output_messages = []
     collisions = {}
+    collision_count = 1 
     collision_report_filename = f'{os.path.splitext(os.path.split(fp)[1])[0]}_collisions.json'
     collision_report_path = f'./collision_reports/{collision_report_filename}'
 
     # iterate over entries in the data
-    for idx, document in enumerate(data):
+    for document in data:
         # generate hash value for data record 
         hash_value, core_values_str = generate_custom_id(document)
         # if there is a hash collision, don't add and add to output messages
         if check_collision(hash_value, dbh, id_collection):
             output_message = f'\nCollision detected for record in:\n\tFile: {fp}:\n\tDocument: {document}\n\tCore Values Str: {core_values_str}\n\tHash Value: {hash_value}\n'
-            collisions[idx] = {
+            collisions[collision_count] = {
+                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'file': fp,
                 'core_values_str': core_values_str,
                 'hash_value': hash_value,
                 'document': document
             }
+            collision_count += 1
             print(output_message)
             output_messages.append(output_message)
         else: 
             biomarker_id = add_hash_and_increment_ordinal(hash_value, core_values_str, dbh, id_collection)
             document['biomarker_id'] = biomarker_id
             # add insert operation to bulk operations list
-            bulk_ops.append(pymongo.InsertOne(document))
+            document_copy = copy.deepcopy(document)
+            bulk_ops.append(pymongo.InsertOne(document_copy))
         
         # if bulk operations list is full, execute the bulk write to avoid memory issues
         if len(bulk_ops) >= BATCH_SIZE:
@@ -65,8 +71,6 @@ def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: st
     # execute the remaining bulk operations
     if bulk_ops:
         dbh[db_collection].bulk_write(bulk_ops)
-    
-    print(data)
     
     if not output_messages:
         return data, f'Successfully inserted all data records with no collisions for the file: {fp}.' 
