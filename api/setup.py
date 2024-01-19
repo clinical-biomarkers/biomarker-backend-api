@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 def main():
 
-    setup(name = 'biomarkerkb',
+    setup(name = 'biomarker',
           version = '1.0',
           packages = find_packages(),
           include_package_data = True, 
