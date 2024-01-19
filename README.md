@@ -102,7 +102,7 @@ docker ps --all
 
 The first command will run the script. The `$SER` argument should be replaced with the server you are running on (dev, tst, beta, prd). The last command lists all docker containers. You should see the api container that the script created, in the format of `running_biomarkerkb_api_$SER` where `$SER` is the specified server. 
 
-API documentation can be found [here](https://github.com/biomarker-ontology/biomarkerkb-backend-datasetviewer/tree/main/api/biomarkerkb#endpoints).
+API documentation can be found [here](./api/biomarker/README.md).
 
 # Config File Definitions
 
