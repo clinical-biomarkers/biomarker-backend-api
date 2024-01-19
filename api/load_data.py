@@ -66,8 +66,10 @@ def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: st
     if bulk_ops:
         dbh[db_collection].bulk_write(bulk_ops)
     
+    print(data)
+    
     if not output_messages:
-        return f'Successfully inserted all data records with no collisions for the file: {fp}.' 
+        return data, f'Successfully inserted all data records with no collisions for the file: {fp}.' 
     else:
         with open(collision_report_path, 'w') as f:
             json.dump(collisions, f, indent = 4)
