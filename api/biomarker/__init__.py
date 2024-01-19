@@ -11,6 +11,7 @@ def create_app():
     app = Flask(__name__)
 
     app.config['MONGO_URI'] = os.getenv('MONGODB_CONNSTRING')
+    app.config['DB_COLLECTION'] = 'biomarker_collection'
 
     CORS(app)
     mongo = PyMongo(app)
