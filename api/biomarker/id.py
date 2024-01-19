@@ -3,7 +3,7 @@ from flask import current_app as app
 from flask import request
 from .data_models import data_model
 
-api = Namespace('biomarker', description = 'Biomarker operations API')
+api = Namespace('id', description = 'Get records by biomarker ID.')
 
 def get_collection_name():
     return app.config['DB_COLLECTION']

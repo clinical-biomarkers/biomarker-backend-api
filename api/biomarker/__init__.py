@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS 
 from flask_restx import Api
 from .dataset import api as dataset_api 
+from .id import api as id_api
 from pymongo import MongoClient
 import os
 
@@ -25,5 +26,6 @@ def create_app():
     # setup the api using the flask_restx library 
     api = Api(app, version = '1.0', title = 'Biomarker APIs', description = 'Biomarker Knowledgebase API')
     api.add_namespace(dataset_api)
+    api.add_namespace(id_api)
 
     return app
