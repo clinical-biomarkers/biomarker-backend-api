@@ -21,7 +21,7 @@ class Biomarker(Resource):
         if not biomarker_id:
             return {'message': 'No biomarker ID provided'}, 400
         try:
-            data = app.mongo.db[get_collection_name()].find_one({'biomarker_id': biomarker_id})
+            data = app.mongo_db[get_collection_name()].find_one({'biomarker_id': biomarker_id})
         except Exception as e:
             return {'message': 'Invalid biomarker ID provided'}, 400
         if not data:
