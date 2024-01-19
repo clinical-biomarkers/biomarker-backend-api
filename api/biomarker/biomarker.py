@@ -15,6 +15,7 @@ class Biomarker(Resource):
     @api.response(200, 'Success', data_model)
     @api.response(400, 'No biomarker ID provided')
     @api.response(404, 'Not Found')
+    @api.param('biomarker_id', 'The biomarker ID.', type = str, required = True)
     def get(self):
         biomarker_id = request.args.get('biomarker_id', default = None)
         if not biomarker_id:
