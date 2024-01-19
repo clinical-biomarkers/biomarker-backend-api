@@ -1,6 +1,7 @@
 import sys
 import json
 import glob
+import os
 import pymongo 
 from id import *
 from optparse import OptionParser
@@ -31,14 +32,23 @@ def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: st
     '''
     bulk_ops = []
     output_messages = []
+    collisions = {}
+    collision_report_filename = f'{os.path.splitext(os.path.split(fp)[1])[0]}_collisions.json'
+    collision_report_path = f'./collision_reports/{collision_report_filename}'
 
     # iterate over entries in the data
-    for document in data:
+    for idx, document in enumerate(data):
         # generate hash value for data record 
         hash_value, core_values_str = generate_custom_id(document)
         # if there is a hash collision, don't add and add to output messages
         if check_collision(hash_value, dbh, id_collection):
             output_message = f'\nCollision detected for record in:\n\tFile: {fp}:\n\tDocument: {document}\n\tCore Values Str: {core_values_str}\n\tHash Value: {hash_value}\n'
+            collisions[idx] = {
+                'file': fp,
+                'core_values_str': core_values_str,
+                'hash_value': hash_value,
+                'document': document
+            }
             print(output_message)
             output_messages.append(output_message)
         else: 
@@ -57,9 +67,11 @@ def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: st
         dbh[db_collection].bulk_write(bulk_ops)
     
     if not output_messages:
-        return f'Successfully inserted all data records for the file: {fp}.' 
+        return f'Successfully inserted all data records with no collisions for the file: {fp}.' 
     else:
-        return data, '\n'.join(output_messages)
+        with open(collision_report_path, 'w') as f:
+            json.dump(collisions, f, indent = 4)
+        return data, '\n'.join(output_messages) + f'\nWriting collision report to: {collision_report_path}.'
 
 def setup_logging(log_path: str) -> None:
     ''' Configures the logger to write to a file.
