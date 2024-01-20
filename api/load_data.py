@@ -83,11 +83,11 @@ def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: st
             print(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
             logging.error(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
     
+    with open(collision_report_path, 'w') as f:
+        json.dump(collisions, f, indent = 4)
     if not output_messages:
         return return_data, f'Successfully inserted all data records with no collisions for the file: {fp}.' 
     else:
-        with open(collision_report_path, 'w') as f:
-            json.dump(collisions, f, indent = 4)
         return return_data, '\n'.join(output_messages) + f'\nWriting collision report to: {collision_report_path}.'
 
 def process_prd_data(data: dict, dbh, db_collection: str, fp: str) -> str:
