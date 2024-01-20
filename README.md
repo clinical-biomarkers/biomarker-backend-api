@@ -126,7 +126,7 @@ python create_api_container.py -s $SER
 docker ps --all
 ```
 
-The first command will run the script. The `$SER` argument should be replaced with the server you are running on (dev, tst, beta, prd). The last command lists all docker containers. You should see the api container that the script created, in the format of `running_biomarkerkb_api_$SER` where `$SER` is the specified server. 
+The first command will run the script. The `$SER` argument should be replaced with the server you are running on (dev, tst, beta, prd). The last command lists all docker containers. You should see the api container that the script created, in the format of `running_biomarker-api_api_$SER` where `$SER` is the specified server. Start the docker container with the `docker start` command or create a service file as shown above (recommended).
 
 API documentation can be found [here](./api/biomarker/README.md).
 
