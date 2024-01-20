@@ -51,8 +51,8 @@ The first command will navigate you into the api directory. The second command w
 Expected output should look something like this:
 
 ```bash
-Found container: running_biomarker-api_mongo_dev
-Found network: biomarker-api_backend_network_dev
+Found container: running_biomarker-api_mongo_{SER}
+Found network: biomarker-api_backend_network_{SER}
 e6c50502da1b
 
 5e1146780c4fa96a6af6e4555cd119368e9907c4d50ad4790f9f5e54e13bf043
@@ -61,7 +61,31 @@ e6c50502da1b
 
 The first two print statements indicate that an old instance of the container and docker network were found. These will be removed by the script. The `e6c50502da1b` is the ID of the removed container. This indicates that the `docker rm -f ...` command executed successfully and removed the existing container. The second to last line is the ID of the newly created docker network. The last line is the ID of the newly created docker container. 
 
-Start the MongoDB container using the `docker start {container}` command. 
+Start the MongoDB container using the `docker start {container}` command or by creating a service file. The service file should be located at `/usr/lib/systemd/system/` and named something along the lines of `docker-biomarker-api-mongo-{SER}.service`. Place the following content in it: 
+
+```
+[Unit]
+Description=Biomarker Backend API MongoDB Container
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/docker start -a running_biomarker-api_mongo_$SER
+ExecStop=/usr/bin/docker stop -t 2 running_biomarker-api_mongo_$SER
+
+[Install]
+WantedBy=default.target
+```
+
+You can start/stop the container with the following commands:
+
+```
+$ sudo systemctl daemon-reload 
+$ sudo systemctl enable docker-biomarker-api-mongo-{SER}.service
+$ sudo systemctl start docker-biomarker-api-mongo-{SER}.service
+$ sudo systemctl stop docker-biomarker-api-mongo-{SER}.service
+```
 
 ## Initialize MongoDB User 
 
@@ -89,7 +113,9 @@ If testing on a local machine, you can test using code or a GUI option such as M
 mongodb://biomarkeradmin:biomarkerpass@localhost:27017/?authMechanism=SCRAM-SHA-1&authSource=biomarkerdb_api
 ```
 
-The `load_data.py` script will handle the biomarker ID assignment. More information about the under the hood implementation is available in the [ID Assignment System](#id-assignment-system) section. If any collisions are detected during the ID assignment process an output message will be printed indicating the file, document, core values string, and resulting hash value that caused the collision. In this case, the record is NOT added to the MongoDB instance. If no collision was found, the record will be added to the biomarker collection with the new ordinal ID assigned. In the case of no collision, the record has the `biomarker_id` value replaced and the updated JSON is written back out to overwrite the input file. 
+Running the `load_data.py` script on the tst server will handle the biomarker ID assignment. More information about the under the hood implementation is available in the [ID Assignment System](#id-assignment-system) section. If any collisions are detected during the ID assignment process an output message will be printed indicating the file, document, core values string, and resulting hash value that caused the collision. In this case, the record is NOT added to the MongoDB instance, removed from the dataset, and added to the collision report. If no collision was found, the record will be added to the biomarker collection with the new ordinal ID assigned. In the case of no collision, the record has the `biomarker_id` value replaced and the updated JSON is written back out to overwrite the input file. 
+
+Running the `load_data.py` script on the prd server will simply load the entries into MongoDB. The ID assignment process and collision checking is assumed to already have been completed on the tst server. 
 
 ## Creating and Starting Docker Container for the APIs 
 
@@ -100,7 +126,7 @@ python create_api_container.py -s $SER
 docker ps --all
 ```
 
-The first command will run the script. The `$SER` argument should be replaced with the server you are running on (dev, tst, beta, prd). The last command lists all docker containers. You should see the api container that the script created, in the format of `running_biomarkerkb_api_$SER` where `$SER` is the specified server. 
+The first command will run the script. The `$SER` argument should be replaced with the server you are running on (dev, tst, beta, prd). The last command lists all docker containers. You should see the api container that the script created, in the format of `running_biomarker-api_api_$SER` where `$SER` is the specified server. Start the docker container with the `docker start` command or create a service file as shown above (recommended).
 
 API documentation can be found [here](./api/biomarker/README.md).
 

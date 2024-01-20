@@ -3,6 +3,7 @@ import json
 import glob
 import os
 import pymongo 
+from pymongo.errors import DuplicateKeyError
 from id import *
 from optparse import OptionParser
 import logging 
@@ -38,6 +39,7 @@ def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: st
     collision_count = 1 
     collision_report_filename = f'{os.path.splitext(os.path.split(fp)[1])[0]}_collisions.json'
     collision_report_path = f'./collision_reports/{collision_report_filename}'
+    return_data = []
 
     # iterate over entries in the data
     for document in data:
@@ -59,25 +61,85 @@ def process_data(data: dict, dbh, db_collection: str, id_collection: str, fp: st
         else: 
             biomarker_id = add_hash_and_increment_ordinal(hash_value, core_values_str, dbh, id_collection)
             document['biomarker_id'] = biomarker_id
+            return_data.append(document)
             # add insert operation to bulk operations list
             document_copy = copy.deepcopy(document)
             bulk_ops.append(pymongo.InsertOne(document_copy))
         
         # if bulk operations list is full, execute the bulk write to avoid memory issues
-        if len(bulk_ops) >= BATCH_SIZE:
-            dbh[db_collection].bulk_write(bulk_ops)
-            bulk_ops = []
+        try:
+            if len(bulk_ops) >= BATCH_SIZE:
+                dbh[db_collection].bulk_write(bulk_ops, ordered = False)
+                bulk_ops = []
+        except DuplicateKeyError as e:
+            print(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
+            logging.error(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
     
     # execute the remaining bulk operations
     if bulk_ops:
-        dbh[db_collection].bulk_write(bulk_ops)
+        try:
+            dbh[db_collection].bulk_write(bulk_ops)
+        except DuplicateKeyError as e:
+            print(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
+            logging.error(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
+    
+    with open(collision_report_path, 'w') as f:
+        json.dump(collisions, f, indent = 4)
+    if not output_messages:
+        return return_data, f'Successfully inserted all data records with no collisions for the file: {fp}.' 
+    else:
+        return return_data, '\n'.join(output_messages) + f'\nWriting collision report to: {collision_report_path}.'
+
+def process_prd_data(data: dict, dbh, db_collection: str, fp: str) -> str:
+    ''' Inserts the data into the prd database.
+
+    Parameters
+    ----------
+    data: dict
+        The data to process.
+    dbh: pymongo.MongoClient
+        The database handle.
+    db_collection: str
+        The name of the collection to insert the data into.
+    fp: str
+        The filepath to the data file.
+    
+    Returns
+    -------
+    str
+        A message indicating the status of the insert operation.
+    '''
+    bulk_ops = []
+    output_messages = []
+
+    # iterate over entries in the data
+    for document in data:
+        # check that the document has a valid formatted biomarker id
+        if not validate_id_format(document['biomarker_id']):
+            output_message = f'\nInvalid biomarker id detected for record in:\n\tFile: {fp}:\n\tDocument: {document}\n'
+            print(output_message)
+            output_messages.append(output_message)
+        else:
+            bulk_ops.append(pymongo.InsertOne(document))
+            try:
+                if len(bulk_ops) >= BATCH_SIZE:
+                    dbh[db_collection].bulk_write(bulk_ops)
+                    bulk_ops = []
+            except DuplicateKeyError as e:
+                print(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
+                logging.error(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
+    
+    if bulk_ops:
+        try:
+            dbh[db_collection].bulk_write(bulk_ops)
+        except DuplicateKeyError as e:
+            print(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
+            logging.error(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
     
     if not output_messages:
-        return data, f'Successfully inserted all data records with no collisions for the file: {fp}.' 
+        return f'Successfully inserted all data records for the file: {fp}.'
     else:
-        with open(collision_report_path, 'w') as f:
-            json.dump(collisions, f, indent = 4)
-        return data, '\n'.join(output_messages) + f'\nWriting collision report to: {collision_report_path}.'
+        return '\n'.join(output_messages)
 
 def setup_logging(log_path: str) -> None:
     ''' Configures the logger to write to a file.
@@ -151,6 +213,11 @@ def main():
     # get the database handle 
     dbh = client[db_name] 
 
+    # create unique index on biomarker_id field
+    biomarker_id_index = 'biomarker_id_1'
+    if biomarker_id_index not in dbh[db_collection].index_information():
+        dbh[db_collection].create_index('biomarker_id', name = biomarker_id_index, unique = True)
+
     # setup logging in current directory
     log_path = f'./collision_reports/load_data_{server}.log'
     setup_logging(log_path)
@@ -159,13 +226,20 @@ def main():
     # glob pattern for JSON data model files 
     data_release_glob_pattern = f'{data_root_path}/releases/data/v-{data_ver}/datamodeldb/*.json'
     # process each file
-    for fp in glob.glob(data_release_glob_pattern):
-        with open(fp, 'r') as f:
-            data = json.load(f)
-            updated_data, output_message = process_data(data, dbh, db_collection, id_collection, fp)
-            logging.info(output_message)
-        with open(fp, 'w') as f:
-            json.dump(updated_data, f, indent = 4)
+    if server == 'tst':
+        for fp in glob.glob(data_release_glob_pattern):
+            with open(fp, 'r') as f:
+                data = json.load(f)
+                updated_data, output_message = process_data(data, dbh, db_collection, id_collection, fp)
+                logging.info(output_message)
+            with open(fp, 'w') as f:
+                json.dump(updated_data, f, indent = 4)
+    elif server == 'prd':
+        for fp in glob.glob(data_release_glob_pattern):
+            with open(fp, 'r') as f:
+                data = json.load(f)
+                output_message = process_prd_data(data, dbh, db_collection, fp)
+                logging.info(output_message)
     
     logging.info(f'Finished loading data for server: {server} and data release version: {data_ver}. ---------------------')
 

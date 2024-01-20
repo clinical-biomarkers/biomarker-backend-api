@@ -154,3 +154,21 @@ def add_hash_and_increment_ordinal(hash_value: str, core_values_str: str, dbh, i
     dbh[id_collection].insert_one({'hash_value': hash_value, 'ordinal_id': new_ordinal_id, 'core_values_str': core_values_str})
 
     return new_ordinal_id
+
+def validate_id_format(biomarker_id: str) -> bool:
+    ''' Validates the format of the biomarker ID for entering into prd database.
+
+    Parameters
+    ----------
+    biomarker_id: str
+        The biomarker ID to validate.
+    
+    Returns
+    -------
+    bool
+        True if the biomarker ID is valid, False otherwise.
+    '''
+    # validate that the biomarker id is formatted as XX####, where X is a letter and # is a number
+    if re.match(r'[A-Z]{2}\d{4}', biomarker_id) == None:
+        return False
+    return True
