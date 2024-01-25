@@ -1,50 +1,34 @@
 import sys
-from optparse import OptionParser
-import json 
+import argparse 
 import subprocess
+from misc_functions import load_json
 
 def main(): 
     
-    # defines the format of the command line prompt 
-    usage = 'python %prog [options]'
-    # option parser 
-    parser = OptionParser(usage)
-    # add new command line option, either -s or --server, which takes values of dev, tst, beta, or prd
-    # stores the server value in parser.server 
-    parser.add_option('-s', '--server', action = 'store', dest = 'server', help = 'dev/tst/beta/prd')
-    # parse the command line arguments
-    (options, _) = parser.parse_args()
-
-    # check the input arguments
-    if not options.server:
-        parser.print_help()
-        sys.exit(1)
-    if options.server not in {'dev', 'tst', 'beta', 'prd'}:
+    ### handle command line arguments
+    parser = argparse.ArgumentParser(
+        prog = 'create_mongodb_container.py',
+        usage = 'python load_data.py [options] server'
+    )
+    parser.add_argument('-s', '--server', help = 'tst/prd')
+    options = parser.parse_args()
+    if not options.server or options.server not in {'tst', 'prd'}:
         parser.print_help()
         sys.exit(1)
     server = options.server
 
-    # read in the config file 
-    with open('config.json', 'r') as f:
-        config_obj = json.load(f)
-    
-    # construct docker container names
+    ### get config info for docker container creation
+    config_obj = load_json('config.json')
     api_container_name = f"running_{config_obj['project']}_api_{server}"
     mongo_container_name = f"running_{config_obj['project']}_mongo_{server}"
-    # docker network name 
     mongo_network_name = f"{config_obj['dbinfo']['bridge_network']}_{server}"
-    
-    # mongo database port 
     mongo_port = config_obj['dbinfo']['port'][server]
-    # path to the data 
     data_path = config_obj['data_path']
-
-    # grab admin db username and password 
     username = config_obj['dbinfo']['admin']['user']
     password = config_obj['dbinfo']['admin']['password']
     e_params = f'-e MONGO_INITDB_ROOT_USERNAME={username} -e MONGO_INITDB_ROOT_PASSWORD={password}'
 
-    # command list
+    ### create and populate command list
     cmd_list = []
 
     # check if containers already exist (whether running or in a stopped state)
