@@ -1,12 +1,11 @@
 # Biomarker Backend API 
 
-Work in progress. 
-
 - [Server Requirements](#server-requirements)
 - [Getting Started](#getting-started)
     - [Clone the Repository](#clone-the-repository)
     - [Creating and Starting Docker Container for MongoDB](#creating-and-starting-docker-container-for-mongodb)
     - [Initialize MongoDB User](#initialize-mongodb-user)
+    - [Assign Biomarker IDs](#assign-biomarker-ids)
     - [Populate Database](#populate-database)
     - [Creating and Starting Docker Container for the APIs](#creating-and-starting-docker-container-for-the-apis)
 - [Config File Definitions](#config-file-definitions)
@@ -20,21 +19,13 @@ API documentation can be found [here](./api/biomarker/README.md).
 The following must be available on your server: 
 - wheel 
 - pymongo 
-- httpie 
-- jsonref
-- jsonschema
-- Node.js and npm 
 - docker 
 
 # Getting Started 
 
 ## Clone the Repository
 
-Clone the repository onto your host machine:
-
-```bash
-git clone https://github.com/biomarker-ontology/biomarkerkb-backend-datasetviewer.git
-```
+Clone the repository onto your host machine using `git clone`. 
 
 ## Creating and Starting Docker Container for MongoDB 
 
@@ -78,7 +69,7 @@ ExecStop=/usr/bin/docker stop -t 2 running_biomarker-api_mongo_$SER
 WantedBy=default.target
 ```
 
-You can start/stop the container with the following commands:
+This will ensure the container is automatically restarted in case of server reboot. You can start/stop the container with the following commands:
 
 ```
 $ sudo systemctl daemon-reload 
@@ -95,27 +86,27 @@ Stay in the `/api` subdirectory and run the `init_mongodb.py` script:
 python init_mongodb.py -s $SER
 ```
 
-Where the `$SER` argument is the specified server. This should only be run once. 
+Where the `$SER` argument is the specified server. This should only be run once on initial setup for each server. 
+
+## Assign Biomarker IDs 
+
+To assign biomarker IDs to your new data, run the `id_assign.py` script from the `/api` directory. This script can only be run from the `tst` server. More information about the under the hood implementation of the ID generation is available in the [ID Assignment System](#id-assignment-system) section. If no collision is found for the data entry, it gets assigned an ordinal ID to it's `biomarker_id` field. If a collision is found, the entry's `biomarker_id` field is prefixed with `COLLISION_` and it is added to the respective file's collision report JSON. The `id_map_collection` is also written out to a JSON file and will be loaded to the `prd` server when the `load_data.py` script is run on the production server. 
+
+```bash 
+python id_assign.py -s $SER
+```
 
 ## Populate Database 
 
-To load data, run the `load_data.py` script from the `/api` directory. 
+To load data, run the `load_data.py` script from the `/api` directory. You have to complete the ID assignment steps and handle collisions before this step can be completed. The data should be in the filepath `/data/shared/biomarkerdb/generated/datamodel/new_data/current` where `current/` is a symlink to the current version directory. 
 
 ```bash 
-python load_data.py -s $SER -v $VER
+python load_data.py -s $SER
 ```
 
-Where the `$SER` argument is the specified server and `$VER` is the filepath to the data release to load. 
+Where the `$SER` argument is the specified server. 
 
-If testing on a local machine, you can test using code or a GUI option such as MongoDB Compass. The connection string should look something along the lines of:
-
-```bash 
-mongodb://biomarkeradmin:biomarkerpass@localhost:27017/?authMechanism=SCRAM-SHA-1&authSource=biomarkerdb_api
-```
-
-Running the `load_data.py` script on the tst server will handle the biomarker ID assignment. More information about the under the hood implementation is available in the [ID Assignment System](#id-assignment-system) section. If any collisions are detected during the ID assignment process an output message will be printed indicating the file, document, core values string, and resulting hash value that caused the collision. In this case, the record is NOT added to the MongoDB instance, removed from the dataset, and added to the collision report. If no collision was found, the record will be added to the biomarker collection with the new ordinal ID assigned. In the case of no collision, the record has the `biomarker_id` value replaced and the updated JSON is written back out to overwrite the input file. 
-
-Running the `load_data.py` script on the prd server will simply load the entries into MongoDB. The ID assignment process and collision checking is assumed to already have been completed on the tst server. 
+The code will do some preliminary checks on the data that is to be loaded. It will make sure that each record has a valid formatted biomarker ID and that the biomarker ID does not already exist in the MongoDB collection. 
 
 ## Creating and Starting Docker Container for the APIs 
 
@@ -126,7 +117,7 @@ python create_api_container.py -s $SER
 docker ps --all
 ```
 
-The first command will run the script. The `$SER` argument should be replaced with the server you are running on (dev, tst, beta, prd). The last command lists all docker containers. You should see the api container that the script created, in the format of `running_biomarker-api_api_$SER` where `$SER` is the specified server. Start the docker container with the `docker start` command or create a service file as shown above (recommended).
+The first command will run the script. The `$SER` argument should be replaced with the server you are running on (tst, prd). The last command lists all docker containers. You should see the api container that the script created, in the format of `running_biomarker-api_api_$SER` where `$SER` is the specified server. Start the docker container with the `docker start` command or create a service file as shown above (recommended).
 
 API documentation can be found [here](./api/biomarker/README.md).
 
