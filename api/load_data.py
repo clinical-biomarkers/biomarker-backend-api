@@ -1,5 +1,4 @@
 import sys
-import json
 import glob
 import pymongo 
 from pymongo.errors import DuplicateKeyError
@@ -10,7 +9,7 @@ import logging
 
 BATCH_SIZE = 1000
 
-def preprocess_checks(data: dict | list, dbh, db_collection) -> bool:
+def preprocess_checks(data: dict | list, dbh, db_collection: str) -> bool:
     ''' Performs preprocessing checks on the data before .
 
     Parameters
@@ -114,7 +113,6 @@ def main():
     db_name = config_obj['dbinfo']['dbname']
     data_root_path = config_obj['data_path']
     db_collection = config_obj['dbinfo'][db_name]['collection']
-    id_collection = config_obj['dbinfo'][db_name]['id_collection']
     db_user = config_obj['dbinfo'][db_name]['user']
     db_pass = config_obj['dbinfo'][db_name]['password']
     # get the database handle
