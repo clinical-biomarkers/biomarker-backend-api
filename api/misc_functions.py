@@ -1,6 +1,8 @@
 import logging
+import os
 import json
 import pymongo
+import subprocess
 
 def load_json(filepath: str) -> dict | list:
     ''' Loads a JSON file.
@@ -104,3 +106,61 @@ def setup_logging(log_path: str) -> None:
     '''
     logging.basicConfig(filename = log_path, level = logging.DEBUG,
                         format = '%(asctime)s %(levelname)s %(message)s')
+
+def validate_filepath(filepath: str, mode: str) -> bool:
+    ''' Validates the filepaths for the user inputted source path and
+    the destination path. 
+
+    Parameters
+    ----------
+    filepath: str
+        Filepath to the source data dictionary file or the output path.
+    mode: str
+        Whether checking the output directory path or the input file. ('input' or 'output')
+    
+    Returns
+    -------
+    bool
+        True if the filepath is valid, False otherwise.
+    '''
+    
+    if mode == 'input':
+        if not os.path.isfile(filepath):
+            print(f'Error: The (input) file {filepath} does not exist.')
+            return False 
+    elif mode == 'output':
+        if not os.path.isdir(filepath):
+            print(f'Error: The (output) directory {filepath} does not exist.')
+            return False
+    else:
+        print(f'Error: Invalid mode {mode}.')
+        return False
+    return True
+
+def copy_file(src: str, dest: str) -> bool:
+    ''' Copies a file from src to dest.
+
+    Parameters
+    ----------
+    src: str
+        The source filepath.
+    dest: str
+        The destination filepath.
+    
+    Returns
+    -------
+    bool
+        True if the file was copied successfully, False otherwise.
+    '''
+    if not validate_filepath(src, 'input') or not validate_filepath(dest, 'output'):
+        return False
+    dest_file = os.path.join(dest, os.path.basename(src))
+    if os.path.exists(dest_file):
+        print(f'Error: File {dest_file} already exists.')
+        return False
+    try:
+        subprocess.run(['cp', src, dest], check = True)
+        return True
+    except subprocess.CalledProcessError as e:
+        print(e)
+        return False 

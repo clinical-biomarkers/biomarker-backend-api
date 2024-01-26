@@ -7,6 +7,7 @@
     - [Initialize MongoDB User](#initialize-mongodb-user)
     - [Assign Biomarker IDs](#assign-biomarker-ids)
     - [Populate Database](#populate-database)
+    - [Copy Files](#copy-files)
     - [Creating and Starting Docker Container for the APIs](#creating-and-starting-docker-container-for-the-apis)
 - [Config File Definitions](#config-file-definitions)
 - [Internal Backend Documentation](#internal-backend-documentation)
@@ -107,6 +108,14 @@ python load_data.py -s $SER
 Where the `$SER` argument is the specified server. 
 
 The code will do some preliminary checks on the data that is to be loaded. It will make sure that each record has a valid formatted biomarker ID and that the biomarker ID does not already exist in the MongoDB collection. 
+
+## Copy Files
+
+After the data has been properly ID assigned, collisions have been handled, and the `tst` and `prd` databases have been loaded, run the `copy_files.py` script to copy the files into the `existing_data` directory. This is the master directory which holds all the data files that have been loaded into the backend API. This must be run from the `tst` server.
+
+```bash 
+python copy_files.py -s tst
+```
 
 ## Creating and Starting Docker Container for the APIs 
 
