@@ -132,6 +132,9 @@ def main():
         parser.print_help()
         sys.exit(1)
     server = options.server
+    if server.lower() not in {'tst', 'prd'}:
+        print('Invalid server name.')
+        sys.exit(1)
 
     ### get config info
     config_obj = misc_fns.load_json('config.json')

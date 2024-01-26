@@ -101,7 +101,7 @@ def main():
         prog = 'id_assign.py',
         usage = 'python id_assign.py [options] server',
     )
-    parser.add_argument('-s', '--server', help = 'tst/prd')
+    parser.add_argument('-s', '--server', help = 'tst')
     options = parser.parse_args()
     if not options.server:
         parser.print_help()
@@ -109,6 +109,9 @@ def main():
     server = options.server
     if server.lower() == 'prd':
         print('Cannot run this script on prd server.')
+        sys.exit(1)
+    if server.lower() not in {'tst'}:
+        print('Invalid server name.')
         sys.exit(1)
 
     ### get config info for database connection
