@@ -99,19 +99,17 @@ def main():
     ### handle command line arguments
     parser = argparse.ArgumentParser(
         prog = 'id_assign.py',
-        usage = 'python id_assign.py [options] server ver',
+        usage = 'python id_assign.py [options] server',
     )
     parser.add_argument('-s', '--server', help = 'tst/prd')
-    parser.add_argument('-v', '--version', help = 'data release version')
     options = parser.parse_args()
-    if not options.server or not options.version:
+    if not options.server:
         parser.print_help()
         sys.exit(1)
     server = options.server
     if server.lower() == 'prd':
         print('Cannot run this script on prd server.')
         sys.exit(1)
-    data_ver = options.version
 
     ### get config info for database connection
     config_obj = misc_fns.load_json('config.json')
@@ -127,7 +125,7 @@ def main():
 
     ### setup logger
     misc_fns.setup_logging(f'./logs/id_assign.log')
-    logging.info(f'Loading data for data release version: {data_ver} #####################')
+    logging.info(f'Beginning ID assignment process #####################')
 
     ### setup first run hash_value index 
     misc_fns.setup_index(dbh, 'hash_value', id_collection, 'hash_value_1')
@@ -149,7 +147,7 @@ def main():
     if new_id_collection:
         update_local_id_collection(id_collection_local_path, new_id_collection)
         
-    logging.info('Finished loading data for data release version: {data_ver} #####################')
+    logging.info(f'Finished ID assignment process ---------------------')
         
 if __name__ == '__main__':
     main()
