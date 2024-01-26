@@ -9,32 +9,42 @@ from datetime import datetime
 from id import *
 import misc_functions as misc_fns
 
+# batch size for mongodb bulk write operations
 BATCH_SIZE = 1000
+# threshold for updating the local storage replica of the id_map_collection
+UPDATE_THRESHOLD = 800
 
-def process_data(data: dict | list, dbh, id_collection: str, filepath: str) -> list:
+def process_data(data: dict | list, dbh, id_collection: str, filepath: str) -> tuple:
     ''' Processes the data for ID assignments. 
 
     Parameters
     ----------
-    data: dict
+    data: dict or list
         The data to process.
     dbh: pymongo.MongoClient
         The database handle.
     id_collection: str
         The name of the collection to check for hash collisions.
+    id_collection_list: list
+        The local storage replicate of the id_map_collection.
     filepath: str
         The filepath to the data file.
     
     Returns
     -------
-    list
-        The updated data with the new biomarker ids. 
+    tuple
+        The updated data with the new biomarker ids and the new entries for the local storage replica of the id_map_collection. 
     '''
+    if not data:
+        logging.error(f'No data found for {filepath}.')
+        print(f'No data found for {filepath}.')
+
     return_data = []
     collision_count = 0
     collisions = {}
     collision_report_filename = f'{os.path.splitext(os.path.split(filepath)[1])[0]}_collisions.json'
     collision_report_path = f'./collision_reports/{collision_report_filename}'
+    new_id_entries = []
 
     for document in data:
         # generate hash value for data record
@@ -52,18 +62,37 @@ def process_data(data: dict | list, dbh, id_collection: str, filepath: str) -> l
             output_message = f'\nCollision detected for record in:\n\tFile: {filepath}:\n\tDocument: {document}\n\tCore Values Str: {core_values_str}\n\tHash Value: {hash_value}\n'
             logging.warning(output_message)
             print(output_message)
-            biomarker_id_collision_val = f"COLLISION_{document['biomarker_id']}"
+            biomarker_id_collision_val = f"COLLISION_{document.get('biomarker_id', '')}"
             document['biomarker_id'] = biomarker_id_collision_val
             return_data.append(document)
         # if no hash collision, add the hash value to the database and add the biomarker id to the document
         else:
             biomarker_id = add_hash_and_increment_ordinal(hash_value, core_values_str, dbh, id_collection)
             document['biomarker_id'] = biomarker_id
+            new_id_entries.append({
+                "hash_value": hash_value,
+                "ordinal_id": biomarker_id,
+                "core_values_str": core_values_str
+            })
             return_data.append(document)
         
     misc_fns.write_json(collision_report_path, collisions)
     logging.info(f'Finished assigning ID\'s for {filepath}, Collision count: {collision_count}.')
-    return return_data
+    return return_data, new_id_entries
+
+def update_local_id_collection(id_collection_local_path: str, new_id_data: list) -> None:
+    ''' Updates the local storage replica of the id_map_collection.
+
+    Parameters
+    ----------
+    id_collection_local_path: str
+        The filepath to the local storage replica of the id_map_collection.
+    new_id_data: list
+        The new entries to add to the local storage replica of the id_map_collection.
+    '''
+    existing_id_data = misc_fns.load_json(id_collection_local_path)
+    existing_id_data.extend(new_id_data)
+    misc_fns.write_json(id_collection_local_path, existing_id_data)
 
 def main():
 
@@ -105,11 +134,21 @@ def main():
 
     ### initiate id assignment logic 
     data_release_glob_pattern = f'{data_root_path}/generated/datamodel/new_data/current/*.json'
+    id_collection_local_path = f'{data_root_path}/generated/datamodel/id_collection.json'
+    new_id_collection = []
     for fp in glob.glob(data_release_glob_pattern):
         data = misc_fns.load_json(fp)
-        updated_data = process_data(data, dbh, id_collection, fp)
+        updated_data, new_id_entries = process_data(data, dbh, id_collection, fp)
         misc_fns.write_json(fp, updated_data)
+        # append new id entries to local storage replica of id_map_collection
+        new_id_collection.extend(new_id_entries)
+        if len(new_id_collection) >= UPDATE_THRESHOLD:
+            update_local_id_collection(id_collection_local_path, new_id_collection)
     
+    # write any leftover new id entries to local storage replica of id_map_collection
+    if new_id_collection:
+        update_local_id_collection(id_collection_local_path, new_id_collection)
+        
     logging.info('Finished loading data for data release version: {data_ver} #####################')
         
 if __name__ == '__main__':
