@@ -175,20 +175,21 @@ The high level workflow for the ID assignment system is as follows:
 
 ```mermaid
 flowchart TD
-    A[Data Release with JSON Data] --> B{load_data.py}
+    A[Data Release with JSON Data] --> B{id_assign.py}
     B --> C[Extracts the core field elements]
-    C --> D[Preprocesses core field values]
+    C --> D[Preprocesses/cleans core field values]
     D --> E[Concatenates core fields in alphabetical order]
     E --> F[Resulting string is hashed]
     F --> G[Check the id_map collection for potential collision]
-    G --> H[If collision:\nDon't load and add to output message]
-    G --> I[If no collision:\nAssign new ordinal ID in id_map collection]
-    I --> J[Assign new ordinal ID to record and load into MongoDB]
+    G --> H[If collision:\nMark as collision and add to collision report]
+    H --> K[Investigate collisions and handle accordingly]
+    G --> I[If no collision:\nMap and increment new ordinal ID mapped to hash value]
+    I --> J[Assign new ordinal ID to record]
 ```
 
 The core fields are defined as in the Biomarker-Partnership RFC (which can be found in [this](https://github.com/biomarker-ontology/biomarker-partnership) repository). 
 
-When loading data into the project, the core field values are extracted, cleaned, and concatenated. The resulting string is hashed and that hash value is checked for a potential collision in the MongoDB `id_map_collection`. If no collision is found, a new entry is added to the `id_map_collection` which stores the hash value and a a human readable ordinal ID. The core values string that generated the hash value is also stored with each entry for potential debugging purposes. 
+When loading data into the project, the core field values are extracted, cleaned, sorted, and concatenated. The resulting string is hashed and that hash value is checked for a potential collision in the MongoDB `id_map_collection`. If no collision is found, a new entry is added to the `id_map_collection` which stores the hash value and maps an incremented human readable ordinal ID. The core values string that generated the hash value is also stored with each entry for potential debugging purposes. 
 
 Example: 
 ```json 
@@ -200,3 +201,5 @@ Example:
 ```
 
 The ordinal ID format is two letters followed by four digits. The ID space goes from `AA0000` to `ZZ9999`.
+
+This hash system combined with a MongoDB unique field index allows for scalable and fast ID assignments. 
