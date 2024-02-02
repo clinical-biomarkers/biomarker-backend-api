@@ -124,11 +124,11 @@ def main():
     ### handle command line arguments
     parser = argparse.ArgumentParser(
         prog = 'load_data.py',
-        usage = 'python load_data.py [options] server ver'
+        usage = 'python load_data.py [options] server'
     )
     parser.add_argument('-s', '--server', help = 'tst/prd')
     options = parser.parse_args()
-    if not options.server or not options.ver:
+    if not options.server:
         parser.print_help()
         sys.exit(1)
     server = options.server
