@@ -42,8 +42,7 @@ def generate_custom_id(document: dict) -> tuple:
     
     # grab the core fields from the biomarker component
     for component in document['biomarker_component']:
-        core_values.append(component['biomarker'])
-        core_values.append(component['assessed_biomarker_entity']['recommended_name'])
+        core_values.append(_extract_change(component['biomarker']))
         core_values.append(component['assessed_biomarker_entity_id'])
     
     # grab top level core fields 
@@ -60,6 +59,21 @@ def generate_custom_id(document: dict) -> tuple:
 
     # generate the SHA-256 hash of the core values
     return hashlib.sha256(core_values_str.encode('utf-8')).hexdigest(), core_values_str
+
+def _extract_change(biomarker: str) -> str:
+    ''' Extracts the change from the biomarker string. For now, naive implementation (grabs first word).
+
+    Parameters
+    ----------
+    biomarker: str
+        The biomarker string to extract the change from.
+    
+    Returns
+    -------
+    str
+        The extracted change.
+    '''
+    return biomarker.split(' ')[0]
 
 def check_collision(hash_value: str, dbh, id_collection: str) -> bool:
     ''' Checks if the hash value already exists in the database. 
