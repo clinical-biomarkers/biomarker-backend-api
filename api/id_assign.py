@@ -14,7 +14,7 @@ BATCH_SIZE = 1000
 # threshold for updating the local storage replica of the id_map_collection
 UPDATE_THRESHOLD = 800
 
-def process_data(data: dict | list, dbh, id_collection: str, filepath: str) -> tuple:
+def process_data(data: list, dbh, id_collection: str, filepath: str) -> tuple:
     ''' Processes the data for ID assignments. 
 
     Parameters

@@ -9,7 +9,7 @@ import logging
 
 BATCH_SIZE = 1000
 
-def preprocess_checks(data: dict | list, dbh, db_collection: str) -> bool:
+def preprocess_checks(data: list, dbh, db_collection: str) -> bool:
     ''' Performs preprocessing checks on the data before .
 
     Parameters
@@ -35,7 +35,7 @@ def preprocess_checks(data: dict | list, dbh, db_collection: str) -> bool:
             return False
     return True
 
-def process_data(data: dict | list, dbh, db_collection: str, fp: str) -> bool:
+def process_data(data: list, dbh, db_collection: str, fp: str) -> bool:
     ''' Inserts the data into the prd database.
 
     Parameters

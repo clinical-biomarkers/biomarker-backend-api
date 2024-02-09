@@ -4,7 +4,7 @@ import json
 import pymongo
 import subprocess
 
-def load_json(filepath: str) -> dict | list:
+def load_json(filepath: str) -> list:
     ''' Loads a JSON file.
 
     Parameters
@@ -21,7 +21,7 @@ def load_json(filepath: str) -> dict | list:
         json_obj = json.load(f)
     return json_obj
 
-def write_json(filepath: str, data: dict | list) -> None:
+def write_json(filepath: str, data: list) -> None:
     ''' Writes a JSON file.
 
     Parameters
