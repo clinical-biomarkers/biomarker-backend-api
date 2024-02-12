@@ -4,10 +4,12 @@ import argparse
 import sys
 import glob 
 import pymongo
+import requests 
 from pymongo.errors import DuplicateKeyError
 from datetime import datetime
 from id import *
 import misc_functions as misc_fns
+import deepdiff as dd
 
 # batch size for mongodb bulk write operations
 BATCH_SIZE = 1000
@@ -46,35 +48,38 @@ def process_data(data: list, dbh, id_collection: str, filepath: str) -> tuple:
     collision_report_path = f'./collision_reports/{collision_report_filename}'
     new_id_entries = []
 
-    for document in data:
-        # generate hash value for data record
-        hash_value, core_values_str = generate_custom_id(document)
+    for idx, document in enumerate(data):
+        biomarker_id, hash_value, collision, core_values_str = id_assign(document, dbh, id_collection)
+        document['biomarker_id'] = biomarker_id
         # if there is a hash collision, handle appropriately 
-        if check_collision(hash_value, dbh, id_collection):
+        if collision:
+            existing_entry = get_record_by_id(biomarker_id, dbh, id_collection)
+            if existing_entry:
+                difference = dd.diff(existing_entry, document, ignore_order = True)
+            else:
+                difference = f'Existing entry not found for biomarker id {biomarker_id}.'
             collisions[collision_count + 1] = {
                 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'biomarker_id': biomarker_id,
+                'hash_value': hash_value,
                 'file': filepath,
                 'core_values_str': core_values_str,
-                'hash_value': hash_value,
-                'document': document
+                'difference': difference
             }
             collision_count += 1
-            output_message = f'\nCollision detected for record in:\n\tFile: {filepath}:\n\tDocument: {document}\n\tCore Values Str: {core_values_str}\n\tHash Value: {hash_value}\n'
+            output_message = f'\nCollision detected for record number {idx} on biomarker id {biomarker_id}:\n\tFile: {filepath}\n\tCore Values Str: {core_values_str}\n\tHash Value: {hash_value}\n'
             logging.warning(output_message)
             print(output_message)
-            biomarker_id_collision_val = f"COLLISION_{document.get('biomarker_id', '')}"
-            document['biomarker_id'] = biomarker_id_collision_val
-            return_data.append(document)
+            document['collision'] = 1
         # if no hash collision, add the hash value to the database and add the biomarker id to the document
         else:
-            biomarker_id = add_hash_and_increment_ordinal(hash_value, core_values_str, dbh, id_collection)
-            document['biomarker_id'] = biomarker_id
             new_id_entries.append({
                 "hash_value": hash_value,
                 "ordinal_id": biomarker_id,
                 "core_values_str": core_values_str
             })
-            return_data.append(document)
+            document['collision'] = 0
+        return_data.append(document)
         
     misc_fns.write_json(collision_report_path, collisions)
     logging.info(f'Finished assigning ID\'s for {filepath}, Collision count: {collision_count}.')
