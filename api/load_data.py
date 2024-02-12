@@ -9,7 +9,7 @@ import logging
 
 BATCH_SIZE = 1000
 
-def preprocess_checks(data: list, dbh, db_collection: str) -> bool:
+def preprocess_checks(data: list) -> bool:
     ''' Performs preprocessing checks on the data before .
 
     Parameters
@@ -30,12 +30,9 @@ def preprocess_checks(data: list, dbh, db_collection: str) -> bool:
         # check that the document has a valid formatted biomarker id
         if not validate_id_format(document['biomarker_id']):
             return False
-        # check for duplicate biomarker ids
-        if dbh[db_collection].find_one({'biomarker_id': document['biomarker_id']}):
-            return False
     return True
 
-def process_data(data: list, dbh, db_collection: str, fp: str) -> bool:
+def process_data(data: list, dbh, db_collection: str, collision_collection: str, fp: str) -> bool:
     ''' Inserts the data into the prd database.
 
     Parameters
@@ -46,6 +43,8 @@ def process_data(data: list, dbh, db_collection: str, fp: str) -> bool:
         The database handle.
     db_collection: str
         The name of the collection to insert the data into.
+    collision_collection: str
+        The name of the collection to insert the collision data into.
     fp: str
         The filepath to the data file.
     
@@ -54,39 +53,54 @@ def process_data(data: list, dbh, db_collection: str, fp: str) -> bool:
     bool
         True if data was loaded, False otherwise.
     '''
-    if not preprocess_checks(data, dbh, db_collection):
-        logging.error(f'Preprocessing checks failed for file: \'{fp}\'. Collisions should be handled before attempting to load the data.')
-        print(f'Preprocessing checks failed for file: \'{fp}\'. Collisions should be handled before attempting to load the data.')
+    if not preprocess_checks(data):
+        logging.error(f'Preprocessing checks failed for file: \'{fp}\'.')
+        print(f'Preprocessing checks failed for file: \'{fp}\'.')
         return False
 
     bulk_ops = []
+    collision_ops = []
 
-    for document in data:
-        bulk_ops.append(pymongo.InsertOne(document))
+    for idx, document in enumerate(data):
+        if 'collision' not in document: 
+            print(f'No collision key found for entry {idx} in file {fp}.')
+            logging.error(f'No collision key found for entry {idx} in file {fp}.')
+        collision_status = document.pop('collision')
+        if collision_status == 0:
+            bulk_ops.append(pymongo.InsertOne(document))
+        elif collision_status == 1:
+            collision_ops.append(pymongo.InsertOne(document))
         if len(bulk_ops) >= BATCH_SIZE:
             try:
-                dbh[db_collection].bulk_write(bulk_ops)
+                dbh[db_collection].bulk_write(bulk_ops, ordered = False)
                 bulk_ops = []
-            except DuplicateKeyError as e:
-                print(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
-                logging.error(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
-                return False
             except Exception as e:
-                print(f'\nError:\n\tFile: {fp}\n\tError: {e}.')
-                logging.error(f'\nError:\n\tFile: {fp}\n\tError: {e}.')
+                print(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
+                logging.error(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
                 return False 
+        if len(collision_ops) >= BATCH_SIZE:
+            try:
+                dbh[collision_collection].bulk_write(collision_ops, ordered = False)
+                collision_ops = []
+            except Exception as e:
+                print(f'\nError during collision ops write:\n\tFile: {fp}\n\tError: {e}.')
+                logging.error(f'\nError during collision ops write:\n\tFile: {fp}\n\tError: {e}.')
+                return False
     
     if bulk_ops:
         try:
-            dbh[db_collection].bulk_write(bulk_ops)
-        except DuplicateKeyError as e:
-            print(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
-            logging.error(f'\nDuplicate key error:\n\tFile: {fp}\n\tError: {e}.')
-            return False 
+            dbh[db_collection].bulk_write(bulk_ops, ordered = False)
         except Exception as e:
-            print(f'\nError:\n\tFile: {fp}\n\tError: {e}.')
-            logging.error(f'\nError:\n\tFile: {fp}\n\tError: {e}.')
+            print(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
+            logging.error(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
             return False 
+    if collision_ops:
+        try:
+            dbh[collision_collection].bulk_write(collision_ops, ordered = False)
+        except Exception as e:
+            print(f'\nError during collision ops write:\n\tFile: {fp}\n\tError: {e}.')
+            logging.error(f'\nError during collision ops write:\n\tFile: {fp}\n\tError: {e}.')
+            return False
     
     return True 
 
@@ -144,6 +158,7 @@ def main():
     data_root_path = config_obj['data_path']
     db_collection = config_obj['dbinfo'][db_name]['collection']
     id_collection = config_obj['dbinfo'][db_name]['id_collection']
+    collision_collection = config_obj['dbinfo'][db_name]['collision_collection']
     db_user = config_obj['dbinfo'][db_name]['user']
     db_pass = config_obj['dbinfo'][db_name]['password']
     # get the database handle
@@ -165,7 +180,7 @@ def main():
 
     for fp in glob.glob(data_release_glob_pattern):
         data = misc_fns.load_json(fp)
-        if process_data(data, dbh, db_collection, fp):
+        if process_data(data, dbh, db_collection, collision_collection, fp):
             logging.info(f'Successfully loaded data for file: {fp}.')
             print(f'Successfully loaded data for file: {fp}.')
         else:
