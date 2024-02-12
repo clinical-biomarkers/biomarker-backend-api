@@ -6,25 +6,56 @@ import hashlib
 import re
 import pymongo
 import logging 
+import misc_functions as misc_fns
 
-def clean_value(value: str) -> str:
-    ''' Cleans the passed value using regex. Removes all non-alphanumeric 
-    characters and makes the value lowercase.
+def id_assign(document: dict, dbh, id_collection: str = 'id_map_collection') -> tuple:
+    ''' Goes through the ID assign process for the passed document.
 
     Parameters
     ----------
-    value: str
-        The value to clean.
+    document: dict
+        The document to assign the ID for.
+    id_collection: str (default: 'id_map_collection')
+        The name of the collection to check for hash collisions.
     
     Returns
     -------
-    str
-        The cleaned value.
+    tuple: (str, str , bool, str)
+        The assigned biomarker ID, hash value, a collision boolean, and the core values string.
     '''
-    value = re.sub(r'[^a-zA-Z0-9]', '', value).lower()
-    return value 
+    # generate the hash value and core values string
+    hash_value, core_values_str = _generate_custom_id(document)
 
-def generate_custom_id(document: dict) -> tuple: 
+    # check if the hash value already exists in the database
+    collision_status = _check_collision(hash_value, dbh)
+    if collision_status:
+        ordinal_id  = _get_ordinal_id(hash_value, dbh)
+    else:
+        # add the hash value and incremented ordinal ID to the id collection
+        ordinal_id = _add_hash_and_increment_ordinal(hash_value, core_values_str, dbh, id_collection)
+    
+    return ordinal_id, hash_value, collision_status, core_values_str
+
+def get_record_by_id(biomarker_id: str, dbh, db_collection: str) -> dict:
+    ''' Gets the record by the biomarker ID.
+
+    Parameters
+    ----------
+    biomarker_id: str
+        The biomarker ID to get the record for.
+    dbh: pymongo.MongoClient
+        The database handle.
+    db_collection: str
+        The name of the collection to get the record from.
+    
+    Returns
+    -------
+    dict
+        The record for the biomarker ID.
+    '''
+    return dbh[db_collection].find_one({'biomarker_id': biomarker_id}, {'_id': 0})
+
+def _generate_custom_id(document: dict) -> tuple: 
     ''' Generates the custom hash ID for the document.
 
     Parameters
@@ -42,8 +73,7 @@ def generate_custom_id(document: dict) -> tuple:
     
     # grab the core fields from the biomarker component
     for component in document['biomarker_component']:
-        core_values.append(component['biomarker'])
-        core_values.append(component['assessed_biomarker_entity']['recommended_name'])
+        core_values.append(_extract_change(component['biomarker']))
         core_values.append(component['assessed_biomarker_entity_id'])
     
     # grab top level core fields 
@@ -53,7 +83,7 @@ def generate_custom_id(document: dict) -> tuple:
         core_values.append(document['exposure_agent']['exposure_agent_id'])
 
     # clean the core values 
-    core_values = [clean_value(v) for v in core_values] 
+    core_values = [misc_fns.clean_value(v) for v in core_values] 
     # inplace sort the core_values alphabetically
     core_values.sort()
     core_values_str = '_'.join(core_values)
@@ -61,7 +91,22 @@ def generate_custom_id(document: dict) -> tuple:
     # generate the SHA-256 hash of the core values
     return hashlib.sha256(core_values_str.encode('utf-8')).hexdigest(), core_values_str
 
-def check_collision(hash_value: str, dbh, id_collection: str) -> bool:
+def _extract_change(biomarker: str) -> str:
+    ''' Extracts the change from the biomarker string. For now, naive implementation (grabs first word).
+
+    Parameters
+    ----------
+    biomarker: str
+        The biomarker string to extract the change from.
+    
+    Returns
+    -------
+    str
+        The extracted change.
+    '''
+    return biomarker.split(' ')[0]
+
+def _check_collision(hash_value: str, dbh, id_collection: str = 'id_map_collection') -> bool:
     ''' Checks if the hash value already exists in the database. 
 
     Parameters
@@ -118,9 +163,28 @@ def _increment_ordinal_id(ordinal_id: str) -> str:
     
     return first_letter + second_letter + '0000'
 
-def add_hash_and_increment_ordinal(hash_value: str, core_values_str: str, dbh, id_collection: str) -> str:
-    ''' Adds the hash value and core values string to the id collection and assigns and incremented
-    ordinal ID.
+def _get_ordinal_id(hash_value: str, dbh, id_collection: str = 'id_map_collection') -> str:
+    ''' Gets the ordinal ID for the hash value.
+
+    Parameters
+    ----------
+    hash_value: str
+        The hash value to get the ordinal ID for.
+    dbh: pymongo.MongoClient
+        The database handle.
+    id_collection: str (default: 'id_map_collection')
+        The name of the collection to get the ordinal ID from.
+    
+    Returns
+    -------
+    str
+        The ordinal ID for the hash value.
+    '''
+    return dbh[id_collection].find_one({'hash_value': hash_value})['ordinal_id']
+
+def _add_hash_and_increment_ordinal(hash_value: str, core_values_str: str, dbh, id_collection: str = 'id_map_collection') -> str:
+    ''' For a new unique entry, the hash value and core values string to the id collection and assigns an 
+    incremented ordinal ID.
 
     Parameters
     ----------
@@ -130,7 +194,7 @@ def add_hash_and_increment_ordinal(hash_value: str, core_values_str: str, dbh, i
         The core values string to add.
     dbh: pymongo.MongoClient
         The database handle.
-    id_collection: str 
+    id_collection: str (default: 'id_map_collection')
         The name of the collection to add the hash value and core values string to.
     
     Returns
@@ -172,3 +236,5 @@ def validate_id_format(biomarker_id: str) -> bool:
     if re.match(r'[A-Z]{2}\d{4}', biomarker_id) == None:
         return False
     return True
+
+

@@ -5,3 +5,4 @@ pymongo==4.5.0
 flask_pymongo==2.3.0
 pytz==2022.1
 gunicorn==21.2.0
+deepdiff==6.7.1
