@@ -1,5 +1,6 @@
 import logging
 import os
+import re 
 import json
 import pymongo
 import subprocess
@@ -164,3 +165,20 @@ def copy_file(src: str, dest: str) -> bool:
     except subprocess.CalledProcessError as e:
         print(e)
         return False 
+
+def clean_value(value: str) -> str:
+    ''' Cleans the passed value using regex. Removes all non-alphanumeric 
+    characters and makes the value lowercase.
+
+    Parameters
+    ----------
+    value: str
+        The value to clean.
+    
+    Returns
+    -------
+    str
+        The cleaned value.
+    '''
+    value = re.sub(r'[^a-zA-Z0-9]', '', value).lower()
+    return value 
