@@ -42,7 +42,7 @@ class Biomarker(Resource):
     @api.response(200, 'Success', data_model)
     @api.response(400, 'Invalid biomarker ID provided')
     @api.response(404, 'Not Found')
-    @api.param('id', 'The biomarker ID', _in = 'path', type = str, required = True)
+    @api.param('biomarker_id', 'The biomarker ID', _in = 'path', type = str, required = True)
     def get(self, id):
         biomarker_id = id 
         try:
