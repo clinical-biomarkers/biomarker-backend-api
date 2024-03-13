@@ -182,3 +182,20 @@ def clean_value(value: str) -> str:
     '''
     value = re.sub(r'[^a-zA-Z0-9]', '', value).lower()
     return value 
+
+def get_user_confirmation() -> bool:
+    ''' Prompts the user for a confirmation or denial.
+
+    Returns
+    ----------
+    bool
+        Whether the user confirmed or denied.
+    '''
+    while True:
+        user_input = input('Continue? (y/n)').strip().lower()
+        if user_input == 'y':
+            return True
+        elif user_input == 'n':
+            return False
+        else:
+            print("Please enter 'y' for yes or 'n' for no.")
