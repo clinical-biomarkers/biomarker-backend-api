@@ -91,7 +91,7 @@ Where the `$SER` argument is the specified server. This should only be run once 
 
 ## Assign Biomarker IDs 
 
-To assign biomarker IDs to your new data, run the `id_assign.py` script from the `/api` directory. This script can only be run from the `tst` server. More information about the under the hood implementation of the ID generation is available in the [ID Assignment System](#id-assignment-system) section. If no collision is found for the data entry, it gets assigned an ordinal ID to it's `biomarker_id` field. If a collision is found, the entry's `biomarker_id` field is prefixed with `COLLISION_` and it is added to the respective file's collision report JSON. The `id_map_collection` is also written out to a JSON file and will be loaded to the `prd` server when the `load_data.py` script is run on the production server. 
+To assign biomarker IDs to your new data, run the `id_assign.py` script from the `/api` directory. This script can only be run from the `tst` server. More information about the under the hood implementation of the ID generation is available in the [ID Assignment System](#id-assignment-system) section. Whether or not a collision is found, the record will be assigned its corresponding `biomarker_id`. An additional key, `collision` is added to the record, with a value of `0` indicating no collision and `1` indicating a collision. This will be used during the data load process and removed. If a collision is found, an entry will be created for it in the file's corresponding collision report. 
 
 ```bash 
 python id_assign.py -s $SER
@@ -107,7 +107,7 @@ python load_data.py -s $SER
 
 Where the `$SER` argument is the specified server. 
 
-The code will do some preliminary checks on the data that is to be loaded. It will make sure that each record has a valid formatted biomarker ID and that the biomarker ID does not already exist in the MongoDB collection. 
+The code will do some preliminary checks on the data that is to be loaded. It will make sure that each record has a valid formatted biomarker ID. 
 
 ## Copy Files
 
