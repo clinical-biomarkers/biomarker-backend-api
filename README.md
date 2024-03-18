@@ -1,5 +1,7 @@
 # Biomarker Backend API 
 
+This repository handles creates the backend API for the Biomarker-Partnership and handles the ID assignment process.
+
 Usage Guides:
 - [Initial Server Setup](/docs/initial_setup.md)
 - [Biomarker ID Assignment Process](/docs/id_assign_process.md)

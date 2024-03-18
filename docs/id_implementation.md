@@ -180,7 +180,7 @@
 {
 	"biomarker_canonical_id": "<VALUE>",
 	"values": {
-		"cur_index": "{n}", // example: 2
+		"curr_index": "{n}", // example: 2
 		"existing_entries": [
 			{
 				"{condition_id}": "{biomarker_canonical_id}-1"
