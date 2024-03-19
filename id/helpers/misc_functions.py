@@ -44,7 +44,7 @@ def load_json(filepath: str) -> Union[dict, list]:
         sys.exit(1)
     return json_obj
 
-def write_json(filepath: str, data: list) -> None:
+def write_json(filepath: str, data: Union[list, dict]) -> None:
     ''' Writes a JSON file.
 
     Parameters
@@ -57,8 +57,8 @@ def write_json(filepath: str, data: list) -> None:
     with open(filepath, 'w') as f:
         json.dump(data, f, indent = 4)
 
-def get_mongo_handle(host: str, authSource: str, username: str, password: str, db_name: str = '', authMechanism: str = 'SCRAM-SHA-1', serverSelectionTimeoutMS: int = 10000) -> Union[Database, None]:
-    ''' Gets a MongoDB handle.
+def get_mongo_handle(host: str, authSource: str, username: str, password: str, db_name: str = '', authMechanism: str = 'SCRAM-SHA-1', serverSelectionTimeoutMS: int = 10000) -> Database:
+    ''' Gets a MongoDB handle. Will exit with status code 1 on error. 
 
     Parameters
     ----------
@@ -76,6 +76,11 @@ def get_mongo_handle(host: str, authSource: str, username: str, password: str, d
         The MongoDB authentication mechanism.
     serverSelectionTimeoutMS: int (default = 10000)
         The MongoDB server selection timeout in milliseconds.
+
+    Returns
+    -------
+    Database
+        The database handle. 
     '''
     if not db_name:
         db_name = authSource
@@ -89,11 +94,13 @@ def get_mongo_handle(host: str, authSource: str, username: str, password: str, d
         # test the connection
         client.server_info()
     except pymongo.errors.ServerSelectionTimeoutError as e:
-        print(e)
-        return None
+        logging.error(f'ServerSelectionTimeoutError retrieving database handle.\n{e}')
+        print(f'ServerSelectionTimeoutError retrieving database handle.\n{e}')
+        sys.exit(1)
     except Exception as e:
-        print(e)
-        return None
+        logging.error(f'Unexpected error retrieving database handle.\n{e}')
+        print(f'Unexpected error retrieving database handle.\n{e}')
+        sys.exit(1)
     
     return client[db_name]
 
