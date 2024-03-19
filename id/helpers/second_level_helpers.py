@@ -4,16 +4,19 @@ Public functions:
     get_second_level_id: The entry point for the second level ID assignment process.
 
 Private functions:
-
+    _assign_ordinal: Assigns the ordinal second level ID.
+    _get_ordinal_id: Gets the existing corresponding second level ID for the key.
+    _new_ordinal: Generates a new second level ID. 
+    _check_collision: Checks for a second level collision.
+    _get_existing_entries: Gets the existing entries array from a canonical ID record.
+    _get_canonical_map: Gets the canonical ID record.
+    _get_key: Gets the second level comparison key. 
 '''
 
 import logging
 import sys
-import pymongo
 from pymongo.database import Database
 from typing import Union
-import misc_functions as misc_fn
-import deepdiff as dd #type: ignore
 
 SECOND_DEFAULT = 'second_id_map_collection'
 
@@ -47,6 +50,7 @@ def get_second_level_id(canonical_id: str,
     if canonical_collision:
         collision_status = _check_collision(canonical_id, second_level_key, dbh, id_collection)
     second_level_id = _assign_ordinal(canonical_id, collision_status, second_level_key, dbh, id_collection)
+    return second_level_id, collision_status
 
 def _assign_ordinal(canonical_id: str, collision: bool, key: str, dbh: Database, id_collection: str = SECOND_DEFAULT) -> str:
     ''' Assigns the ordinal second level ID.
@@ -72,7 +76,7 @@ def _assign_ordinal(canonical_id: str, collision: bool, key: str, dbh: Database,
     if collision:
         second_level_id = _get_ordinal_id(canonical_id, key, dbh, id_collection)
         return second_level_id
-    second_level_id = _new_ordinal()
+    second_level_id = _new_ordinal(canonical_id, key, dbh, id_collection)
     return second_level_id
 
 def _get_ordinal_id(canonical_id: str, key: str, dbh: Database, id_collection: str = SECOND_DEFAULT) -> str:
@@ -147,9 +151,15 @@ def _new_ordinal(canonical_id: str, key: str, dbh: Database, id_collection: str 
         }
         dbh[id_collection].insert_one(new_entry)
     else:
-        curr_index = record_to_update['values']['curr_index']
-        second_level_id = f'{canonical_id}-{curr_index + 1}'
-        # TODO impelement update record and return 
+        new_index = record_to_update['values']['curr_index'] + 1
+        second_level_id = f'{canonical_id}-{new_index}'
+        dbh[id_collection].update_one(
+            {'biomarker_canonical_id': canonical_id},
+            {
+                '$set': {'values.curr_index': new_index},
+                '$push': {'values.existing_entries': {key: second_level_id}}
+            }
+        )
     return second_level_id
 
 def _check_collision(canonical_id: str, key: str, dbh: Database, id_collection: str = SECOND_DEFAULT) -> bool:
