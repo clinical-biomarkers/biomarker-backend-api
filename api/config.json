@@ -24,8 +24,9 @@
         "biomarkerdb_api":{
             "db":"biomarkerdb_api",
             "collection": "biomarker_collection",
-            "id_collection": "id_map_collection",
-            "collision_collection": "collision_collection",
+            "canonical_id_map": "canonical_id_map_collection",
+            "second_level_id_map": "second_id_map_collection",
+            "unreviewed_collection": "unreviewed_collection",
             "user":"biomarkeradmin",
             "password":"biomarkerpass"
         }
