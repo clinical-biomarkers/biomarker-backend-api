@@ -3,6 +3,7 @@
 Public functions:
     process_file_data: Processes the data objects for a file.
     get_record_by_id: Gets record(s) by the biomarker ID.
+    validate_id_format: Validates biomarker ID formats for preprocess checks.
 
 Private functions:
     _id_assign: Goes through the complete ID assign process for an incoming data record.
@@ -17,6 +18,9 @@ import second_level_helpers as second
 import datetime
 import misc_functions as misc_fn
 import deepdiff as dd # type: ignore
+import re
+import sys
+import subprocess
 
 CANONICAL_DEFAULT = canonical.CANONICAL_DEFAULT
 SECOND_DEFAULT = second.SECOND_DEFAULT
@@ -26,8 +30,6 @@ UNREVIEWED_DEFAULT = 'unreviewed_collection'
 def process_file_data(data: list,
                       dbh: Database,
                       filepath: str,
-                      canonical_id_local_path: str,
-                      second_id_local_path: str,
                       data_coll: str = DATA_DEFAULT,
                       unreviewed_coll: str = UNREVIEWED_DEFAULT,
                       can_id_coll: str = CANONICAL_DEFAULT,
@@ -43,10 +45,6 @@ def process_file_data(data: list,
         The database handle.
     filepath: str
         The filepath of the current file being processed.
-    canonical_id_local_path: str
-        The filepath to the local ID map. 
-    second_id_local_path: str 
-        The filepath to the local second level ID map.
     data_coll: str 
         The main data collection.
     unreviewed_coll: str
@@ -174,18 +172,6 @@ def _id_assign(document: dict, dbh: Database, canonical_id_coll: str = CANONICAL
     )
     return canonical_id, second_level_id, second_level_collision, hash_value, core_values_str
 
-def _update_local_id_maps(can_id_data: tuple[str, list], second_id_data: tuple[str, list]) -> None:
-    ''' Updates the local storage replica of the canonical and secondary level ID collections.
-
-    Parameters
-    ----------
-    can_id_data: tuple(str, list)
-        The local canonical ID data file path and the data itself to add.
-    second_id_data: tuple(str, list)
-        The local secondary ID data file path and the data itself to add.
-    '''
-    # TODO : determine where to do this, best approach might just be to add wholesale download and upload periodically. 
-    
 def get_record_by_id(biomarker_id: str, canonical_level: bool, dbh: Database, db_collection: str) -> Union[dict, None]:
     ''' Gets the record by the biomarker ID at the specified level.
 
@@ -208,3 +194,61 @@ def get_record_by_id(biomarker_id: str, canonical_level: bool, dbh: Database, db
     search_field = 'biomarker_canonical_id' if canonical_level else 'biomarker_id'
     record = dbh[db_collection].find_one({search_field: biomarker_id}, {'_id': 0})
     return record
+
+def validate_id_format(id: str, level: int) -> bool:
+    ''' Validates the format of the ID.
+
+    Parameters
+    ----------
+    id: str 
+        The ID to validate.
+    level: int
+        The level of the ID (0 for canonical, 1 for second level).
+
+    Returns
+    -------
+    bool
+        True for correct validation, False on failure to validate.
+    '''
+    if level == 0:
+        if re.match(r'[A-Z]{2}\d{4}', id) is None:
+            return False
+        return True
+    elif level == 1:
+        if re.match(r'[A-Z]{2}\d{4}-\d', id) is None:
+            return False
+        return True
+    else:
+        print(f'Invalid level value `{level}` passed to validate_id_format.')
+        return False
+
+def dump_id_collection(connection_string: str, save_path: str, collection: str) -> bool:
+    ''' Dumps the ID collections to disk to be used later for replication in the 
+    production database. Can only be run on the tst server.
+
+    Parameters
+    ----------
+    connection_string: str
+        Connection string for the MongoDB connection.
+    save_path: str
+        The filepath to the local ID map. 
+    collection: str
+        The collection to dump.
+
+    Returns
+    -------
+    bool
+        Indication if the collection was dumped successfully.
+    '''
+    command = [
+        'mongoexport',
+        '--uri', connection_string,
+        '--collection', collection,
+        '--out', save_path
+    ]
+    try:
+        subprocess.run(command, check = True)
+    except subprocess.CalledProcessError as e:
+        print(e)
+        return False
+    return True
