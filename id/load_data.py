@@ -1,13 +1,16 @@
-from json import load
+''' Script that handles the data load into the MongoDB instance.
+'''
+
+import subprocess
 import sys
 import os
 import glob
 import pymongo 
-from pymongo.errors import DuplicateKeyError
-import misc_functions as misc_fns
-from id import *
+from pymongo.database import Database
+from helpers import misc_functions as misc_fns
 import argparse
 import logging 
+from helpers import id_backend as id_backend
 
 BATCH_SIZE = 1000
 
@@ -18,37 +21,38 @@ def preprocess_checks(data: list) -> bool:
     ----------
     data: dict or list
         The data to check.
-    dbh: pymongo.MongoClient
-        The database handle.
-    db_collection: str
-        The name of the collection to check for duplicate collisions.
-    
+        
     Returns
     -------
     bool
         True if all checks pass, False otherwise.
     '''
     for document in data:
-        # check that the document has a valid formatted biomarker id
-        if not validate_id_format(document['biomarker_id']) or 'collision' not in document:
+        canonical_validation = id_backend.validate_id_format(document['biomarker_canonical_id'], 0)
+        second_level_validation = id_backend.validate_id_format(document['biomarker_id'], 1)
+        collisision_key_check = 'collision' in document
+        preprocess_conditions = (canonical_validation and second_level_validation and collisision_key_check)
+        if not preprocess_conditions:
             return False
     return True
 
-def process_data(data: list, dbh, db_collection: str, collision_collection: str, fp: str) -> bool:
+def process_data(data: list, dbh: Database, db_collection: str, collision_collection: str, fp: str, collision_full: bool) -> bool:
     ''' Inserts the data into the prd database.
 
     Parameters
     ----------
     data: dict or list
         The data to process.
-    dbh: pymongo.MongoClient
+    dbh: Database
         The database handle.
     db_collection: str
         The name of the collection to insert the data into.
     collision_collection: str
-        The name of the collection to insert the collision data into.
+        The name of the collection to insert the unreviewed data into.
     fp: str
         The filepath to the data file.
+    collision_full: bool
+        Whether to entirely load into the unreviewed collection.
     
     Returns
     -------
@@ -64,11 +68,23 @@ def process_data(data: list, dbh, db_collection: str, collision_collection: str,
     collision_ops = []
 
     for idx, document in enumerate(data):
+
         collision_status = document.pop('collision')
-        if collision_status == 0:
-            bulk_ops.append(pymongo.InsertOne(document))
+        if collision_status == 2:
+            logging.info(
+                f"Skipping index `{idx}` in file `{os.path.basename(fp)}` for hard collision\
+                \n\tbiomarker canonical ID: `{document['biomarker_canonical_id']}`\
+                \n\tbiomarker ID: `{document['biomarker_id']}`"
+            )
+            continue
+        elif collision_status == 0:
+            if collision_full:
+                collision_ops.append(pymongo.InsertOne(document))
+            else:
+                bulk_ops.append(pymongo.InsertOne(document))
         elif collision_status == 1:
             collision_ops.append(pymongo.InsertOne(document))
+
         if len(bulk_ops) >= BATCH_SIZE:
             try:
                 dbh[db_collection].bulk_write(bulk_ops, ordered = False)
@@ -103,82 +119,38 @@ def process_data(data: list, dbh, db_collection: str, collision_collection: str,
     
     return True 
 
-def unreviewed_process_data(data: list, dbh, collision_collection: str, fp: str) -> bool:
-    ''' Inserts the marked files directly into the unreviewed collection.
+def load_id_collection(connection_string: str, load_path: str, collection: str) -> bool:
+    ''' Loads the local ID collections into the prod database.
 
     Parameters
     ----------
-    data: list
-        The data to process.
-    dbh: pymongo.MongoClient
-        The database handle.
-    collision_collection: str
-        The name of the collision collection to load the data into.
-    fp: str
-        The filepath to the data file.
+    connection_string: str
+        Connection string for the MongoDB connection.
+    load_path: str
+        The filepath to the local ID map. 
+    collection: str
+        The collection to load into.
 
-    Returns 
+    Returns
     -------
     bool
-        True if data was loaded, False otherwise. 
+        Indication if the collection was loaded successfully.
     '''
-    if not preprocess_checks(data):
-        logging.error(f'Preprocessing checks failed for file: \'{fp}\'.')
-        print(f'Preprocessing checks failed for file: \'{fp}\'.')
-        return False
+    command = [
+        'mongoimport',
+        '--uri', connection_string,
+        '--collection', collection,
+        '--file', load_path,
+        '--mode', 'upsert'
+    ]
 
-    bulk_ops = []
-    for idx, document in enumerate(data):
-        _ = document.pop('collision')
-        bulk_ops.append(pymongo.InsertOne(document))
-        if len(bulk_ops) >= BATCH_SIZE:
-            try:
-                dbh[collision_collection].bulk_write(bulk_ops, ordered = False)
-                bulk_ops = []
-            except Exception as e:
-                print(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
-                logging.error(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
-                return False 
-    
-    if bulk_ops:
-        try:
-            dbh[collision_collection].bulk_write(bulk_ops, ordered = False)
-        except Exception as e:
-            print(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
-            logging.error(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
-            return False 
-
-    return True
-
-def load_id_collection(id_collection_data: list, dbh, id_collection: str) -> None:
-    ''' Loads the id_collection.json file into the prod database.
-
-    Parameters
-    ----------
-    id_collection_data: list
-        The data to load into the id_collection.
-    dbh: pymongo.MongoClient
-        The database handle.
-    id_collection: str
-        The name of the collection to insert the data into.
-    '''
-    if not id_collection_data:
-        logging.error(f'No data found for id_collection_data.')
-        print(f'No data found for id_collection_data.')
-        return
-    misc_fns.setup_index(dbh, 'hash_value', id_collection, 'hash_value_1') 
-    bulk_ops = [pymongo.InsertOne(document) for document in id_collection_data]
     try:
-        if bulk_ops:
-            dbh[id_collection].bulk_write(bulk_ops, ordered = False)
-            logging.info(f'Successfully loaded id_collection_data.')
-            print(f'Successfully loaded id_collection_data.')
-    except DuplicateKeyError as e:
-        pass
-    except Exception as e:
-        logging.error(f'Error loading id_collection_data into prod database: {e}.') 
-        print(f'Error loading id_collection_data into prod database: {e}.')
-
+        subprocess.run(command, check = True)
+    except subprocess.CalledProcessError as e:
+        print(e)
+        return False
+    return True
+    
 def main(): 
     
     ### handle command line arguments
@@ -198,16 +170,19 @@ def main():
 
     ### get config info
     config_obj = misc_fns.load_json('config.json')
+    if not isinstance(config_obj, dict):
+        print(f"Error reading config JSON, expected type `dict`, got {type(config_obj)}.")
+        sys.exit(1)
     mongo_port = config_obj['dbinfo']['port'][server]
     host = f'mongodb://127.0.0.1:{mongo_port}'
     db_name = config_obj['dbinfo']['dbname']
-    data_root_path = config_obj['data_path']
-    db_collection = config_obj['dbinfo'][db_name]['collection']
-    id_collection = config_obj['dbinfo'][db_name]['id_collection']
-    collision_collection = config_obj['dbinfo'][db_name]['collision_collection']
     db_user = config_obj['dbinfo'][db_name]['user']
     db_pass = config_obj['dbinfo'][db_name]['password']
-    # get the database handle
+    data_root_path = config_obj['data_path']
+    canonical_id_collection = config_obj['dbinfo'][db_name]['canonical_id_map']
+    second_level_id_collection = config_obj['dbinfo'][db_name]['second_level_id_map']
+    data_collection = config_obj['dbinfo'][db_name]['collection']
+    unreviewed_collection = config_obj['dbinfo'][db_name]['unreviewed_collection']
     dbh = misc_fns.get_mongo_handle(host, db_name, db_user, db_pass)
 
     ### setup logger
@@ -215,44 +190,57 @@ def main():
     logging.info(f'Loading data for server: {server}. #####################')
 
     ### setup first run biomarker_id index 
-    misc_fns.setup_index(dbh, 'biomarker_id', db_collection, 'biomarker_id_1')
+    misc_fns.setup_index(dbh, 'biomarker_canonical_id', data_collection, 'biomarker_canonical_id_1')
 
     ### load the load map
     load_map = misc_fns.load_json(f'{data_root_path}/generated/datamodel/new_data/current/load_map.json')
-    unreviewed_string = 'The following files are marked to be loaded into the unreviewed collection:'    
-    if len(load_map['unreviewed']) > 0:
-        for file in load_map['unreviewed']:
-            unreviewed_string += f'\n\t{file}'
-    else:
-        unreviewed_string = 'All files are set to be loaded into the reviewed collection barring individual record collision.'
-    print(unreviewed_string)
-    if not misc_fns.get_user_confirmation():
-        print('Exiting...')
-        sys.exit(0)
+    if not isinstance(load_map, dict):
+        print(f"Error reading load map JSON, expected type `dict`, got {type(load_map)}.")
+        sys.exit(1)
     
     ### begin processing data 
     data_release_glob_pattern = f'{data_root_path}/generated/datamodel/new_data/current/*.json'
+    total_files = glob.glob(data_release_glob_pattern)
+    _, unreviewed_files = misc_fns.load_map_confirmation(load_map, total_files)
+
     # if running on prd server, load the id_collection.json file
     if server == 'prd':
-        id_collection_json_path = f'{data_root_path}/generated/datamodel/id_collection.json'
-        load_id_collection(misc_fns.load_json(id_collection_json_path), dbh, id_collection)
+        canonical_id_collection_local_path = f'{data_root_path}/generated/datamodel/canonical_id_collection.json'
+        second_level_id_collection_local_path = f'{data_root_path}/generated/datamodel/second_level_id_collection.json'
+        connection_string = misc_fns.create_connection_string(host, db_user, db_pass, db_name)
+        if load_id_collection(connection_string, canonical_id_collection_local_path, canonical_id_collection):
+            print('Successfully loaded canonical ID map into prod database.')
+        else:
+            print('Failed loading canonical ID map into prod database. You will have to update manually.')
+        if load_id_collection(connection_string, second_level_id_collection_local_path, second_level_id_collection):
+            print('Successfully loaded secondary ID map into prod database.')
+        else:
+            print('Failed loading secondary ID map into prod database. You will have to update manually.')
 
     for fp in glob.glob(data_release_glob_pattern):
+
         data = misc_fns.load_json(fp)
-        if os.path.basename(fp) in load_map['unreviewed']:
-            if unreviewed_process_data(data, dbh, collision_collection, fp):
-                logging.info(f'Successfully loaded data into unreviewed collection for file: {fp}.')
-                print(f'Successfully loaded data into unreviewed collection for file: {fp}.')
-            else:
-                logging.error(f'Failed to load data for file: {fp}.')
-                print(f'Failed to load data for file: {fp}.')
+        if not isinstance(data, list):
+            print(f'Error reading data file `{fp}`, expected list, got `{type(data)}`. Skipping...')
+            continue
+
+        if os.path.basename(fp) in unreviewed_files:
+            collision_full = True
         else:
-            if process_data(data, dbh, db_collection, collision_collection, fp):
-                logging.info(f'Successfully loaded data for file: {fp}.')
-                print(f'Successfully loaded data for file: {fp}.')
+            collision_full = False
+        
+        if process_data(data, dbh, data_collection, unreviewed_collection, fp, collision_full):
+            if collision_full:
+                output = f'Successfully loaded data into unreviewed collection for file: {fp}.'
             else:
-                logging.error(f'Failed to load data for file: {fp}.')
-                print(f'Failed to load data for file: {fp}.')
+                output = f'Successfully loaded data into reviewed collection for file: {fp}.'
+        else:
+            if collision_full:
+                output = f'Failed to load data entirely into unreviewed collection for file: {fp}.'
+            else:
+                output = f'Failed to load data entirely into reviewed collection for file: {fp}.'
+        logging.error(output)
+        print(output)
 
     logging.info(f'Finished loading data for server: {server}. ---------------------')
 
