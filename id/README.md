@@ -6,6 +6,8 @@ This guide walks you through how to assign new, incoming data to their correspon
 - [Populate the Database](#populate-the-database)
 - [Copy Files](#copy-files)
 
+Prerequisites: Make sure to activate (and build) the python virtual environment before running the ID process. For instructions, you can refer to [this guide](https://github.com/clinical-biomarkers/biomarker-partnership/blob/main/supplementary_files/documentation/virtual_env.md).
+
 ## Assign Biomarker IDs 
 
 To assign biomarker IDs to your new data, run the `id_assign.py` script from the `/id` directory. This script can only be run from the `tst` server. More information about the under the hood implementation of the ID generation is available in the [ID Implementation Documentation](/docs/id_implementation.md) readme. 
