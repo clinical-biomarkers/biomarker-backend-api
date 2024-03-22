@@ -51,8 +51,10 @@ def main():
 
     ### initiate id assignment logic 
     data_release_glob_pattern = f'{data_root_path}/generated/datamodel/new_data/current/*.json'
+    files = glob.glob(data_release_glob_pattern)
+    files.sort()
 
-    for fp in glob.glob(data_release_glob_pattern):
+    for fp in files:
         data = misc_fns.load_json(fp)
         if not isinstance(data, list):
             logging.error(f"Error reading data from file `{fp}`, expected `list`, got `{type(data)}`.")
