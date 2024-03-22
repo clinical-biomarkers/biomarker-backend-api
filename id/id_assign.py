@@ -25,6 +25,9 @@ def main():
         print('Invalid server name.')
         sys.exit(1)
 
+    misc_fns.setup_logging('./logs/id_assign.log')
+    logging.info('Beginning ID assignment process #####################')
+
     ### get config info for database connection
     config_obj = misc_fns.load_json('../api/config.json')
     if not isinstance(config_obj, dict):
@@ -41,10 +44,6 @@ def main():
     data_collection = config_obj['dbinfo'][db_name]['collection']
     unreviewed_collection = config_obj['dbinfo'][db_name]['unreviewed_collection']
     dbh = misc_fns.get_mongo_handle(host, db_name, db_user, db_pass)
-
-    ### setup logger
-    misc_fns.setup_logging('./logs/id_assign.log')
-    logging.info('Beginning ID assignment process #####################')
 
     ### setup first run hash_value index 
     misc_fns.setup_index(dbh, 'hash_value', canonical_id_collection, 'hash_value_1')
