@@ -112,7 +112,7 @@ def process_file_data(data: list,
                 }
                 collisions[_dict_key]['unreviewed_collisions'] = unreviewed_object if unreviewed_object else []
                 output_message = f'HARD collision detected for record number `{idx}` on IDs'
-                output_message += '`{canonical_id}`, `{second_level_id}` in file `{filepath}`.'
+                output_message += f'`{canonical_id}`, `{second_level_id}` in file `{filepath}`.'
                 document['collision'] = 2
             # soft collision 
             else: 
@@ -125,7 +125,7 @@ def process_file_data(data: list,
                 }
                 collisions[_dict_key]['unreviewed_collisions'] = unreviewed_object if unreviewed_object else []
                 output_message = f'STANDARD collision detected for record number `{idx}` on IDs '
-                output_message += '`{canonical_id}`, `{second_level_id}` in file `{filepath}`.'
+                output_message += f'`{canonical_id}`, `{second_level_id}` in file `{filepath}`.'
                 document['collision'] = 1
 
             logging.warning(output_message)
