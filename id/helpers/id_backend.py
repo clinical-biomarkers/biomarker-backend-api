@@ -13,13 +13,12 @@ from pymongo.database import Database
 from typing import Union
 import os
 import logging
-import canonical_helpers as canonical
-import second_level_helpers as second
+from . import canonical_helpers as canonical
+from . import second_level_helpers as second
 import datetime
-import misc_functions as misc_fn
+from . import misc_functions as misc_fn
 import deepdiff as dd # type: ignore
 import re
-import sys
 import subprocess
 
 CANONICAL_DEFAULT = canonical.CANONICAL_DEFAULT

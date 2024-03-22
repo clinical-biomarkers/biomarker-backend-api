@@ -17,7 +17,7 @@ import logging
 import hashlib
 import sys
 import pymongo
-import misc_functions as misc_fn
+from . import misc_functions as misc_fn
 from pymongo.database import Database
 
 CANONICAL_DEFAULT = 'canonical_id_map_collection'
