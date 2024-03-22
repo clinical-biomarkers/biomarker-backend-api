@@ -93,10 +93,10 @@ def process_file_data(data: list,
                 'hash_value': hash_value,
                 'core_values_str': core_str
             }
-            reviewed_difference = dd.DeepDiff(document, existing_record, ignore_order = True)
+            reviewed_difference = dd.DeepDiff(document, existing_record, ignore_order = True).to_json()
             unreviewed_object = None
             if existing_unreviewed_records is not None:
-                unreviewed_differences = [dd.DeepDiff(document, i) for i in existing_unreviewed_records]
+                unreviewed_differences = [dd.DeepDiff(document, i).to_json() for i in existing_unreviewed_records]
                 unreviewed_object = [
                     {f'collision_{idx}': v} for idx, v in enumerate(unreviewed_differences)
                 ]
@@ -111,8 +111,8 @@ def process_file_data(data: list,
                     'reviewed_difference': reviewed_difference
                 }
                 collisions[_dict_key]['unreviewed_collisions'] = unreviewed_object if unreviewed_object else []
-                output_message = f'HARD collision detected for record number `{idx}` on IDs\
-                    `{canonical_id}`, `{second_level_id}` in file `{filepath}`.'
+                output_message = f'HARD collision detected for record number `{idx}` on IDs'
+                output_message += '`{canonical_id}`, `{second_level_id}` in file `{filepath}`.'
                 document['collision'] = 2
             # soft collision 
             else: 
@@ -124,8 +124,8 @@ def process_file_data(data: list,
                     'reviewed_difference': reviewed_difference
                 }
                 collisions[_dict_key]['unreviewed_collisions'] = unreviewed_object if unreviewed_object else []
-                output_message = f'STANDARD collision detected for record number `{idx}` on IDs\
-                    `{canonical_id}`, `{second_level_id}` in file `{filepath}`.'
+                output_message = f'STANDARD collision detected for record number `{idx}` on IDs '
+                output_message += '`{canonical_id}`, `{second_level_id}` in file `{filepath}`.'
                 document['collision'] = 1
 
             logging.warning(output_message)
