@@ -249,6 +249,10 @@ def dump_id_collection(connection_string: str, save_path: str, collection: str) 
     try:
         subprocess.run(command, check = True)
     except subprocess.CalledProcessError as e:
+        print('Args passed:')
+        print(f'Connection string: {connection_string}')
+        print(f'Save path: {save_path}')
+        print(f'Collection: {collection}')
         print(e)
         return False
     return True
