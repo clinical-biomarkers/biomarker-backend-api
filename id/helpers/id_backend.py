@@ -19,6 +19,7 @@ import datetime
 from . import misc_functions as misc_fn
 import deepdiff as dd # type: ignore
 import re
+import json
 import subprocess
 
 CANONICAL_DEFAULT = canonical.CANONICAL_DEFAULT
@@ -98,7 +99,7 @@ def process_file_data(data: list,
             if existing_unreviewed_records is not None:
                 unreviewed_differences = [dd.DeepDiff(document, i).to_json() for i in existing_unreviewed_records]
                 unreviewed_object = [
-                    {f'collision_{idx}': v} for idx, v in enumerate(unreviewed_differences)
+                    {f'collision_{idx}': json.loads(v)} for idx, v in enumerate(unreviewed_differences)
                 ]
 
             # hard collision
@@ -108,7 +109,7 @@ def process_file_data(data: list,
                 collisions[_dict_key] = base_collision_obj
                 collisions[_dict_key]['reviewed_collision_info'] = {
                     'collision_type': 'hard',
-                    'reviewed_difference': reviewed_difference
+                    'reviewed_difference': json.loads(reviewed_difference)
                 }
                 collisions[_dict_key]['unreviewed_collisions'] = unreviewed_object if unreviewed_object else []
                 output_message = f'HARD collision detected for record number `{idx}` on IDs'
@@ -121,7 +122,7 @@ def process_file_data(data: list,
                 collisions[_dict_key] = base_collision_obj
                 collisions[_dict_key]['reviewed_collision_info'] = {
                     'collision_type': 'soft',
-                    'reviewed_difference': reviewed_difference
+                    'reviewed_difference': json.loads(reviewed_difference)
                 }
                 collisions[_dict_key]['unreviewed_collisions'] = unreviewed_object if unreviewed_object else []
                 output_message = f'STANDARD collision detected for record number `{idx}` on IDs '
