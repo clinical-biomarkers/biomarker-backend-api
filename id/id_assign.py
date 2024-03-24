@@ -55,6 +55,8 @@ def main():
     files.sort()
 
     for fp in files:
+        if fp == f'{data_root_path}/generated/datamodel/new_data/current/load_map.json':
+            continue
         data = misc_fns.load_json(fp)
         if not isinstance(data, list):
             logging.error(f"Error reading data from file `{fp}`, expected `list`, got `{type(data)}`.")

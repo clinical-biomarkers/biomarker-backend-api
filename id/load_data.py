@@ -222,7 +222,8 @@ def main():
             print('Failed loading secondary ID map into prod database. You will have to update manually.')
 
     for fp in glob.glob(data_release_glob_pattern):
-
+        if fp == f'{data_root_path}/generated/datamodel/new_data/current/load_map.json':
+            continue
         data = misc_fns.load_json(fp)
         if not isinstance(data, list):
             print(f'Error reading data file `{fp}`, expected list, got `{type(data)}`. Skipping...')
