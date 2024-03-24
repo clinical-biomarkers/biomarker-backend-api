@@ -173,7 +173,7 @@ def main():
         sys.exit(1)
 
     ### get config info
-    config_obj = misc_fns.load_json('config.json')
+    config_obj = misc_fns.load_json('../api/config.json')
     if not isinstance(config_obj, dict):
         print(f"Error reading config JSON, expected type `dict`, got {type(config_obj)}.")
         sys.exit(1)
