@@ -7,6 +7,7 @@ import os
 import glob
 import pymongo 
 from pymongo.database import Database
+from pymongo.errors import BulkWriteError
 from helpers import misc_functions as misc_fns
 import argparse
 import logging 
@@ -36,7 +37,25 @@ def preprocess_checks(data: list) -> bool:
             return False
     return True
 
-def process_data(data: list, dbh: Database, db_collection: str, collision_collection: str, fp: str, collision_full: bool) -> bool:
+def process_bulk_operations(dbh: Database, db_collection: str, bulk_ops: list, fp: str) -> bool:
+    '''
+
+    '''
+    try:
+        dbh[db_collection].bulk_write(bulk_ops, ordered = False)
+        return True
+    except BulkWriteError as e:
+        error_details = e.details
+        if 'writeErrors' in error_details:
+            for error in error_details['writeErrors']:
+                logging.error(f"\nError in operation {error['op']} (in file {fp}):\n\tError: {error['errmsg']}.")
+        return False
+    except Exception as e:
+        logging.error(f'\nUnexpected error during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
+        return False
+
+
+def process_data(data: list, dbh: Database, db_collection: str, collision_collection: str, fp: str, collision_full: bool) -> int:
     ''' Inserts the data into the prd database.
 
     Parameters
@@ -56,15 +75,16 @@ def process_data(data: list, dbh: Database, db_collection: str, collision_collec
     
     Returns
     -------
-    bool
-        True if data was loaded, False otherwise.
+    int
+        0 if completed successfully, 1 if partial success, and 2 if full failure.
     '''
     if not preprocess_checks(data):
         logging.error(f'Preprocessing checks failed for file: \'{fp}\'.')
         print(f'Preprocessing checks failed for file: \'{fp}\'.')
-        return False
+        return 2
 
     bulk_ops = []
+    bulk_write_results = []
     collision_ops = []
 
     for idx, document in enumerate(data):
@@ -86,38 +106,23 @@ def process_data(data: list, dbh: Database, db_collection: str, collision_collec
             collision_ops.append(pymongo.InsertOne(document))
 
         if len(bulk_ops) >= BATCH_SIZE:
-            try:
-                dbh[db_collection].bulk_write(bulk_ops, ordered = False)
-                bulk_ops = []
-            except Exception as e:
-                print(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
-                logging.error(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
-                return False 
+            bulk_write_results.append(process_bulk_operations(dbh, db_collection, bulk_ops, fp))
+            bulk_ops = []
         if len(collision_ops) >= BATCH_SIZE:
-            try:
-                dbh[collision_collection].bulk_write(collision_ops, ordered = False)
-                collision_ops = []
-            except Exception as e:
-                print(f'\nError during collision ops write:\n\tFile: {fp}\n\tError: {e}.')
-                logging.error(f'\nError during collision ops write:\n\tFile: {fp}\n\tError: {e}.')
-                return False
+            bulk_write_results.append(process_bulk_operations(dbh, collision_collection, collision_ops, fp))
+            collision_ops = []
     
     if bulk_ops:
-        try:
-            dbh[db_collection].bulk_write(bulk_ops, ordered = False)
-        except Exception as e:
-            print(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
-            logging.error(f'\nError during bulk ops write:\n\tFile: {fp}\n\tError: {e}.')
-            return False 
+        bulk_write_results.append(process_bulk_operations(dbh, db_collection, bulk_ops, fp))
     if collision_ops:
-        try:
-            dbh[collision_collection].bulk_write(collision_ops, ordered = False)
-        except Exception as e:
-            print(f'\nError during collision ops write:\n\tFile: {fp}\n\tError: {e}.')
-            logging.error(f'\nError during collision ops write:\n\tFile: {fp}\n\tError: {e}.')
-            return False
+        bulk_write_results.append(process_bulk_operations(dbh, collision_collection, collision_ops, fp))
     
-    return True 
+    if all(bulk_write_results):
+        return 0
+    elif any(bulk_write_results):
+        return 1
+    else:
+        return 2
 
 def load_id_collection(connection_string: str, load_path: str, collection: str) -> bool:
     ''' Loads the local ID collections into the prod database.
@@ -233,17 +238,23 @@ def main():
             collision_full = True
         else:
             collision_full = False
-        
-        if process_data(data, dbh, data_collection, unreviewed_collection, fp, collision_full):
+
+        result = process_data(data, dbh, data_collection, unreviewed_collection, fp, collision_full)
+        if result == 0:
             if collision_full:
                 output = f'Successfully loaded data into unreviewed collection for file: {fp}.'
             else:
                 output = f'Successfully loaded data into reviewed collection for file: {fp}.'
+        elif result == 1:
+            if collision_full:
+                output = f'Partial sucess loading data into unreviewed collection for file: {fp}.\n\tCheck logs.'
+            else:
+                output = f'Partial sucess loading data into reviewed collection for file: {fp}.\n\tCheck logs.'
         else:
             if collision_full:
-                output = f'Failed to load data entirely into unreviewed collection for file: {fp}.'
+                output = f'Failed to load data entirely into unreviewed collection for file: {fp}.\n\tCheck logs.'
             else:
-                output = f'Failed to load data entirely into reviewed collection for file: {fp}.'
+                output = f'Failed to load data entirely into reviewed collection for file: {fp}.\n\tCheck logs.'
         logging.error(output)
         print(output)
 
