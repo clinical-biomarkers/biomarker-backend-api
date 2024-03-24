@@ -194,7 +194,7 @@ def main():
     logging.info(f'Loading data for server: {server}. #####################')
 
     ### setup first run biomarker_id index 
-    misc_fns.setup_index(dbh, 'biomarker_canonical_id', data_collection, 'biomarker_canonical_id_1')
+    misc_fns.setup_index(dbh, 'biomarker_id', data_collection, 'biomarker_id_1')
 
     ### load the load map
     load_map = misc_fns.load_json(f'{data_root_path}/generated/datamodel/new_data/current/load_map.json')
