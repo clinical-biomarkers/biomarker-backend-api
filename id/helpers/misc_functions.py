@@ -292,6 +292,7 @@ def load_map_confirmation(load_map: dict, total_files: list) -> tuple:
         return file_list
 
     cleaned_filenames = [os.path.basename(x) for x in total_files]
+    cleaned_filenames.remove('load_map.json')
     unreviewed_files = __filename_check(load_map.get('unreviewed', []), cleaned_filenames)
     reviewed_files = __filename_check(load_map.get('reviewed', []), cleaned_filenames)
 
