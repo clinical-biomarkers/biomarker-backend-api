@@ -109,7 +109,7 @@ def process_file_data(data: list,
                 collisions[_dict_key] = base_collision_obj
                 collisions[_dict_key]['reviewed_collision_info'] = {
                     'collision_type': 'hard',
-                    'reviewed_difference': json.loads(reviewed_difference)
+                    'reviewed_difference': json.loads(reviewed_difference) if existing_record else 'Collision with another record in current/.'
                 }
                 collisions[_dict_key]['unreviewed_collisions'] = unreviewed_object if unreviewed_object else []
                 output_message = f'HARD collision detected for record number `{idx}` on IDs'
@@ -122,7 +122,7 @@ def process_file_data(data: list,
                 collisions[_dict_key] = base_collision_obj
                 collisions[_dict_key]['reviewed_collision_info'] = {
                     'collision_type': 'soft',
-                    'reviewed_difference': json.loads(reviewed_difference)
+                    'reviewed_difference': json.loads(reviewed_difference) if existing_record else 'Collision with another record in current/.'
                 }
                 collisions[_dict_key]['unreviewed_collisions'] = unreviewed_object if unreviewed_object else []
                 output_message = f'STANDARD collision detected for record number `{idx}` on IDs '
