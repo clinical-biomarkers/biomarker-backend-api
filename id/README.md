@@ -6,6 +6,8 @@ This guide walks you through how to assign new, incoming data to their correspon
 - [Populate the Database](#populate-the-database)
 - [Copy Files](#copy-files)
 
+Prerequisites: Make sure to activate (and build) the python virtual environment before running the ID process. For instructions, you can refer to [this guide](https://github.com/clinical-biomarkers/biomarker-partnership/blob/main/supplementary_files/documentation/virtual_env.md).
+
 ## Assign Biomarker IDs 
 
 To assign biomarker IDs to your new data, run the `id_assign.py` script from the `/id` directory. This script can only be run from the `tst` server. More information about the under the hood implementation of the ID generation is available in the [ID Implementation Documentation](/docs/id_implementation.md) readme. 
@@ -21,7 +23,7 @@ python id_assign.py -s $SER
 
 To load the processed data, run the `load_data.py` script from the `/id` directory. You have to complete the ID assignment steps before this step can be completed. The data should be in the filepath `/data/shared/biomarkerdb/generated/datamodel/new_data/current` where `current/` is a symlink to the current version directory. 
 
-Optionally, you can also create a load map that indicates if any files should be completely loaded into the `unreviewed` MongoDB collection (bypassing/overriding any checks on the `collision` key). If included, this file should be called `load_map.json` and should be placed in the same directory as the data. The format of the file allows you to specify which files should be loaded where. The format can look like: 
+Then, create a load map that indicates if any files should be completely loaded into the `unreviewed` MongoDB collection (bypassing/overriding any checks on the `collision` key). This file should be called `load_map.json` and should be placed in the same directory as the data. The format of the file allows you to specify which files should be loaded where. The format can look like: 
 
 ```json
 {
