@@ -28,7 +28,7 @@ class Canonical(Resource):
             return {'message': 'Database query failed.'}, 500
         if not data:
             return {'message': 'Canonical ID not found.'}, 404
-        return {'results': data}, 200
+        return {'biomarkers': data}, 200
 
 class Canonicals(Resource):
     ''' Get all biomarkers passing a set of canonical IDs.
