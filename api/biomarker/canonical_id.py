@@ -5,7 +5,7 @@ from flask import request
 api = Namespace('canonical_id', description = 'Get biomarkers by canonical ID.')
 
 def get_collection_name():
-    return app.config['DB_collection']
+    return app.config['DB_COLLECTION']
 
 class Canonical(Resource):
     ''' Get all biomarkers under a particular canonical ID.
