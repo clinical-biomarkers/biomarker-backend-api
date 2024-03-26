@@ -5,6 +5,7 @@ All endpoints are hosted at the root URL https://hivelab.biochemistry.gwu.edu/bi
 - [Endpoints](#endpoints)
     - [Dataset Endpoints](#dataset-endpoints)
     - [ID Endpoints](#id-endpoints)
+    - [Canonical ID Endpoints](#canonical-id-endpoints)
     - [Unreviewed Endpoints](#unreviewed-endpoints)
 - [Directory Strucutre](#directory-structure)
 
@@ -52,7 +53,7 @@ ID API endpoints that retrieve specific biomarker records from the reviewed data
 
 `POST /id/set`
 - JSON Body:
-    - Array of biomarker ID's to query for. 
+    - Array of biomarker ID's to query for under the key `biomarker_ids`. 
 - Returns: 
     - `200 Success (full or partial)`: The biomarkers records (invalid ID's will be silently skipped).
         - Returns `{'biomarkers': <return_data>}, 200`
