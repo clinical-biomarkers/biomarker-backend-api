@@ -1,7 +1,7 @@
 import argparse
 import sys
 import glob 
-import misc_functions as misc_fns
+from helpers import misc_functions as misc_fns
 
 def main():
     
@@ -24,13 +24,15 @@ def main():
         sys.exit(1)
 
     ### get config info
-    config_obj = misc_fns.load_json('config.json')
+    config_obj = misc_fns.load_json('../api/config.json')
     data_root_path = config_obj['data_path']
 
     ### copy files 
     data_release_glob_pattern = f'{data_root_path}/generated/datamodel/new_data/current/*.json'
     existing_data_path = f'{data_root_path}/generated/datamodel/existing_data'
     for fp in glob.glob(data_release_glob_pattern):
+        if 'load_map.json' in fp:
+            continue
         if misc_fns.copy_file(fp, existing_data_path):
             print(f'Successfully copied file: {fp}.')
         else:
