@@ -242,10 +242,10 @@ def _get_key(document: dict) -> str:
     '''
     key1 = 'condition'
     key2 = 'exposure_agent'
-    if key1 in document.keys() and document[key1] is not None and document[key1]['condition_id']:
-        return document[key1]['condition_id']
-    elif key2 in document.keys() and document[key2] is not None and document[key2]['exposure_agent_id']:
-        return document[key2]['exposure_agent_id']
+    if key1 in document.keys() and document[key1] is not None and document[key1]['id']:
+        return document[key1]['id']
+    elif key2 in document.keys() and document[key2] is not None and document[key2]['id']:
+        return document[key2]['id']
     else:
         logging.error(f'Error when parsing document for second level ID key.\nDocument: {document}')
         sys.exit(1)
