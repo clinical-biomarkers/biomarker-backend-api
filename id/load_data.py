@@ -216,7 +216,7 @@ def main():
     if server == 'prd':
         canonical_id_collection_local_path = f'{data_root_path}/generated/datamodel/canonical_id_collection.json'
         second_level_id_collection_local_path = f'{data_root_path}/generated/datamodel/second_level_id_collection.json'
-        connection_string = misc_fns.create_connection_string(host, db_user, db_pass, db_name)
+        connection_string = misc_fns.create_connection_string(f'127.0.0.1:{mongo_port}', db_user, db_pass, db_name)
         if load_id_collection(connection_string, canonical_id_collection_local_path, canonical_id_collection):
             print('Successfully loaded canonical ID map into prod database.')
         else:
