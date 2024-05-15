@@ -1,0 +1,15 @@
+{
+  "global_max_query_length": 10000,
+  "biomarker_detail": {
+    "field_info": {
+      "paginated_tables": {
+        "type": "string",
+        "max_len": 10000,
+        "required": false
+      }
+    },
+    "collections": [
+      "biomarker_collection"
+    ]
+  }
+}
