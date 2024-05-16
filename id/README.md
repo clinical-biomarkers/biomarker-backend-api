@@ -10,7 +10,7 @@ Prerequisites: Make sure to activate (and build) the python virtual environment 
 
 ## Assign Biomarker IDs 
 
-To assign biomarker IDs to your new data, run the `id_assign.py` script from the `/id` directory. This script can only be run from the `tst` server. More information about the under the hood implementation of the ID generation is available in the [ID Implementation Documentation](/docs/id_implementation.md) readme. 
+To assign biomarker IDs to your new data, run the `id_assign.py` script from the `/id` directory. This script can only be run from the `tst` server. More information about the under the hood implementation of the ID generation is available in the [ID Implementation Documentation](/docs/id_implementation.md).
 
 While processing each data record, each data record will be assigned its corresponding `biomarker_canonical_id`. Once the aggregate canonical ID is assigned, the record will be assigned a second level identifier. Whether a collision is found or not, the record will be assigned an additional key called `collision`. This key will have a value of `0` indicating no collision or `1` indicating a collision. If a value of `1` is assigned, some additional information wil lbe added to that specific source file's collision report (which is saved into the `id/collision_reports` subdirectory). This key will be used during the data load process and subsequently removed before loading the data. This value determines which MongoDB collection the data record will be loaded into. 
 
@@ -48,13 +48,13 @@ In this case, `file_1.json` will be loaded into the unreviewed collection and th
 }
 ```
 
-This will have the same result of the above example. You can also explicitly list both the `unreviewed` and `reviewed` keys and list out all of the files but that can become quite verbose in large data releases. To prevent some errors, the `load_data.py` script will prompt the user for confirmation of their choices before continuing to the data load.
+This will have the same result of the above example. You can also explicitly list both the `unreviewed` and `reviewed` keys and list out all of the files but that can become quite verbose in large data releases. To prevent user errors, the `load_data.py` script will prompt the user for confirmation of their choices before continuing to the data load. In the absence of a `load-map.json` file, all files will be assumed for the main biomarker collection.
 
 ```bash 
-python load_data.py -s $SER
+python load_data.py -s $SER -u $FILE
 ```
 
-Where the `$SER` argument is the specified server. 
+Where the `$SER` argument is the specified server and the `-u` flag is optional. The `-u` (or `--upsert`) flag allows you to specify a file that should be loaded in upsert mode, meaning regardless of collision status it will be loaded into the main biomarker collection and if a record already exists with that ID value it will be overwritten (if no existing record is found a new one will be created just as in a normal write).
 
 The code will do some preliminary checks on the data that is to be loaded. It will make sure that each record has a valid formatted biomarker ID.
 
