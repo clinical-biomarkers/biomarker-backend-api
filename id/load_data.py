@@ -59,7 +59,9 @@ def handle_upsert_writes(data: list, dbh: Database, collection: str, fp: str) ->
     """Handles the upsert mode overwrites and inserts. Iterates through
     the entries in the data list and if the entry ID exists in the database
     collection the document will be overwritten. If the entry ID doesn't
-    exist a new document will be added.
+    exist a new document will be added. The collision keys will be updated as
+    appropriate and the source file will be overwritten with the updated collision
+    keys.
 
     Parameters
     ----------
@@ -78,12 +80,15 @@ def handle_upsert_writes(data: list, dbh: Database, collection: str, fp: str) ->
         0 if completed successfully, 1 if partial success, and 2 if full failure.
     """
     success_count = 0
+    updated_data = []
     for idx, document in enumerate(data):
         try:
             dbh[collection].find_one_and_replace(
                 {"biomarker_id": document["biomarker_id"]}, document, upsert=True
             )
             success_count += 1
+            document["collision"] = 0
+            updated_data.append(document)
         except Exception as e:
             logging.error(
                 f"Unexpected error during upsert on file: {fp}\n\tRecord index: {idx}\n\tError: {e}\n\tDocument: {document}"
@@ -92,10 +97,29 @@ def handle_upsert_writes(data: list, dbh: Database, collection: str, fp: str) ->
                 f"Unexpected error during upsert on file: {fp}\n\tRecord index: {idx}\n\tError: {e}\n\tDocument: {document}"
             )
     if success_count == len(data):
+        misc_fns.write_json(fp, updated_data)
+        logging.info(
+            f"Successfully loaded upsert file: `{os.path.basename(fp)}` and overwrote existing file for updated collision keys."
+        )
+        print(
+            f"Successfully loaded upsert file: `{os.path.basename(fp)}` and overwrote existing file for updated collision keys."
+        )
         return 0
     elif success_count >= 0:
+        logging.warning(
+            f"Partial error loading upsert file: `{os.path.basename(fp)}`, not overwriting file."
+        )
+        print(
+            f"Partial error loading upsert file: `{os.path.basename(fp)}`, not overwriting file."
+        )
         return 1
     else:
+        logging.error(
+            f"Full error loading upsert file: `{os.path.basename(fp)}`, not overwriting file."
+        )
+        print(
+            f"Full error loading upsert file: `{os.path.basename(fp)}`, not overwriting file."
+        )
         return 2
 
 
@@ -108,7 +132,7 @@ def process_data(
     collision_full: bool,
     upsert_mode: bool,
 ) -> int:
-    """Inserts the data into the prd database.
+    """Inserts the data into the database.
 
     Parameters
     ----------
@@ -302,11 +326,14 @@ def main():
     )
     total_files = glob.glob(data_release_glob_pattern)
     _, unreviewed_files = misc_fns.load_map_confirmation(load_map, total_files)
-    if upsert_file in unreviewed_files:
-        print(
-            f"Configuration error: File {upsert_file} marked for upsert mode but listed in unreviewed files in load map."
-        )
-        sys.exit(1)
+    if upsert_file != "":
+        if upsert_file in unreviewed_files:
+            print(
+                f"Configuration error: File {upsert_file} marked for upsert mode but listed in unreviewed files in load map."
+            )
+            sys.exit(1)
+        print(f"File {upsert_file} marked to be loaded in upsert mode.")
+        misc_fns.get_user_confirmation()
 
     # if running on prd server, load the id_collection.json file
     if server == "prd":
@@ -367,25 +394,24 @@ def main():
             collision_full,
             upsert_mode,
         )
-        if result == 0:
-            if collision_full:
-                output = f"Successfully loaded data into unreviewed collection for file: {fp}."
+        if not upsert_mode:
+            if result == 0:
+                if collision_full:
+                    output = f"Successfully loaded data into unreviewed collection for file: {fp}."
+                else:
+                    output = f"Successfully loaded data into reviewed collection for file: {fp}."
+            elif result == 1:
+                if collision_full:
+                    output = f"Partial sucess loading data into unreviewed collection for file: {fp}.\n\tCheck logs."
+                else:
+                    output = f"Partial sucess loading data into reviewed collection for file: {fp}.\n\tCheck logs."
             else:
-                output = (
-                    f"Successfully loaded data into reviewed collection for file: {fp}."
-                )
-        elif result == 1:
-            if collision_full:
-                output = f"Partial sucess loading data into unreviewed collection for file: {fp}.\n\tCheck logs."
-            else:
-                output = f"Partial sucess loading data into reviewed collection for file: {fp}.\n\tCheck logs."
-        else:
-            if collision_full:
-                output = f"Failed to load data entirely into unreviewed collection for file: {fp}.\n\tCheck logs."
-            else:
-                output = f"Failed to load data entirely into reviewed collection for file: {fp}.\n\tCheck logs."
-        logging.error(output)
-        print(output)
+                if collision_full:
+                    output = f"Failed to load data entirely into unreviewed collection for file: {fp}.\n\tCheck logs."
+                else:
+                    output = f"Failed to load data entirely into reviewed collection for file: {fp}.\n\tCheck logs."
+            logging.error(output)
+            print(output)
 
     logging.info(f"Finished loading data for server: {server}. ---------------------")
 
