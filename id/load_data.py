@@ -12,40 +12,8 @@ from pymongo.errors import BulkWriteError
 from helpers import misc_functions as misc_fns
 import argparse
 import logging
-from helpers import id_backend as id_backend
 
 BATCH_SIZE = 1000
-
-
-def preprocess_checks(data: list) -> bool:
-    """Performs preprocessing checks on the data by ensuring ID format
-    is valid and collision key is present (essentially chekcing that the
-    ID assign process was completed).
-
-    Parameters
-    ----------
-    data: dict or list
-        The data to check.
-
-    Returns
-    -------
-    bool
-        True if all checks pass, False otherwise.
-    """
-    for document in data:
-        canonical_validation = id_backend.validate_id_format(
-            document["biomarker_canonical_id"], 0
-        )
-        second_level_validation = id_backend.validate_id_format(
-            document["biomarker_id"], 1
-        )
-        collisision_key_check = "collision" in document
-        preprocess_conditions = (
-            canonical_validation and second_level_validation and collisision_key_check
-        )
-        if not preprocess_conditions:
-            return False
-    return True
 
 
 def process_bulk_operations(
@@ -164,7 +132,7 @@ def process_data(
     int
         0 if completed successfully, 1 if partial success, and 2 if full failure.
     """
-    if not preprocess_checks(data):
+    if not misc_fns.preprocess_checks(data):
         logging.error(f"Preprocessing checks failed for file: '{fp}'.")
         print(f"Preprocessing checks failed for file: '{fp}'.")
         return 2

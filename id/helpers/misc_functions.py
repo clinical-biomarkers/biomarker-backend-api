@@ -23,6 +23,7 @@ import pymongo.errors
 from pymongo.database import Database
 import subprocess
 from typing import Union
+from . import id_backend as id_backend
 
 
 def load_json(filepath: str) -> Union[dict, list]:
@@ -381,3 +382,33 @@ def get_user_confirmation() -> None:
             sys.exit(0)
         else:
             print("Please enter 'y' for yes or 'n' for no.")
+
+def preprocess_checks(data: list) -> bool:
+    """Performs preprocessing checks on the data by ensuring ID format
+    is valid and collision key is present (essentially chekcing that the
+    ID assign process was completed).
+
+    Parameters
+    ----------
+    data: dict or list
+        The data to check.
+
+    Returns
+    -------
+    bool
+        True if all checks pass, False otherwise.
+    """
+    for document in data:
+        canonical_validation = id_backend.validate_id_format(
+            document["biomarker_canonical_id"], 0
+        )
+        second_level_validation = id_backend.validate_id_format(
+            document["biomarker_id"], 1
+        )
+        collisision_key_check = "collision" in document
+        preprocess_conditions = (
+            canonical_validation and second_level_validation and collisision_key_check
+        )
+        if not preprocess_conditions:
+            return False
+    return True
