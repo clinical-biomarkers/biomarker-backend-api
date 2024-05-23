@@ -331,7 +331,8 @@ def load_map_confirmation(load_map: Union[dict, None], total_files: list) -> tup
 
     # isolate file names from file paths
     cleaned_filenames = [os.path.basename(x) for x in total_files]
-    cleaned_filenames.remove("load_map.json")
+    if "load_map.json" in cleaned_filenames:
+        cleaned_filenames.remove("load_map.json")
     unreviewed_files = __filename_check(
         load_map.get("unreviewed", []) if load_map is not None else [],
         cleaned_filenames,
