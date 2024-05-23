@@ -3,7 +3,6 @@
 
 import sys
 import json
-import pymongo
 from pymongo.database import Database
 from pymongo.errors import OperationFailure
 from helpers import misc_functions as misc_fns
@@ -97,16 +96,18 @@ def main():
     db_name = config_obj["dbinfo"]["dbname"]
     db_user = config_obj["dbinfo"][db_name]["user"]
     db_pass = config_obj["dbinfo"][db_name]["password"]
-    data_root_path = config_obj["data_path"]
-    canonical_id_collection = config_obj["dbinfo"][db_name]["canonical_id_map"]
-    second_level_id_collection = config_obj["dbinfo"][db_name]["second_level_id_map"]
     data_collection = config_obj["dbinfo"][db_name]["collection"]
     dbh = misc_fns.get_mongo_handle(host, db_name, db_user, db_pass)
 
     misc_fns.setup_logging(f"./logs/remove_data{server}.log")
     logging.info(f"Beginning remove data process: {server}. ####################")
 
-    process_data(dbh, json.load(open(file_path, "r")), data_collection, file_path)
+    if process_data(dbh, json.load(open(file_path, "r")), data_collection, file_path):
+        print("Run successfully.")
+        logging.info("Run successfully.")
+    else:
+        print("Error during run.")
+        logging.error("Error during run.")
 
 
 if __name__ == "__main__":
