@@ -40,7 +40,7 @@ def process_data(dbh: Database, data: list, collection_name: str, fp: str) -> bo
         collection = dbh[collection_name]
         for i in range(0, len(data), BATCH_SIZE):
             batch = data[i : i + BATCH_SIZE]
-            biomarker_ids_to_remove = [item["biomarker_id"] for item in batch]
+            biomarker_ids_to_remove = [item["biomarker_id"] for item in batch if item["collision"] == 0]
             result = collection.delete_many(
                 {"biomarker_id": {"$in": biomarker_ids_to_remove}}
             )
