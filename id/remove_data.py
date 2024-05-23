@@ -76,7 +76,7 @@ def main():
         sys.exit(1)
     server = options.server
     file_path = options.file_path
-    if server.lower not in {"tst", "prd"}:
+    if server.lower() not in {"tst", "prd"}:
         print("Invalid server name.")
         sys.exit(1)
     if not misc_fns.validate_filepath(filepath=file_path, mode="input"):
