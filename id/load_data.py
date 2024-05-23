@@ -82,6 +82,7 @@ def handle_upsert_writes(data: list, dbh: Database, collection: str, fp: str) ->
     success_count = 0
     updated_data = []
     for idx, document in enumerate(data):
+        document.pop("collision")
         try:
             dbh[collection].find_one_and_replace(
                 {"biomarker_id": document["biomarker_id"]}, document, upsert=True
