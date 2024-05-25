@@ -9,9 +9,7 @@ from . import db as db_utils
 from .data_models import SCHEMA_MAP
 
 
-def get_request_object(
-    api_request: Request, endpoint: str
-) -> Tuple[Optional[Dict], int]:
+def get_request_object(api_request: Request, endpoint: str) -> Tuple[Dict, int]:
     """Parse the request object for the query parameters.
 
     Parameters
@@ -23,8 +21,8 @@ def get_request_object(
 
     Returns
     -------
-    tuple : (dict or None, int)
-        The parsed request object if availble or error object and HTTP status code.
+    tuple : (dict, int)
+        The parsed request object or error object and HTTP status code.
     """
     request_object: Optional[Dict[str, Any]] = None
     if api_request.method == "GET":
@@ -77,7 +75,16 @@ def get_request_object(
         )
         return error_obj, 400
 
-    return strip_object(validated_data), 200  # type: ignore
+    if not isinstance(validated_data, dict):
+        error_obj = db_utils.log_error(
+            error_log=f"Validated JSON expected type `dict`, got `{type(validated_data)}`.",
+            error_msg="bad-json-request",
+            origin="get_request_object",
+            sup_info="Expected JSON object.",
+        )
+        return error_obj, 400
+
+    return strip_object(validated_data), 200
 
 
 def strip_object(target: Dict) -> Dict:
