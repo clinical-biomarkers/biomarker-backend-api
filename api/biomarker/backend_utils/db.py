@@ -39,12 +39,13 @@ def log_request(
 
     Returns
     -------
-    str or None
-        None on success, the error ID on error.
+    dict or None
+        None on success, error object on error.
     """
     if request_object and len(json.dumps(request_object)) > REQ_LOG_MAX_LEN:
         error_obj = log_error(
-            error_msg=f"Request object length exceeds REQ_LOG_MAX_LEN ({REQ_LOG_MAX_LEN})",
+            error_log=f"Request object length exceeds REQ_LOG_MAX_LEN ({REQ_LOG_MAX_LEN})",
+            error_msg="request-object-exceeded-max-length",
             origin="log_request",
         )
         return error_obj
@@ -71,7 +72,9 @@ def log_request(
         dbh[REQ_LOG_COLLECTION].insert_one(log_object)
     except Exception as e:
         error_obj = log_error(
-            error_msg=f"Failed to log request.\n{e}", origin="log_request"
+            error_log=f"Failed to log request.\n{e}",
+            error_msg="log-failure",
+            origin="log_request",
         )
         return error_obj
 
