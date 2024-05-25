@@ -11,4 +11,11 @@ from marshmallow import Schema, fields
 # }
 # This way the util file will just import SCHEMA_MAP and then in get_request_file
 
+# TODO @miguel
+# Some notes:
+# Detail endpoint - from the paginated tables payload from my testing, if
+# "paginated_tables" is included then the only required key in the individual
+# JSON objects is "table_id". If any of "offset", "limit", "sort", or "order"
+# are missing then they just get set to default values.
+
 SCHEMA_MAP = {}
