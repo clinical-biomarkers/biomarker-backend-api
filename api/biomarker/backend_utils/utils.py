@@ -50,27 +50,12 @@ def get_request_object(api_request: Request, endpoint: str) -> Optional[Dict]:
     # TODO : @miguel something like below, not sure the exact syntax
     # SCHEMA_MAP[endpoint].validate(request_object)
 
-    return _strip_dict_keys(request_object)
+    return strip_dict(request_object)
 
 
-# def create_mongo_query(endpoint: str, request_object: dict) -> Union[dict, list]:
-    """Entry point for creating the MongoDB query."""
-    # TODO :
-    # function_map = {"detail": _detail_mongo_query_builder}
-    # if endpoint not in function_map:
-        # TODO : log error and handle
-    # TODO : finish
-    # return function_map[endpoint]
-
-
-
-# def _detail_mongo_query_builder() -> Union[Dict, List]:
-#     pass
-
-
-def _strip_dict_keys(target: Dict) -> Dict:
-    """Strips string type dictionary keys and value of
-    leading or trailing white space.
+def strip_dict(target: Dict) -> Dict:
+    """Strips string type dictionary keys and values of
+    leading or trailing whitespace.
 
     Parameters
     ----------
@@ -83,5 +68,8 @@ def _strip_dict_keys(target: Dict) -> Dict:
         The cleaned dictionary.
     """
     return {
-        k.strip(): (v.strip() if isinstance(v, str) else v) for k, v in target.items()
+        (k.strip() if isinstance(k, str) else k): (
+            v.strip() if isinstance(v, str) else v
+        )
+        for k, v in target.items()
     }
