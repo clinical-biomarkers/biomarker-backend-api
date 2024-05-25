@@ -2,14 +2,16 @@
 """
 
 from flask import Request
-from typing import Dict, Union, Optional, Tuple, List
+from typing import Dict, Union, Optional, Tuple, List, Any
 import json
+from marshmallow.exceptions import ValidationError
 from . import db as db_utils
 from .data_models import SCHEMA_MAP
 
 
-# TODO : @miguel the return type annotations are going to change depending on marshmallow validation
-def get_request_object(api_request: Request, endpoint: str) -> Optional[Dict]:
+def get_request_object(
+    api_request: Request, endpoint: str
+) -> Tuple[Optional[Dict], int]:
     """Parse the request object for the query parameters.
 
     Parameters
@@ -21,39 +23,64 @@ def get_request_object(api_request: Request, endpoint: str) -> Optional[Dict]:
 
     Returns
     -------
-    dict or None
-        The parse request object if available or None if not.
+    tuple : (dict or None, int)
+        The parsed request object if availble or error object and HTTP status code.
     """
-    query_string = api_request.args.get("query")
-    if query_string:
-        try:
-            request_object = json.loads(query_string)
-        except json.JSONDecodeError as e:
-            db_utils.log_error(
-                error_msg=f"Failed to JSON decode query string.\nquery string: {query_string}\n{e}",
-                origin="get_request_object",
-            )
-            return None
-    else:
+    request_object: Optional[Dict[str, Any]] = None
+    if api_request.method == "GET":
+        query_string = api_request.args.get("query")
+        if query_string:
+            # this could be avoided and can use loads function directly with marshmallow schema,
+            # leaving this for now
+            try:
+                request_object = json.loads(query_string)
+            except json.JSONDecodeError as e:
+                error_obj = db_utils.log_error(
+                    error_log=f"Failed to JSON decode query string.\nquery string: {query_string}\n{e}",
+                    error_msg="bad-json-request",
+                    origin="get_request_object",
+                    sup_info="Invalid JSON formatting.",
+                )
+                return error_obj, 400
+        else:
+            request_object = {}
+    elif api_request.method == "POST":
         request_object = api_request.get_json(silent=True)
 
     if not isinstance(request_object, dict):
-        db_utils.log_error(
-            error_msg=f"Decoded query string JSON expected type `dict`, got `{type(request_object)}`.",
+        error_obj = db_utils.log_error(
+            error_log=f"Decoded query/payload string JSON expected type `dict`, got `{type(request_object)}`.",
+            error_msg="bad-json-request",
+            origin="get_request_object",
+            sup_info="Expected JSON object.",
+        )
+        return error_obj, 400
+
+    if endpoint not in SCHEMA_MAP:
+        error_obj = db_utils.log_error(
+            error_log=f"Endpoint `{endpoint}` not found in schema map.",
+            error_msg="internal-routing-error",
             origin="get_request_object",
         )
-        return None
+        return error_obj, 500
 
-    # TODO : @miguel validation based on endpoint
-    if endpoint not in SCHEMA_MAP:
-        return None
-    # TODO : @miguel something like below, not sure the exact syntax
-    # SCHEMA_MAP[endpoint].validate(request_object)
+    schema = SCHEMA_MAP[endpoint]()
+    try:
+        validated_data = schema.load(request_object)
+    except ValidationError as e:
+        marshmallow_errors = e.messages_dict
+        error_obj = db_utils.log_error(
+            error_log=f"Validation error: {e.messages_dict}",
+            error_msg="json-validation-error",
+            origin="get_request_object",
+            validation_errors=marshmallow_errors,
+        )
+        return error_obj, 400
 
-    return strip_dict(request_object)
+    return strip_object(validated_data), 200  # type: ignore
 
 
-def strip_dict(target: Dict) -> Dict:
+def strip_object(target: Dict) -> Dict:
     """Strips string type dictionary keys and values of
     leading or trailing whitespace.
 
@@ -67,9 +94,10 @@ def strip_dict(target: Dict) -> Dict:
     dict
         The cleaned dictionary.
     """
-    return {
+    target = {
         (k.strip() if isinstance(k, str) else k): (
             v.strip() if isinstance(v, str) else v
         )
         for k, v in target.items()
     }
+    return target
