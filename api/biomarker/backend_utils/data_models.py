@@ -1,21 +1,30 @@
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, EXCLUDE
 
-# TODO @miguel
-# I'm thinking the schemas are defined as constants and then those constants can be defined in a map.
-# For example:
-# DETAIL_SCHEMA = <schema>
-# SEARCH_SIMPLE_SCHEMA = <schema>
-# SCHEMA_MAP = {
-#   "detail": DETAIL_SCHEMA,
-#   "search_simple": SEARCH_SIMPLE_SCHEMA
-# }
-# This way the util file will just import SCHEMA_MAP and then in get_request_file
+### Detail Schemas
 
-# TODO @miguel
-# Some notes:
-# Detail endpoint - from the paginated tables payload from my testing, if
-# "paginated_tables" is included then the only required key in the individual
-# JSON objects is "table_id". If any of "offset", "limit", "sort", or "order"
-# are missing then they just get set to default values.
 
-SCHEMA_MAP = {}
+class _PaginatedTableSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    table_id = fields.String(required=True)
+    offset = fields.Integer(required=False, missing=1)
+    limit = fields.Integer(required=False, missing=200)
+    sort = fields.String(required=False, missing="")
+    order = fields.String(required=False, missing="desc")
+
+
+class DetailSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    paginated_tables = fields.List(fields.Nested(_PaginatedTableSchema), required=False)
+
+
+## TODO : finish data models
+
+### Schema Map
+
+SCHEMA_MAP = {"detail": DetailSchema}
