@@ -1,20 +1,31 @@
 """ Handles the backend logic for the biomarker detail endpoints.
 """
 
-from flask import Request, request
-from flask import current_app
-from typing import Tuple
-from . import DB_COLLECTION
+from flask import Request
+from typing import Tuple, Dict
+
 from . import db as db_utils
 from . import utils as utils
 
-def detail(api_request: Request, biomarker_id: str) -> Tuple[int, dict]:
+# available sort fields for detail endpoint
+SORT_FIELDS = {
+    "biomarker_component": {
+        "biomarker",
+        "assessed_biomarker_entity_id",
+        "assessed_entity_type",
+        "assessed_biomarker_entity",
+    },
+    "citation": {"title", "journal", "authors", "date"},
+}
+
+
+def detail(api_request: Request, biomarker_id: str) -> Tuple[Dict, int]:
     """Entry point for the backend logic of the detail endpoint, which
     takes a biomarker ID and returns the full JSON data model.
 
     Parameters
     ----------
-    request : Request
+    api_request : Request
         The flask request object.
     biomarker_id : str
         The biomarker id passed by the route.
@@ -22,11 +33,131 @@ def detail(api_request: Request, biomarker_id: str) -> Tuple[int, dict]:
     Returns
     -------
     tuple : (int, dict)
-        The HTTP code and return JSON.
+        The return JSON and HTTP code.
     """
-    # build the base request object for the user request
-    request_object = {"biomarker_id": biomarker_id}
-    # get the additional payload or query string arguments if provided
-    # TODO : get_request_object will handle validation
-    arguments = utils.get_request_object(api_request, "detail")
+    if not biomarker_id:
+        return {"error": "No biomarker_id provided"}, 400
 
+    request_object = {"biomarker_id": biomarker_id}
+    mongo_query, projection_object = _detail_query_builder(request_object)
+    query_code, biomarker_data = db_utils.find_one(mongo_query, projection_object)
+
+    if biomarker_data is None and query_code == 0:
+        return {"error": "non-existent-record"}, 404
+    elif query_code != 0:
+        return {"error_id": biomarker_data, "error": "database-error"}, 500
+    if not isinstance(biomarker_data, dict):
+        _, error_id = db_utils.log_error(
+            error_msg=f"Data record format error for ID `{biomarker_id}`, expected type dict and got `{type(biomarker_data)}`",
+            origin="detail",
+        )
+        return {"error_id": error_id, "error": "record-format-error"}, 500
+
+    arguments = utils.get_request_object(api_request, "detail")
+    if arguments is not None:
+        request_object.update(arguments)
+        biomarker_data = _process_document(biomarker_data, request_object)
+
+    biomarker_data = _add_metadata(biomarker_data)
+    db_utils.log_request(request_object=request_object, endpoint="detail", api_request=api_request)
+    return biomarker_data, 200
+
+
+def _add_metadata(document: Dict) -> Dict:
+    """Adds the section_stats and crossref metadata.
+
+    Parameters
+    ----------
+    document : dict
+        The retrieved MongoDB document to calculate metadata for.
+
+    Returns
+    -------
+    dict
+        The updated document with the metadata.
+    """
+    biomarker_component_stats = {
+        "table_id": "biomarker_component",
+        "table_stats": [
+            {"field": "total", "count": len(document["biomarker_component"])}
+        ],
+        "sort_fields": list(SORT_FIELDS["biomarker_component"]),
+    }
+    citation_stats = {
+        "table_id": "citation",
+        "table_stats": [{"field": "total", "count": len(document["citation"])}],
+        "sort_fields": list(SORT_FIELDS["citation"]),
+    }
+    document["section_stats"] = [biomarker_component_stats, citation_stats]
+    document["crossref"] = []
+    return document
+
+
+def _process_document(document: Dict, request_object: Dict) -> Dict:
+    """Sorts and paginates the biomarker record based
+    on paginated tables input from the user.
+
+    Parameters
+    ----------
+    document : dict
+        The retrieved MongoDB document to process.
+    request_object : dict
+        The request object from the user with the paginated
+        table criteria.
+
+    Returns
+    -------
+    dict
+        The processed MongoDB document.
+    """
+
+    for paginated_config in request_object["paginated_tables"]:
+
+        paginated_config = utils.strip_dict(paginated_config)
+        table_id = paginated_config["table_id"]
+
+        if table_id not in SORT_FIELDS or table_id not in document:
+            continue
+
+        # grab configs or set with defaults
+        offset = int(paginated_config.get("offset", 1)) - 1
+        limit = int(paginated_config.get("limit", 20))
+        sort_field = paginated_config.get("sort", None)
+        sort_order = paginated_config.get("order", "desc")
+        reverse = sort_order == "desc"
+
+        # handle sorting
+        if sort_field in SORT_FIELDS[table_id]:
+            if sort_field == "assessed_biomarker_entity_id":
+                document[table_id] = sorted(
+                    document[table_id],
+                    key=lambda x: x.get(sort_field, {}).get("recommended_name"),
+                    reverse=reverse,
+                )
+            else:
+                document[table_id] = sorted(
+                    document[table_id], key=lambda x: x.get(sort_field), reverse=reverse
+                )
+
+        # handle pagination
+        document[table_id] = document[table_id][offset : offset + limit]
+
+    return document
+
+
+def _detail_query_builder(
+    request_object: Dict,
+) -> Tuple[Dict[str, str], Dict[str, int]]:
+    """Biomarker detail query builder.
+
+    Parameters
+    ----------
+    request_object : dict
+        The validated request object from the user API call.
+
+    Returns
+    -------
+    tuple : (dict[str, str], dict[str, int])
+        The MongoDB query for the detail endpoint and the projection object.
+    """
+    return {"biomarker_id": request_object["biomarker_id"]}, {"_id": 0}
