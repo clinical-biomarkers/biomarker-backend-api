@@ -9,8 +9,10 @@ from . import (
     ERROR_LOG_COLLECTION,
     TIMESTAMP_FORMAT,
     TIMEZONE,
+    DB_COLLECTION,
+    SEARCH_CACHE_COLLECTION,
 )
-from typing import Optional, Dict, cast, Tuple
+from typing import Optional, Dict, cast, Tuple, Union, List
 import datetime
 import pytz  # type: ignore
 import string
@@ -18,6 +20,7 @@ import random
 import json
 from user_agents import parse  # type: ignore
 from ...biomarker import CustomFlask  # type: ignore
+from pymongo.errors import PyMongoError
 
 
 def log_request(
@@ -129,6 +132,50 @@ def log_error(error_msg: str, origin: str) -> Tuple[int, Optional[str]]:
             f"Failed to log error.\n{e}\nError object: {error_object}"
         )
         return (1, None)
+
+
+def find_one(
+    query_object: Dict,
+    projection_object: Dict = {"_id": 0},
+    collection: str = DB_COLLECTION,
+) -> Tuple[int, Union[Dict, str, None]]:
+    """Performs a find_one query on the specified collection.
+
+    Parameters
+    ----------
+    query_object : dict
+        The MongoDB query object.
+    projection_object : dict (default: {"_id": 0})
+        The projection object, by default it returns everything
+        but the internal MongoDB _id field.
+    collection : str (default: DB_COLLECTION)
+        The collection to search on.
+
+    Returns
+    -------
+    tuple : (int, dict str or None)
+        The status code and the found document or None if no document was found
+        or an error occurred. Or the error ID on non-success exit code. 0 for
+        successful query (dict can still be None if no document was found), 1 for
+        caught exception.
+    """
+    custom_app = cast_app(current_app)
+    dbh = custom_app.mongo_db
+    try:
+        result = dbh[collection].find_one(query_object, projection_object)
+    except PyMongoError as db_error:
+        _, error_id = log_error(
+            error_msg=f"PyMongoError querying database during find_one.\n{db_error}",
+            origin="find_one",
+        )
+        return 1, error_id
+    except Exception as e:
+        _, error_id = log_error(
+            error_msg=f"Non-PyMongoError querying database during find_one.\n{e}",
+            origin="find_one",
+        )
+        return 1, error_id
+    return 0, result
 
 
 def create_timestamp() -> str:
