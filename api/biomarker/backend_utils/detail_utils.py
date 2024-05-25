@@ -54,7 +54,7 @@ def detail(api_request: Request, biomarker_id: str) -> Tuple[Dict, int]:
         api_request, "detail"
     )
     # if the request arguments are invalid just skip them
-    if request_http_code == 200 and request_arguments is not None:
+    if request_http_code == 200:
         return_object = _process_document(return_object, request_arguments)
 
     biomarker_data = _add_metadata(return_object)
