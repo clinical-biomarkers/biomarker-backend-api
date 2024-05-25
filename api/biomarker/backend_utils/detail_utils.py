@@ -32,34 +32,35 @@ def detail(api_request: Request, biomarker_id: str) -> Tuple[Dict, int]:
 
     Returns
     -------
-    tuple : (int, dict)
+    tuple : (dict, int)
         The return JSON and HTTP code.
     """
     if not biomarker_id:
-        return {"error": "No biomarker_id provided"}, 400
+        error_obj = db_utils.log_error(
+            error_log="Invalid request, no biomarker id provided.",
+            error_msg="no-biomarker-id-provided",
+            origin="detail",
+        )
+        return error_obj, 400
 
     request_object = {"biomarker_id": biomarker_id}
     mongo_query, projection_object = _detail_query_builder(request_object)
-    query_code, biomarker_data = db_utils.find_one(mongo_query, projection_object)
+    return_object, query_http_code = db_utils.find_one(mongo_query, projection_object)
 
-    if biomarker_data is None and query_code == 0:
-        return {"error": "non-existent-record"}, 404
-    elif query_code != 0:
-        return {"error_id": biomarker_data, "error": "database-error"}, 500
-    if not isinstance(biomarker_data, dict):
-        _, error_id = db_utils.log_error(
-            error_msg=f"Data record format error for ID `{biomarker_id}`, expected type dict and got `{type(biomarker_data)}`",
-            origin="detail",
-        )
-        return {"error_id": error_id, "error": "record-format-error"}, 500
+    if query_http_code != 200:
+        return return_object, query_http_code
 
-    arguments = utils.get_request_object(api_request, "detail")
-    if arguments is not None:
-        request_object.update(arguments)
-        biomarker_data = _process_document(biomarker_data, request_object)
+    request_arguments, request_http_code = utils.get_request_object(
+        api_request, "detail"
+    )
+    # if the request arguments are invalid just skip them
+    if request_http_code == 200 and request_arguments is not None:
+        return_object = _process_document(return_object, request_arguments)
 
-    biomarker_data = _add_metadata(biomarker_data)
-    db_utils.log_request(request_object=request_object, endpoint="detail", api_request=api_request)
+    biomarker_data = _add_metadata(return_object)
+    db_utils.log_request(
+        request_object=request_object, endpoint="detail", api_request=api_request
+    )
     return biomarker_data, 200
 
 
@@ -113,15 +114,15 @@ def _process_document(document: Dict, request_object: Dict) -> Dict:
 
     for paginated_config in request_object["paginated_tables"]:
 
-        paginated_config = utils.strip_dict(paginated_config)
-        table_id = paginated_config["table_id"]
+        paginated_config = utils.strip_object(paginated_config)
+        table_id = paginated_config["table_id"]  # type: ignore
 
         if table_id not in SORT_FIELDS or table_id not in document:
             continue
 
         # grab configs or set with defaults
         offset = int(paginated_config.get("offset", 1)) - 1
-        limit = int(paginated_config.get("limit", 20))
+        limit = int(paginated_config.get("limit", 200))
         sort_field = paginated_config.get("sort", None)
         sort_order = paginated_config.get("order", "desc")
         reverse = sort_order == "desc"
