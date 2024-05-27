@@ -14,10 +14,13 @@ class SearchInit(Resource):
     def get(self):
         return self.post()
 
+
 class SearchSimple(Resource):
 
     @api.doc("simple")
     def post(self):
-        return utils.simple()
+        return utils.simple_search(request)
+
 
 api.add_resource(SearchInit, "/init")
+api.add_resource(SearchSimple, "/simple")
