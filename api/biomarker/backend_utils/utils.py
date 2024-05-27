@@ -108,3 +108,20 @@ def strip_object(target: Dict) -> Dict:
         for k, v in target.items()
     }
     return target
+
+def prepare_search_term(term: str) -> str:
+    """Cleans and preprocesses a string for use in a MongoDB search.
+
+    Parameters
+    ----------
+    term : str
+        The term to preprocess.
+
+    Returns
+    -------
+    str
+        The preprocessed and sanitized string.
+    """
+    term = term.strip().lower()
+    quoted_term = f"\"{term}\""
+    return quoted_term
