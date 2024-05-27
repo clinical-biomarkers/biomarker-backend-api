@@ -23,8 +23,6 @@ class DetailSchema(Schema):
     paginated_tables = fields.List(fields.Nested(_PaginatedTableSchema), required=False)
 
 
-## TODO : finish data models
-
 ### Search Simple Schema
 
 
@@ -54,6 +52,28 @@ class SearchSimple(Schema):
     )
 
 
+### Search Full Schema
+
+
+class SearchFull(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    specimen_name = fields.Str(required=False)
+    specimen_loinc_code = fields.Str(required=False)
+    biomarker_entity_name = fields.Str(required=False)
+    biomarker_id = fields.Str(required=False)
+    condition_name = fields.Str(required=False)
+    condition_id = fields.Str(required=False)
+    publication_id = fields.Str(required=False)
+    best_biomarker_role = fields.Str(required=False)
+
+
 ### Schema Map
 
-SCHEMA_MAP = {"detail": DetailSchema, "search_simple": SearchSimple}
+SCHEMA_MAP = {
+    "detail": DetailSchema,
+    "search_simple": SearchSimple,
+    "search_full": SearchFull,
+}
