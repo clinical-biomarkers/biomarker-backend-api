@@ -2,10 +2,11 @@
 """
 
 from flask import Request
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 
 from . import db as db_utils
 from . import utils as utils
+from . import DB_COLLECTION, SEARCH_CACHE_COLLECTION
 
 
 def init() -> Tuple[Dict, int]:
@@ -44,6 +45,7 @@ def init() -> Tuple[Dict, int]:
     }
     return response_object, 200
 
+
 def simple_search(api_request: Request) -> Tuple[Dict, int]:
     """Entry point for the backend logic of the search/simple endpoint.
 
@@ -57,4 +59,111 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
     tuple : (int, dict)
         The return JSON and HTTP code.
     """
-    arguments = utils.get_request_object(api_request, "simple_search")
+    request_arguments, request_http_code = utils.get_request_object(
+        api_request, "search_simple"
+    )
+    if request_http_code != 200:
+        return request_arguments, request_http_code
+
+    mongo_query, projection_object = _search_query_builder(request_arguments, True)
+    return_object, query_http_code = db_utils.search_and_cache(
+        api_request=request_arguments,
+        query_object=mongo_query,
+        search_type="simple",
+        projection_object=projection_object,
+        collection=DB_COLLECTION,
+        cache_collection=SEARCH_CACHE_COLLECTION,
+    )
+
+    return return_object, query_http_code
+
+
+def _search_query_builder(
+    request_object: Dict, simple_search_flag: bool
+) -> Tuple[Dict, Dict]:
+    """Biomarker search endpoint query builder.
+
+    Parameters
+    ----------
+    request_object : dict
+        The validated request object from the user API call.
+    simple_search_flag : bool
+        True if simple search, False for full search.
+
+    Returns
+    -------
+    tuple : (dict, dict)
+        The MongoDB query and the projection object.
+    """
+    field_map = {
+        "biomarker_id": "biomarker_id",
+        "biomarker": "biomarker_component.biomarker",
+        "biomarker_entity_name": "biomarker_component.assessed_biomarker_entity.recommended_name",
+        "biomarker_entity_id": "biomarker_component.assessed_biomarker_entity_id",
+        "biomarker_entity_type": "biomarker_component.assessed_entity_type",
+        "specimen_name": "biomarker_component.specimen.name",
+        "specimen_id": "biomarker_component.specimen.id",
+        "specimen_loinc_code": "biomarker_component.specimen.loinc_code",
+        "best_biomarker_role": "best_biomarker_role.role",
+        "publication_id": "citation.reference.id",
+        "condition_id": "condition.recommended_name.id",
+        "condition_name": "condition.recommended_name.name",
+        "condition_synonym_id": "condition.synonyms.id",
+        "condition_synonym_name": "condition.synonyms.name",
+    }
+
+    projection_object = {"biomarker_id": 1}
+    query_list: List[Dict] = []
+
+    if simple_search_flag:
+        search_term = utils.prepare_search_term(request_object["term"])
+        term_category = request_object["term_category"].strip().lower()
+
+        if term_category == "any":
+            return {"$text": {"$search": search_term}}, projection_object
+
+        elif term_category == "biomarker":
+            query_list = [
+                {path: {"$text": {"$search": search_term}}}
+                for key, path in field_map.items()
+                if key
+                not in {
+                    "condition_id",
+                    "condition_name",
+                    "condition_synonym_id",
+                    "condition_synonym_name",
+                }
+            ]
+
+        elif term_category == "condition":
+            query_list = [
+                {path: {"$text": {"$search": search_term}}}
+                for key, path in field_map.items()
+                if key
+                in {
+                    "condition_id",
+                    "condition_name",
+                    "condition_synonym_id",
+                    "condition_synonym_name",
+                }
+            ]
+
+        mongo_query = {"$or": query_list} if query_list else {}
+
+    else:
+        cleaned_reuest_object = {
+            key: utils.prepare_search_term(value)
+            for key, value in request_object
+            if key in field_map
+        }
+        operation = request_object.get("operation", "and").lower().strip()
+
+        query_list = [
+            {field_map[key]: {"$text": {"$search": value}}}
+            for key, value in cleaned_reuest_object.items()
+            if key in field_map
+        ]
+
+        mongo_query = {f"${operation}": query_list} if query_list else {}
+
+    return mongo_query, projection_object
