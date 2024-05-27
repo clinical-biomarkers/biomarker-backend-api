@@ -21,6 +21,19 @@ class SearchSimple(Resource):
     def post(self):
         return utils.simple_search(request)
 
+    def get(self):
+        return self.post()
+
+class FullSearch(Resource):
+
+    @api.doc("full_search")
+    def post(self):
+        return utils.full_search(request)
+
+    def get(self):
+        return self.post()
+
 
 api.add_resource(SearchInit, "/init")
 api.add_resource(SearchSimple, "/simple")
+api.add_resource(FullSearch, "/full")
