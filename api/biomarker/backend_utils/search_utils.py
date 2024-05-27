@@ -56,7 +56,7 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
 
     Returns
     -------
-    tuple : (int, dict)
+    tuple : (dict, int)
         The return JSON and HTTP code.
     """
     request_arguments, request_http_code = utils.get_request_object(
@@ -70,6 +70,38 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
         api_request=request_arguments,
         query_object=mongo_query,
         search_type="simple",
+        projection_object=projection_object,
+        collection=DB_COLLECTION,
+        cache_collection=SEARCH_CACHE_COLLECTION,
+    )
+
+    return return_object, query_http_code
+
+
+def full_search(api_request: Request) -> Tuple[Dict, int]:
+    """Entry point for the backend logic of the search/full endpoint.
+
+    Parameters
+    ----------
+    api_request : Request
+        The flask request object.
+
+    Returns
+    -------
+    tuple : (dict, int)
+        The return JSON and HTTP code.
+    """
+    request_arguments, request_http_code = utils.get_request_object(
+        api_request, "search_full"
+    )
+    if request_http_code != 200:
+        return request_arguments, request_http_code
+
+    mongo_query, projection_object = _search_query_builder(request_arguments, False)
+    return_object, query_http_code = db_utils.search_and_cache(
+        api_request=request_arguments,
+        query_object=mongo_query,
+        search_type="full",
         projection_object=projection_object,
         collection=DB_COLLECTION,
         cache_collection=SEARCH_CACHE_COLLECTION,
