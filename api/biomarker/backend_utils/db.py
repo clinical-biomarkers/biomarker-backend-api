@@ -21,7 +21,7 @@ import random
 import json
 import hashlib
 from user_agents import parse  # type: ignore
-from ...biomarker import CustomFlask  # type: ignore
+from biomarker import CustomFlask  # type: ignore
 from pymongo.errors import PyMongoError
 
 
