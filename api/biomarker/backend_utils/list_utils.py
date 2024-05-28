@@ -3,7 +3,6 @@
 
 from flask import Request
 from typing import Tuple, Dict, List, Optional, Union, Set
-import heapq
 
 from . import utils as utils
 from . import db as db_utils

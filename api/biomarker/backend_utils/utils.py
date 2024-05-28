@@ -2,7 +2,7 @@
 """
 
 from flask import Request
-from typing import Dict, Union, Optional, Tuple, List, Any
+from typing import Dict, Optional, Tuple,Any
 import json
 from marshmallow.exceptions import ValidationError
 from . import db as db_utils
