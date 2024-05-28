@@ -7,3 +7,5 @@ pytz==2022.1
 gunicorn==21.2.0
 deepdiff==6.7.1
 marshmallow==3.21.2
+werkzeug==3.0.1
+user-agents==2.2.0
