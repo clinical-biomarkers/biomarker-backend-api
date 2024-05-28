@@ -122,9 +122,9 @@ def _process_document(document: Dict, request_object: Dict) -> Dict:
 
         # grab configs or set with defaults
         offset = int(paginated_config.get("offset", 1)) - 1
-        limit = int(paginated_config.get("limit", 200))
-        sort_field = paginated_config.get("sort", None)
-        sort_order = paginated_config.get("order", "desc")
+        limit = paginated_config["limit"]
+        sort_field = paginated_config["sort"]
+        sort_order = paginated_config["order"]
         reverse = sort_order == "desc"
 
         # handle sorting
