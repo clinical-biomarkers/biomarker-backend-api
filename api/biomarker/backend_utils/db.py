@@ -12,6 +12,7 @@ from . import (
     DB_COLLECTION,
     SEARCH_CACHE_COLLECTION,
     CACHE_BATCH_SIZE,
+    CustomFlask
 )
 from typing import Optional, Dict, cast, Tuple, List, Any
 import datetime
@@ -21,7 +22,6 @@ import random
 import json
 import hashlib
 from user_agents import parse  # type: ignore
-from biomarker import CustomFlask  # type: ignore
 from pymongo.errors import PyMongoError
 
 

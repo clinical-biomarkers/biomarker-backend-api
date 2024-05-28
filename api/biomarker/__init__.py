@@ -1,26 +1,19 @@
-from flask import Flask
 from flask_cors import CORS  # type: ignore
 from flask_restx import Api  # type: ignore
 from pymongo import MongoClient
-from pymongo.database import Database
-from typing import Dict
 import os
 import json
 import logging
 from logging import Logger
 from logging.handlers import RotatingFileHandler
 
+from .backend_utils import CustomFlask
 from .detail import api as detail_api
 from .search import api as search_api
 from .list import api as list_api
 
 MONGO_URI = os.getenv("MONGODB_CONNSTRING")
 DB_NAME = "biomarkerdb_api"
-
-class CustomFlask(Flask):
-    hit_score_config: Dict
-    mongo_db: Database
-    api_logger: Logger
 
 def setup_logging() -> Logger:
     handler = RotatingFileHandler("app.log", maxBytes=50000000, backupCount=2)
