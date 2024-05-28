@@ -141,33 +141,6 @@ def log_error(error_log: str, error_msg: str, origin: str, **kwargs) -> Dict:
     return _create_error_obj(error_id, error_msg, **kwargs)
 
 
-def _create_error_obj(error_id: str, error_msg: str, **kwargs: Any) -> Dict[Any, Any]:
-    """Creates a standardized error object.
-
-    Parameters
-    ----------
-    error_id : str
-        The error ID.
-    error_msg : str
-        The standardized error message/code.
-    extra_info : str or None
-        Supplementary error information, if available.
-
-    Returns
-    -------
-    dict
-        The error object.
-    """
-    error_object: Dict[Any, Any] = {
-        "error": {
-            "error_id": error_id,
-            "error_msg": error_msg,
-        }
-    }
-    error_object["error"].update(kwargs)
-    return error_object
-
-
 def find_one(
     query_object: Dict,
     projection_object: Dict = {"_id": 0},
@@ -220,7 +193,7 @@ def find_one(
 
 
 def search_and_cache(
-    api_request: Dict,
+    request_object: Dict,
     query_object: Dict,
     search_type: str,
     projection_object: Dict = {"biomarker_id": 1},
@@ -232,8 +205,8 @@ def search_and_cache(
 
     Parameters
     ----------
-    api_request: dict,
-        The API request object.
+    request_object: dict,
+        The parsed query string parameters associated with the API call.
     query_object : dict
         The MongoDB query object.
     search_type : str
@@ -266,7 +239,7 @@ def search_and_cache(
         record_list = [record["biomarker_id"] for record in result]
         return_object, http_code = _cache_object(
             list_id,
-            api_request,
+            request_object,
             query_object,
             record_list,
             search_type,
@@ -276,6 +249,143 @@ def search_and_cache(
             return return_object, http_code
 
     return {"list_id": list_id}, 200
+
+
+def get_cached_objects(
+    request_object: Dict,
+    query_object: Dict,
+    projection_object: Dict = {"_id": 0},
+    cache_collection: str = SEARCH_CACHE_COLLECTION,
+) -> Tuple[Dict, int]:
+    """Gets cached IDs under a list ID.
+
+    Parameters
+    ----------
+    request_object
+        The parsed query string parameters associated with the API call.
+    query_object : dict
+        The MongoDB query object.
+    projection_object : dict (default: {"_id": 0})
+        The projection object, by default it returns everything
+    cache_collection : str (default: SEARCH_CACHE_COLLECTION)
+        The cache collection.
+
+    Returns
+    -------
+    tuple : (dict, int)
+        The biomarker id results and HTTP status code.
+    """
+    custom_app = cast_app(current_app)
+    dbh = custom_app.mongo_db
+
+    try:
+        cache_result = dbh[cache_collection].find(query_object, projection_object)
+    except PyMongoError as e:
+        error_object = log_error(
+            error_log=f"Pymongo error in querying for existing cache list id.\nlist id: `{query_object['list_id']}`\nrequest object: {request_object}\n{e}",
+            error_msg="internal-database-error",
+            origin="get_cached_objects",
+        )
+        return error_object, 500
+    except Exception as e:
+        error_object = log_error(
+            error_log=f"Unexpected error in querying for existing cache list id.\nlist id: `{query_object['list_id']}`\nrequest object: {request_object}\n{e}",
+            error_msg="internal-database-error",
+            origin="get_cached_objects",
+        )
+        return error_object, 500
+
+    if cache_result is None:
+        error_object = log_error(
+            error_log=f"User search on non-existent list id.\nrequest object: {request_object}",
+            error_msg="non-existent-search-results",
+            origin="get_cached_objects",
+        )
+        return error_object, 404
+
+    id_list = [doc["results"] for doc in cache_result]
+
+    return {"id_list": id_list, "cache_info": cache_result[0]["cache_info"]}, 200
+
+
+def get_cache_batch(
+    id_list: List[str],
+    batch_num: int,
+    projection_object: Dict[str, int] = {"_id": 0},
+    collection: str = DB_COLLECTION,
+) -> Tuple[Dict, int]:
+    """Gets a batch of data records based on biomarker ID.
+
+    Parameters
+    ----------
+    id_list : list[str]
+        The list of biomarker IDs.
+    projection_object : dict[str, int] (default: {"_id": 0})
+        The MongoDB projection object.
+    collection : str
+        The collection to search on.
+
+    Returns
+    -------
+    tuple : (dict, int)
+        The return data and HTTP code.
+    """
+    custom_app = cast_app(current_app)
+    dbh = custom_app.mongo_db
+    data_query = {"biomarker_id": {"$in": id_list}}
+
+    try:
+        batch_results = list(dbh[collection].find(data_query, projection_object))
+    except PyMongoError as e:
+        error_object = log_error(
+            error_log=f"PyMongo error in querying for biomarker IDs in batch `{batch_num}`.\n{id_list}\n{e}",
+            error_msg="internal-database-error",
+            origin="get_cache_batch",
+            batch_num=batch_num
+        )
+        return error_object, 500
+    except Exception as e:
+        error_object = log_error(
+            error_log=f"Unexpected error in querying for biomarker IDs in batch `{batch_num}`.\n{id_list}\n{e}",
+            error_msg="internal-database-error",
+            origin="get_cache_batch",
+            batch_num=batch_num
+        )
+        return error_object, 500
+
+    return {"results": batch_results}, 200
+
+
+def create_timestamp() -> str:
+    """Creates a current timestamp.
+
+    Returns
+    -------
+    str
+        The current timestamp as a string.
+    """
+    timestamp = datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime(
+        TIMESTAMP_FORMAT
+    )
+    return timestamp
+
+
+def cast_app(app: Flask) -> CustomFlask:
+    """Casts the Flask app as the CustomFlask instance for
+    static type checkers.
+
+    Parameters
+    ----------
+    app : Flask
+        The Flask current_app instance.
+
+    Returns
+    -------
+    CustomFlask
+        The casted current_app instance.
+    """
+    custom_app = cast(CustomFlask, app)
+    return custom_app
 
 
 def _get_query_hash(query_object: Dict) -> str:
@@ -337,7 +447,7 @@ def _search_cache(
 
 def _cache_object(
     list_id: str,
-    api_request: Dict,
+    request_arguments: Dict,
     query_object: Dict,
     record_list: List[str],
     search_type: str,
@@ -349,8 +459,8 @@ def _cache_object(
     ----------
     list_id : str
         The list id for the search.
-    api_request : dict
-        The API request object.
+    request_arguments : dict
+        The parsed query string parameters associated with the API call.
     query_object : dict
         The MongoDB query.
     record_list : list[str]
@@ -368,15 +478,31 @@ def _cache_object(
     cache_object = {
         "list_id": list_id,
         "cache_info": {
-            "api_request": api_request,
+            "api_request": request_arguments,
             "query": query_object,
             "search_type": search_type,
-            "timestamp": create_timestamp()
+            "timestamp": create_timestamp(),
         },
     }
     custom_app = cast_app(current_app)
     dbh = custom_app.mongo_db
-    dbh[cache_collection].delete_many({"list_id": list_id})
+
+    try:
+        dbh[cache_collection].delete_many({"list_id": list_id})
+    except PyMongoError as e:
+        error_object = log_error(
+            error_log=f"PyMongo error deleting existing cache objects.\nlist id: `{list_id}\n{e}",
+            error_msg="internal-database-error",
+            origin="_cache_object",
+        )
+        return error_object, 500
+    except Exception as e:
+        error_object = log_error(
+            error_log=f"Unexpected error deleting existing cache objects.\nlist id: `{list_id}\n{e}",
+            error_msg="internal-database-error",
+            origin="_cache_object",
+        )
+        return error_object, 500
 
     record_count = len(record_list)
     partition_count = int((record_count + CACHE_BATCH_SIZE - 1) // CACHE_BATCH_SIZE)
@@ -406,33 +532,28 @@ def _cache_object(
     return {"list_id": list_id}, 200
 
 
-def create_timestamp() -> str:
-    """Creates a current timestamp.
-
-    Returns
-    -------
-    str
-        The current timestamp as a string.
-    """
-    timestamp = datetime.datetime.now(pytz.timezone(TIMEZONE)).strftime(
-        TIMESTAMP_FORMAT
-    )
-    return timestamp
-
-
-def cast_app(app: Flask) -> CustomFlask:
-    """Casts the Flask app as the CustomFlask instance for
-    static type checkers.
+def _create_error_obj(error_id: str, error_msg: str, **kwargs: Any) -> Dict[Any, Any]:
+    """Creates a standardized error object.
 
     Parameters
     ----------
-    app : Flask
-        The Flask current_app instance.
+    error_id : str
+        The error ID.
+    error_msg : str
+        The standardized error message/code.
+    extra_info : str or None
+        Supplementary error information, if available.
 
     Returns
     -------
-    CustomFlask
-        The casted current_app instance.
+    dict
+        The error object.
     """
-    custom_app = cast(CustomFlask, app)
-    return custom_app
+    error_object: Dict[Any, Any] = {
+        "error": {
+            "error_id": error_id,
+            "error_msg": error_msg,
+        }
+    }
+    error_object["error"].update(kwargs)
+    return error_object
