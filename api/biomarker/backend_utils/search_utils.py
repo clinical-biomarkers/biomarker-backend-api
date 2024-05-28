@@ -67,7 +67,7 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
 
     mongo_query, projection_object = _search_query_builder(request_arguments, True)
     return_object, query_http_code = db_utils.search_and_cache(
-        api_request=request_arguments,
+        request_object=request_arguments,
         query_object=mongo_query,
         search_type="simple",
         projection_object=projection_object,
@@ -99,7 +99,7 @@ def full_search(api_request: Request) -> Tuple[Dict, int]:
 
     mongo_query, projection_object = _search_query_builder(request_arguments, False)
     return_object, query_http_code = db_utils.search_and_cache(
-        api_request=request_arguments,
+        request_object=request_arguments,
         query_object=mongo_query,
         search_type="full",
         projection_object=projection_object,
@@ -188,7 +188,7 @@ def _search_query_builder(
             for key, value in request_object
             if key in field_map
         }
-        operation = request_object.get("operation", "and").lower().strip()
+        operation = request_object["operation"].lower().strip()
 
         query_list = [
             {field_map[key]: {"$text": {"$search": value}}}
