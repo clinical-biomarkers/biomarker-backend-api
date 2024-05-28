@@ -257,7 +257,7 @@ def _list_query_builder(request_object: Dict) -> Tuple[Dict, Dict]:
     tuple : (dict, dict)
         The MongoDB query and the projection object.
     """
-    return {"list_id": request_object["id"]}, {"_id": 0}
+    return {"list_id": request_object["list_id"]}, {"_id": 0}
 
 
 def _format_filter_data(
