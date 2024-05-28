@@ -109,6 +109,7 @@ def strip_object(target: Dict) -> Dict:
     }
     return target
 
+
 def prepare_search_term(term: str) -> str:
     """Cleans and preprocesses a string for use in a MongoDB search.
 
@@ -123,5 +124,31 @@ def prepare_search_term(term: str) -> str:
         The preprocessed and sanitized string.
     """
     term = term.strip().lower()
-    quoted_term = f"\"{term}\""
+    quoted_term = f'"{term}"'
     return quoted_term
+
+
+def get_hit_score(doc: Dict) -> Tuple[float, Dict]:
+    """calculates a hit score for a record.
+
+    Parameters
+    ----------
+    doc : dict
+        The document to calculate the hit score for.
+
+    Returns
+    -------
+    tuple : (float, dict)
+        The hit score and the score info object.
+    """
+    # TODO : implement hit score, hardcoding for now
+    score_info = {
+        "contributions": [{"c": "biomarker_exact_match", "w": 0.0, "f": 0.0}],
+        "formula": "sum(w + 0.01*f)",
+        "variables": {
+            "c": "condition name",
+            "w": "condition weight",
+            "f": "condition match frequency",
+        },
+    }
+    return 0.1, score_info
