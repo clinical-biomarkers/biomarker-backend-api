@@ -11,6 +11,8 @@ from logging import Logger
 from logging.handlers import RotatingFileHandler
 
 from .detail import api as detail_api
+from .search import api as search_api
+from .list import api as list_api
 
 MONGO_URI = os.getenv("MONGODB_CONNSTRING")
 DB_NAME = "biomarkerdb_api"
@@ -61,7 +63,9 @@ def create_app():
         title="Biomarker APIs",
         description="Biomarker Knowledgebase API",
     )
-    # TODO : add
+
     api.add_namespace(detail_api)
+    api.add_namespace(search_api)
+    api.add_namespace(list_api)
 
     return app
