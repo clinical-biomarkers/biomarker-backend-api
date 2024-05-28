@@ -26,7 +26,7 @@ class DetailSchema(Schema):
 ### Search Simple Schema
 
 
-class SearchSimple(Schema):
+class SearchSimpleSchema(Schema):
 
     class Meta(Schema.Meta):
         unknown = EXCLUDE
@@ -55,7 +55,7 @@ class SearchSimple(Schema):
 ### Search Full Schema
 
 
-class SearchFull(Schema):
+class SearchFullSchema(Schema):
 
     class Meta(Schema.Meta):
         unknown = EXCLUDE
@@ -68,12 +68,40 @@ class SearchFull(Schema):
     condition_id = fields.Str(required=False)
     publication_id = fields.Str(required=False)
     best_biomarker_role = fields.Str(required=False)
+    operation = fields.Str(required=False, missing="and")
+
+
+### List Schema
+
+
+class _FilterSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    id = fields.Str(required=True)
+    operator = fields.Str(required=False, missing="and")
+    selected = fields.List(fields.Str(), required=True)
+
+
+class ListSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    id = fields.Str(required=True)
+    offset = fields.Integer(required=False, missing=1)
+    sort = fields.Str(required=False, missing="hit_score")
+    limit = fields.Integer(required=False, missing=20)
+    order = fields.Str(required=False, missing="desc")
+    filters = fields.List(fields.Nested(_FilterSchema), required=False)
 
 
 ### Schema Map
 
 SCHEMA_MAP = {
     "detail": DetailSchema,
-    "search_simple": SearchSimple,
-    "search_full": SearchFull,
+    "search_simple": SearchSimpleSchema,
+    "search_full": SearchFullSchema,
+    "list": ListSchema,
 }
