@@ -334,7 +334,7 @@ def get_cache_batch(
     custom_app = cast_app(current_app)
     dbh = custom_app.mongo_db
     data_query = {"biomarker_id": {"$in": id_list}}
-    custom_app.logger.info(f"\n\nDATA QUERY: {data_query}\n\n")
+    custom_app.api_logger.info(f"\n\nDATA QUERY: {data_query}\n\n")
 
     try:
         batch_results = list(dbh[collection].find(data_query, projection_object))
