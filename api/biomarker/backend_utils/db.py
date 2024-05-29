@@ -304,7 +304,7 @@ def get_cached_objects(
         )
         return error_object, 404
 
-    id_list = [doc["results"] for doc in cache_result]
+    id_list = [id for doc in cache_result for id in doc["results"]]
 
     return {"id_list": id_list, "cache_info": cache_result[0]["cache_info"]}, 200
 
@@ -334,11 +334,9 @@ def get_cache_batch(
     custom_app = cast_app(current_app)
     dbh = custom_app.mongo_db
     data_query = {"biomarker_id": {"$in": id_list}}
-    custom_app.api_logger.info(f"DATA QUERY: {data_query}")
 
     try:
         batch_results = list(dbh[collection].find(data_query, projection_object))
-        custom_app.api_logger.info(f"BATCH_RESULTS: {batch_results[0] if len(batch_results) != 0 else 'NOTHING'}")
     except PyMongoError as e:
         error_object = log_error(
             error_log=f"PyMongo error in querying for biomarker IDs in batch `{batch_num}`.\n{id_list}\n{e}",
