@@ -9,7 +9,7 @@ REQ_LOG_COLLECTION = "request_log_collection"
 REQ_LOG_MAX_LEN = 20_000
 ERROR_LOG_COLLECTION = "error_log_collection"
 CACHE_BATCH_SIZE = 5_000
-SEARCH_BATCH_SIZE = 5_000
+SEARCH_BATCH_SIZE = 500
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S %Z%z"
 TIMEZONE = "US/Eastern"
 
