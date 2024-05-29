@@ -110,13 +110,15 @@ def strip_object(target: Dict) -> Dict:
     return target
 
 
-def prepare_search_term(term: str) -> str:
+def prepare_search_term(term: str, wrap: bool = True) -> str:
     """Cleans and preprocesses a string for use in a MongoDB search.
 
     Parameters
     ----------
     term : str
         The term to preprocess.
+    wrap : bool (default: True)
+        Whether or not to wrap the term in quotes.
 
     Returns
     -------
@@ -124,7 +126,7 @@ def prepare_search_term(term: str) -> str:
         The preprocessed and sanitized string.
     """
     term = term.strip().lower()
-    quoted_term = f'"{term}"'
+    quoted_term = f'"{term}"' if wrap else term
     return quoted_term
 
 

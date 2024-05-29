@@ -66,10 +66,6 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
         return request_arguments, request_http_code
 
     mongo_query, projection_object = _search_query_builder(request_arguments, True)
-    # TODO : delete logging
-    custom_app = db_utils.cast_app(current_app)
-    custom_app.api_logger.info(f"REQUEST ARGS: {request_arguments}")
-    custom_app.api_logger.info(f"MONGO_QUERY: {mongo_query}")
     return_object, query_http_code = db_utils.search_and_cache(
         request_object=request_arguments,
         query_object=mongo_query,
@@ -152,15 +148,15 @@ def _search_query_builder(
     query_list: List[Dict] = []
 
     if simple_search_flag:
-        search_term = utils.prepare_search_term(request_object["term"])
+        search_term = request_object["term"]
         term_category = request_object["term_category"].strip().lower()
 
         if term_category == "any":
-            return {"$text": {"$search": search_term}}, projection_object
+            return {"$text": {"$search": utils.prepare_search_term(search_term)}}, projection_object
 
         elif term_category == "biomarker":
             query_list = [
-                {path: {"$regex": search_term, "$options": "i"}}
+                {path: {"$regex": utils.prepare_search_term(search_term, wrap=False), "$options": "i"}}
                 for key, path in field_map.items()
                 if key
                 not in {
@@ -173,7 +169,7 @@ def _search_query_builder(
 
         elif term_category == "condition":
             query_list = [
-                {path: {"$regex": search_term, "$options": "i"}}
+                {path: {"$regex": utils.prepare_search_term(search_term, wrap=False), "$options": "i"}}
                 for key, path in field_map.items()
                 if key
                 in {
@@ -188,7 +184,7 @@ def _search_query_builder(
 
     else:
         cleaned_reuest_object = {
-            key: utils.prepare_search_term(value)
+            key: utils.prepare_search_term(value, wrap=False)
             for key, value in request_object.items()
             if key in field_map
         }
