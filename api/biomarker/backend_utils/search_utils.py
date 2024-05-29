@@ -165,7 +165,7 @@ def _search_query_builder(
         term_category = request_object["term_category"].strip().lower()
 
         if term_category == "any":
-            return {"$text": {"$search": utils.prepare_search_term(search_term)}}, projection_object
+            return {"$text": {"$search": utils.prepare_search_term(search_term, wrap=False)}}, projection_object
 
         elif term_category == "biomarker":
             query_list = [
