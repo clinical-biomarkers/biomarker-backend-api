@@ -85,7 +85,8 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
 
     # TODO : delete logging
     end_time = time.time()
-    custom_app.api_logger.info(f"\tEND TIME: {end_time}\n\tELAPSED TIME: {end_time - start_time}")
+    custom_app.api_logger.info(f"\tEND TIME: {end_time}")
+    custom_app.api_logger.info(f"\tELAPSED TIME: {end_time - start_time}")
 
     return return_object, query_http_code
 

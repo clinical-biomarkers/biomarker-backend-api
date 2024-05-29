@@ -44,7 +44,8 @@ def list(api_request: Request) -> Tuple[Dict, int]:
 
     # TODO : delete logging
     end_time = time.time()
-    custom_app.api_logger.info(f"\tEND TIME: {end_time}\n\tELAPSED TIME: {end_time - start_time}")
+    custom_app.api_logger.info(f"\tEND TIME: {end_time}")
+    custom_app.api_logger.info(f"\tELAPSED TIME: {end_time - start_time}")
 
     if query_http_code != 200:
         return cache_object, query_http_code
@@ -104,7 +105,8 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         get_batch_end_time = time.time()
         get_batch_elapsed = get_batch_end_time - get_batch_start_time
         get_cache_batch_total += get_batch_elapsed
-        custom_app.api_logger.info(f"\t\t\tEND TIME: {get_batch_end_time}\n\t\t\tELAPSED TIME: {get_batch_elapsed}")
+        custom_app.api_logger.info(f"\t\t\tEND TIME: {get_batch_end_time}")
+        custom_app.api_logger.info(f"\t\t\tELAPSED TIME: {get_batch_elapsed}")
 
         # TODO : delete logging
         filter_format_start_time = time.time()
@@ -121,7 +123,8 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         filter_format_end_time = time.time()
         filter_format_elapsed = filter_format_end_time - filter_format_start_time
         filter_and_format_total += filter_format_elapsed
-        custom_app.api_logger.info(f"\t\t\tEND TIME: {filter_format_end_time}\n\t\t\tELAPSED TIME: {filter_format_elapsed}")
+        custom_app.api_logger.info(f"\t\t\tEND TIME: {filter_format_end_time}")
+        custom_app.api_logger.info(f"\t\t\tELAPSED TIME: {filter_format_elapsed}")
         sort_batch_start_time = time.time()
         custom_app.api_logger.info("\t\tSORT BATCH")
         custom_app.api_logger.info(f"\t\t\tSTART TIME: {sort_batch_start_time}")
@@ -138,15 +141,19 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         sort_batch_end_time = time.time()
         sort_batch_elapsed = sort_batch_end_time - sort_batch_start_time
         sort_batch_total += sort_batch_elapsed
-        custom_app.api_logger.info(f"\t\t\tEND TIME: {sort_batch_end_time}\n\t\t\tELAPSED TIME: {sort_batch_elapsed}")
+        custom_app.api_logger.info(f"\t\t\tEND TIME: {sort_batch_end_time}")
+        custom_app.api_logger.info(f"\t\t\tELAPSED TIME: {sort_batch_elapsed}")
         batch_end_time = time.time()
         batch_elapsed = batch_end_time - batch_start_time
         batch_total += batch_elapsed
-        custom_app.api_logger.info(f"\t\tEND TIME: {batch_end_time}\n\t\tELAPSED TIME: {batch_elapsed}")
+        custom_app.api_logger.info(f"\t\tEND TIME: {batch_end_time}")
+        custom_app.api_logger.info(f"\t\tELAPSED TIME: {batch_elapsed}")
 
     # TODO : delete logging
     overall_end_time = time.time()
-    custom_app.api_logger.info(f"\tEND TIME: {overall_end_time}\n\tELAPSED TIME: {overall_end_time - overall_start_time}\n\tAVG TIME: {(overall_end_time - overall_start_time) / batches}")
+    custom_app.api_logger.info(f"\tEND TIME: {overall_end_time}")
+    custom_app.api_logger.info(f"\tELAPSED TIME: {overall_end_time - overall_start_time}")
+    custom_app.api_logger.info(f"\tAVG TIME: {(overall_end_time - overall_start_time) / batches}")
     custom_app.api_logger.info(f"\tGET BATCH AVG: {get_cache_batch_total / batches}")
     custom_app.api_logger.info(f"\tFILTER AND FORMAT AVG: {filter_and_format_total / batches}")
     custom_app.api_logger.info(f"\tSORT BATCH AVG: {sort_batch_total / batches}")
@@ -164,7 +171,8 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     # TODO : delete logging
     sort_batch_list_end_time = time.time()
     sort_batch_list_elapsed = sort_batch_list_end_time - sort_batch_list_start_time
-    custom_app.api_logger.info(f"\tEND TIME: {sort_batch_list_end_time}\n\tELAPSED TIME: {sort_batch_list_elapsed}")
+    custom_app.api_logger.info(f"\tEND TIME: {sort_batch_list_end_time}")
+    custom_app.api_logger.info(f"\tELAPSED TIME: {sort_batch_list_elapsed}")
 
     # merge sorted batch list into one list
     merged_batch_list: List[Dict] = []
