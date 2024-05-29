@@ -160,7 +160,7 @@ def _filter_and_format(
         roles = set([role["role"].lower() for role in document["best_biomarker_role"]])
 
         # handle filtering
-        include_record = False
+        include_record = True
         if filter_codes is not None:
             for filter_id, filter_data in filter_codes.items():
                 filter_values = filter_data["values"]
