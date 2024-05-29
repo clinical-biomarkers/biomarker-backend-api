@@ -69,9 +69,9 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         if batch_http_code != 200:
             return batch_results, batch_http_code
 
-        formatted_return_results, filter_object = _filter_sort_and_format(
+        formatted_return_results, filter_object = _filter_and_format(
             batch_results["results"],
-            applied_filters,
+            filter_object,
             filter_codes=filter_codes if filter_codes != {} else None,
         )
 
@@ -110,7 +110,7 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     return results, 200
 
 
-def _filter_sort_and_format(
+def _filter_and_format(
     batch: List,
     filters: Dict,
     filter_codes: Optional[Dict[str, Dict[str, Union[int, Set]]]],
@@ -236,7 +236,7 @@ def _filter_sort_and_format(
         {"id": et, "label": et.title(), "count": count, "order": idx + 1}
         for idx, (et, count) in enumerate(sorted(counts["entity_types"].items()))
     ]
-    filters["availble"][1]["options"] = [
+    filters["available"][1]["options"] = [
         {"id": role, "label": role.title(), "count": count, "order": idx + 1}
         for idx, (role, count) in enumerate(sorted(counts["roles"].items()))
     ]
