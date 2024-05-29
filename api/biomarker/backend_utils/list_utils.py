@@ -23,7 +23,7 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         The return JSON and HTTP code.
     """
     request_arguments, request_http_code = utils.get_request_object(
-        api_request, "search_full"
+        api_request, "list"
     )
     if request_http_code != 200:
         return request_arguments, request_http_code
@@ -257,7 +257,7 @@ def _list_query_builder(request_object: Dict) -> Tuple[Dict, Dict]:
     tuple : (dict, dict)
         The MongoDB query and the projection object.
     """
-    return {"list_id": request_object["list_id"]}, {"_id": 0}
+    return {"list_id": request_object["id"]}, {"_id": 0}
 
 
 def _format_filter_data(
