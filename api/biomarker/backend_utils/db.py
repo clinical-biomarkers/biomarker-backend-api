@@ -513,6 +513,8 @@ def _cache_object(
         end_index = min(start_index + CACHE_BATCH_SIZE, record_count)
         curr_cache_obj = cache_object
         curr_cache_obj["results"] = record_list[start_index:end_index]
+        if "_id" in curr_cache_obj:
+            curr_cache_obj.pop("_id")
         try:
             dbh[cache_collection].insert_one(curr_cache_obj)
         except PyMongoError as e:
