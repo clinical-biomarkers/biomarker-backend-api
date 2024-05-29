@@ -279,7 +279,8 @@ def get_cached_objects(
     dbh = custom_app.mongo_db
 
     try:
-        cache_result = dbh[cache_collection].find(query_object, projection_object)
+        cursor = dbh[cache_collection].find(query_object, projection_object)
+        cache_result = list(cursor)
     except PyMongoError as e:
         error_object = log_error(
             error_log=f"Pymongo error in querying for existing cache list id.\nlist id: `{query_object['list_id']}`\nrequest object: {request_object}\n{e}",
