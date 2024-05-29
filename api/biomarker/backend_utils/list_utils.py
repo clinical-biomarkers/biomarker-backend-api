@@ -182,7 +182,7 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     results = {
         "cache_info": cache_info,
         "filters": filter_object,
-        "results": merged_batch_list[offset : offset + limit],
+        "results": merged_batch_list[offset - 1: offset + limit],
         "pagination": {
             "offset": offset,
             "limit": limit,
