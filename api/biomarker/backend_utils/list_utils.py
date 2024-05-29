@@ -3,6 +3,7 @@
 
 from flask import Request, current_app
 from typing import Tuple, Dict, List, Optional, Union, Set
+import time
 
 from . import utils as utils
 from . import db as db_utils
@@ -27,12 +28,24 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         return request_arguments, request_http_code
 
     mongo_query, projection_object = _list_query_builder(request_arguments)
+
+    # TODO : delete logging
+    custom_app = db_utils.cast_app(current_app)
+    start_time = time.time()
+    custom_app.api_logger.info("LIST GET BATCHED OBJECTS")
+    custom_app.api_logger.info(f"\tSTART TIME: {start_time}")
+
     cache_object, query_http_code = db_utils.get_cached_objects(
         request_object=request_arguments,
         query_object=mongo_query,
         projection_object=projection_object,
         cache_collection=SEARCH_CACHE_COLLECTION,
     )
+
+    # TODO : delete logging
+    end_time = time.time()
+    custom_app.api_logger.info(f"\tEND TIME: {end_time}\n\tELAPSED TIME: {end_time - start_time}")
+
     if query_http_code != 200:
         return cache_object, query_http_code
 
@@ -51,8 +64,22 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     batches = total_ids // SEARCH_BATCH_SIZE
 
     all_batches: List[List] = []
+    
+    # TODO : delete logging
+    overall_start_time = time.time()
+    custom_app.api_logger.info("BATCH PROCESSING") 
+    custom_app.api_logger.info(f"\tSTART TIME: {overall_start_time}")
+    batch_total = 0.0
+    get_cache_batch_total = 0.0
+    filter_and_format_total = 0.0
+    sort_batch_total = 0.0
 
     for i in range(0, batches + 1):
+
+        # TODO : delete logging
+        batch_start_time = time.time()
+        custom_app.api_logger.info(f"\tBATCH: {i}")
+        custom_app.api_logger.info(f"\t\tSTART TIME: {batch_start_time}")
 
         start_index = i * SEARCH_BATCH_SIZE
         end_index = min(start_index + SEARCH_BATCH_SIZE, total_ids)
@@ -61,17 +88,43 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         if not batch_ids:
             continue
 
+        # TODO : delete logging
+        custom_app.api_logger.info(f"\t\tTOTAL IDS: {len(batch_ids)}")
+        get_batch_start_time = time.time()
+        custom_app.api_logger.info("\t\tGET CACHE BATCH")
+        custom_app.api_logger.info(f"\t\t\tSTART TIME: {get_batch_start_time}")
+
         batch_results, batch_http_code = db_utils.get_cache_batch(
             batch_ids, i, {"_id": 0}, DB_COLLECTION
         )
         if batch_http_code != 200:
             return batch_results, batch_http_code
 
+        # TODO : delete logging
+        get_batch_end_time = time.time()
+        get_batch_elapsed = get_batch_end_time - get_batch_start_time
+        get_cache_batch_total += get_batch_elapsed
+        custom_app.api_logger.info(f"\t\t\tEND TIME: {get_batch_end_time}\n\t\t\tELAPSED TIME: {get_batch_elapsed}")
+
+        # TODO : delete logging
+        filter_format_start_time = time.time()
+        custom_app.api_logger.info("\t\tFILTER AND FORMAT BATCH")
+        custom_app.api_logger.info(f"\t\t\tSTART TIME: {filter_format_start_time}")
+
         formatted_return_results, filter_object = _filter_and_format(
             batch_results["results"],
             filter_object,
             filter_codes=filter_codes if filter_codes != {} else None,
         )
+
+        # TODO : delete logging
+        filter_format_end_time = time.time()
+        filter_format_elapsed = filter_format_end_time - filter_format_start_time
+        filter_and_format_total += filter_format_elapsed
+        custom_app.api_logger.info(f"\t\t\tEND TIME: {filter_format_end_time}\n\t\t\tELAPSED TIME: {filter_format_elapsed}")
+        sort_batch_start_time = time.time()
+        custom_app.api_logger.info("\t\tSORT BATCH")
+        custom_app.api_logger.info(f"\t\t\tSTART TIME: {sort_batch_start_time}")
 
         # sort batch
         sorted_batch = sorted(
@@ -81,12 +134,38 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         )
         all_batches.append(sorted_batch)
 
+        # TODO : delete logging
+        sort_batch_end_time = time.time()
+        sort_batch_elapsed = sort_batch_end_time - sort_batch_start_time
+        sort_batch_total += sort_batch_elapsed
+        custom_app.api_logger.info(f"\t\t\tEND TIME: {sort_batch_end_time}\n\t\t\tELAPSED TIME: {sort_batch_elapsed}")
+        batch_end_time = time.time()
+        batch_elapsed = batch_end_time - batch_start_time
+        batch_total += batch_elapsed
+        custom_app.api_logger.info(f"\t\tEND TIME: {batch_end_time}\n\t\tELAPSED TIME: {batch_elapsed}")
+
+    # TODO : delete logging
+    overall_end_time = time.time()
+    custom_app.api_logger.info(f"\tEND TIME: {overall_end_time}\n\tELAPSED TIME: {overall_end_time - overall_start_time}\n\tAVG TIME: {(overall_end_time - overall_start_time) / batches}")
+    custom_app.api_logger.info(f"\tGET BATCH AVG: {get_cache_batch_total / batches}")
+    custom_app.api_logger.info(f"\tFILTER AND FORMAT AVG: {filter_and_format_total / batches}")
+    custom_app.api_logger.info(f"\tSORT BATCH AVG: {sort_batch_total / batches}")
+    sort_batch_list_start_time = time.time()
+    custom_app.api_logger.info("SORT BATCH LIST")
+    custom_app.api_logger.info(f"\tSTART TIME: {sort_batch_list_start_time}")
+    
     # sort batches within all batches list
     sorted_batch_list = sorted(
         all_batches,
         key=lambda x: x[0][sort_field] if sort_field in x else "hit_score",
         reverse=reverse_flag,
     )
+
+    # TODO : delete logging
+    sort_batch_list_end_time = time.time()
+    sort_batch_list_elapsed = sort_batch_list_end_time - sort_batch_list_start_time
+    custom_app.api_logger.info(f"\tEND TIME: {sort_batch_list_end_time}\n\tELAPSED TIME: {sort_batch_list_elapsed}")
+
     # merge sorted batch list into one list
     merged_batch_list: List[Dict] = []
     for sorted_batch in sorted_batch_list:

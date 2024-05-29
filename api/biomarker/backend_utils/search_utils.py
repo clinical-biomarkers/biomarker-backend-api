@@ -3,6 +3,7 @@
 
 from flask import Request, current_app
 from typing import Tuple, Dict, List
+import time
 
 from . import db as db_utils
 from . import utils as utils
@@ -66,6 +67,13 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
         return request_arguments, request_http_code
 
     mongo_query, projection_object = _search_query_builder(request_arguments, True)
+
+    # TODO : delete logging
+    custom_app = db_utils.cast_app(current_app)
+    start_time = time.time()
+    custom_app.api_logger.info(f"SIMPLE SEARCH QUERY TIME\n\tREQUEST: {request_arguments}")
+    custom_app.api_logger.info(f"\tSTART TIME: {start_time}")
+
     return_object, query_http_code = db_utils.search_and_cache(
         request_object=request_arguments,
         query_object=mongo_query,
@@ -74,6 +82,10 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
         collection=DB_COLLECTION,
         cache_collection=SEARCH_CACHE_COLLECTION,
     )
+
+    # TODO : delete logging
+    end_time = time.time()
+    custom_app.api_logger.info(f"\tEND TIME: {end_time}\n\tELAPSED TIME: {end_time - start_time}")
 
     return return_object, query_http_code
 
