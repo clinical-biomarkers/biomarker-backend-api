@@ -296,7 +296,7 @@ def get_cached_objects(
         )
         return error_object, 500
 
-    if cursor is None:
+    if cursor is None or len(cache_result) == 0:
         error_object = log_error(
             error_log=f"User search on non-existent list id.\nrequest object: {request_object}",
             error_msg="non-existent-search-results",
