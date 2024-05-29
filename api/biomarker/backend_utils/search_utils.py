@@ -156,7 +156,7 @@ def _search_query_builder(
 
         elif term_category == "biomarker":
             query_list = [
-                {path: {"$text": {"$search": search_term}}}
+                {path: {"$regex": search_term, "$options": "i"}}
                 for key, path in field_map.items()
                 if key
                 not in {
@@ -169,7 +169,7 @@ def _search_query_builder(
 
         elif term_category == "condition":
             query_list = [
-                {path: {"$text": {"$search": search_term}}}
+                {path: {"$regex": search_term, "$options": "i"}}
                 for key, path in field_map.items()
                 if key
                 in {
@@ -185,13 +185,13 @@ def _search_query_builder(
     else:
         cleaned_reuest_object = {
             key: utils.prepare_search_term(value)
-            for key, value in request_object
+            for key, value in request_object.items()
             if key in field_map
         }
         operation = request_object["operation"].lower().strip()
 
         query_list = [
-            {field_map[key]: {"$text": {"$search": value}}}
+            {field_map[key]: {"$regex": value, "$options": "i"}}
             for key, value in cleaned_reuest_object.items()
             if key in field_map
         ]
