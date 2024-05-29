@@ -338,6 +338,7 @@ def get_cache_batch(
 
     try:
         batch_results = list(dbh[collection].find(data_query, projection_object))
+        custom_app.api_logger.info(f"BATCH_RESULTS: {batch_results[0] if len(batch_results) != 0 else 'NOTHING'}")
     except PyMongoError as e:
         error_object = log_error(
             error_log=f"PyMongo error in querying for biomarker IDs in batch `{batch_num}`.\n{id_list}\n{e}",
