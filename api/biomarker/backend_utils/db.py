@@ -233,6 +233,8 @@ def search_and_cache(
         return error_object, 500
 
     if not cache_hit:
+        # TODO : delete logging
+        custom_app.api_logger.info(f"NO CACHE HIT FOR ID: {list_id}")
         result = dbh[collection].find(query_object, projection_object)
         if result is None:
             return {"list_id": ""}, 200

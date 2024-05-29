@@ -1,7 +1,7 @@
 """ Handles the backend logic for the biomarker search endpoints.
 """
 
-from flask import Request
+from flask import Request, current_app
 from typing import Tuple, Dict, List
 
 from . import db as db_utils
@@ -66,6 +66,10 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
         return request_arguments, request_http_code
 
     mongo_query, projection_object = _search_query_builder(request_arguments, True)
+    # TODO : delete logging
+    custom_app = db_utils.cast_app(current_app)
+    custom_app.api_logger.info(f"REQUEST ARGS: {request_arguments}")
+    custom_app.api_logger.info(f"MONGO_QUERY: {mongo_query}")
     return_object, query_http_code = db_utils.search_and_cache(
         request_object=request_arguments,
         query_object=mongo_query,
