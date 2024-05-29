@@ -8,9 +8,7 @@ from logging import Logger
 from logging.handlers import RotatingFileHandler
 
 from .backend_utils import CustomFlask
-from .detail import Detail
-from .search import SearchInit, SearchSimple, FullSearch
-from .list import List
+from .namespaces import biomarker_ns
 
 MONGO_URI = os.getenv("MONGODB_CONNSTRING")
 DB_NAME = "biomarkerdb_api"
@@ -58,10 +56,6 @@ def create_app():
         description="Biomarker Knowledgebase API",
     )
 
-    api.add_resource(Detail, "/detail/<string:biomarker_id>")
-    api.add_resource(SearchInit, "/search_init")
-    api.add_resource(SearchSimple, "/search_simple")
-    api.add_resource(FullSearch, "/search")
-    api.add_resource(List, "/list")
+    api.add_namespace(biomarker_ns)
 
     return app
