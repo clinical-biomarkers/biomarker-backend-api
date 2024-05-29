@@ -1,7 +1,7 @@
 """ Handles the backend logic for the biomarker list endpoint.
 """
 
-from flask import Request
+from flask import Request, current_app
 from typing import Tuple, Dict, List, Optional, Union, Set
 
 from . import utils as utils
@@ -22,9 +22,7 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     tuple : (dict, int)
         The return JSON and HTTP code.
     """
-    request_arguments, request_http_code = utils.get_request_object(
-        api_request, "list"
-    )
+    request_arguments, request_http_code = utils.get_request_object(api_request, "list")
     if request_http_code != 200:
         return request_arguments, request_http_code
 
@@ -52,12 +50,20 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     total_ids = len(id_list)
     batches = total_ids // SEARCH_BATCH_SIZE
 
+    # TODO : delete logging
+    custom_app = db_utils.cast_app(current_app)
+    custom_app.api_logger.info(f"TOTAL IDS: {total_ids}")
+
     all_batches: List[List] = []
 
     for i in range(0, batches + 1):
 
         start_index = i * SEARCH_BATCH_SIZE
         end_index = min(start_index + SEARCH_BATCH_SIZE, total_ids)
+        # TODO : delete logging
+        custom_app.api_logger.info(
+            f"I: {i}\nSTART_INDEX: {start_index}\nEND_INDEX: {end_index}"
+        )
         batch_ids = id_list[start_index:end_index]
 
         if not batch_ids:
@@ -73,6 +79,10 @@ def list(api_request: Request) -> Tuple[Dict, int]:
             batch_results["results"],
             filter_object,
             filter_codes=filter_codes if filter_codes != {} else None,
+        )
+        # TODO : delete logging
+        custom_app.api_logger.info(
+            f"FORMATTED_RESULT[0]: {formatted_return_results[0]}"
         )
 
         # sort batch
@@ -93,6 +103,10 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     merged_batch_list: List[Dict] = []
     for sorted_batch in sorted_batch_list:
         merged_batch_list.extend(sorted_batch)
+    # TODO : delete logging
+    custom_app.api_logger.info(
+        f"MERGED_BATCH_LIST[0]: {merged_batch_list[0]}\nMERGED_BATCH_LIST_LEN: {len(merged_batch_list)}"
+    )
 
     results = {
         "cache_info": cache_info,
