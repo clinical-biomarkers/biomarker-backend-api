@@ -8,7 +8,7 @@ from logging import Logger
 from logging.handlers import RotatingFileHandler
 
 from .backend_utils import CustomFlask
-from .namespaces import biomarker_ns
+from .biomarker import api as biomarker_api
 
 MONGO_URI = os.getenv("MONGODB_CONNSTRING")
 DB_NAME = "biomarkerdb_api"
@@ -56,6 +56,6 @@ def create_app():
         description="Biomarker Knowledgebase API",
     )
 
-    api.add_namespace(biomarker_ns)
+    api.add_namespace(biomarker_api)
 
     return app
