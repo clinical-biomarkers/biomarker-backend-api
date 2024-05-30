@@ -1,9 +1,8 @@
 """ Handles the backend logic for the biomarker search endpoints.
 """
 
-from flask import Request, current_app
+from flask import Request
 from typing import Tuple, Dict, List
-import time
 
 from . import db as db_utils
 from . import utils as utils
@@ -68,12 +67,6 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
 
     mongo_query, projection_object = _search_query_builder(request_arguments, True)
 
-    # TODO : delete logging
-    custom_app = db_utils.cast_app(current_app)
-    start_time = time.time()
-    custom_app.api_logger.info(f"SIMPLE SEARCH QUERY TIME\n\tREQUEST: {request_arguments}")
-    custom_app.api_logger.info(f"\tSTART TIME: {start_time}")
-
     return_object, query_http_code = db_utils.search_and_cache(
         request_object=request_arguments,
         query_object=mongo_query,
@@ -82,11 +75,6 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
         collection=DB_COLLECTION,
         cache_collection=SEARCH_CACHE_COLLECTION,
     )
-
-    # TODO : delete logging
-    end_time = time.time()
-    custom_app.api_logger.info(f"\tEND TIME: {end_time}")
-    custom_app.api_logger.info(f"\tELAPSED TIME: {end_time - start_time}")
 
     return return_object, query_http_code
 
@@ -165,11 +153,18 @@ def _search_query_builder(
         term_category = request_object["term_category"].strip().lower()
 
         if term_category == "any":
-            return {"$text": {"$search": utils.prepare_search_term(search_term)}}, projection_object
+            return {
+                "$text": {"$search": utils.prepare_search_term(search_term)}
+            }, projection_object
 
         elif term_category == "biomarker":
             query_list = [
-                {path: {"$regex": utils.prepare_search_term(search_term, wrap=False), "$options": "i"}}
+                {
+                    path: {
+                        "$regex": utils.prepare_search_term(search_term, wrap=False),
+                        "$options": "i",
+                    }
+                }
                 for key, path in field_map.items()
                 if key
                 not in {
@@ -182,7 +177,12 @@ def _search_query_builder(
 
         elif term_category == "condition":
             query_list = [
-                {path: {"$regex": utils.prepare_search_term(search_term, wrap=False), "$options": "i"}}
+                {
+                    path: {
+                        "$regex": utils.prepare_search_term(search_term, wrap=False),
+                        "$options": "i",
+                    }
+                }
                 for key, path in field_map.items()
                 if key
                 in {
