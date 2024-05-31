@@ -1,15 +1,16 @@
-# TODO : will probbaly move off of TTLCache eventually for another caching mechanism
-# TODO : 
-# Cachetools is NOT inherently thread-safe, for now in testing it should be fine.
-# However, Gunicorn might introduce concurrency issues because it can use multiple 
-# workers processes to handle requests. Each worker has its own memory space, and thus
-# its own instance of the cache. Eventually, a shared memory caching solution should
-# be built out, which will run as a separate service that can be accessed by all 
-# worker processes.
-from cachetools import TTLCache
+# TODO :
+# Cachetools is NOT inherently thread-safe, for now since the default gunicorn setup
+# only uses 1 single threaded worker its fine. However, if the number of threads ever
+# increases then a manual locking mechanism will have to be introduced. If the number
+# of workers ever increases then we'll have to move to a shared memory caching model as
+# each worker has its own memory space, and thus its own instance of the cache.
+# Eventually, a shared memory caching solution should be built out, which will run as
+# a separate service that can be accessed by all worker processes.
+from cachetools import LRUCache
 
 # set up cache
-batch_cache: TTLCache = TTLCache(maxsize=200, ttl=3600)
+batch_cache: LRUCache = LRUCache(maxsize=300)
+
 
 def generate_cache_key(list_id: str, batch_idx: int) -> str:
     """Generates the object cache key.
