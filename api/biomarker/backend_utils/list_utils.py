@@ -74,7 +74,7 @@ def list(api_request: Request) -> Tuple[Dict, int]:
             continue
 
         # logging
-        perf_logger.start_timer(f"Batch {i}", "Cache Check")
+        perf_logger.start_timer(f"Batch {i}", "Cache Retrieval")
 
         # this is confusing, the MongoDB cache collection is a pseudo cache
         # that still requires disk retrieval and is slow (holdover from legacy
@@ -83,13 +83,11 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         batch_cache_key = generate_cache_key(list_id, i)
         batch_results = batch_cache.get(batch_cache_key)
 
-        # logging
-        perf_logger.end_timer(f"Batch {i}", "Cache Check")
-
         # if cache miss, hit MongoDB
         if not batch_results:
 
             # logging
+            perf_logger.cancel_timer(f"Batch {i}", "Cache Retrieval")
             perf_logger.start_timer(f"Batch {i}", "Cache Miss, MongoDB Retrieval")
 
             batch_results, batch_http_code = db_utils.get_cache_batch(
@@ -102,6 +100,10 @@ def list(api_request: Request) -> Tuple[Dict, int]:
 
             # logging
             perf_logger.end_timer(f"Batch {i}", "Cache Miss, MongoDB Retrieval")
+        else:
+            # logging
+            perf_logger.end_timer(f"Batch {i}", "Cache Retrieval")
+
 
         # logging
         perf_logger.start_timer(f"Batch {i}", "Filter and Format")
