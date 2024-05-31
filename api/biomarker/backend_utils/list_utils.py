@@ -298,15 +298,35 @@ def _filter_and_format(
 
         results.append(entry)
 
-    # build updated filters
-    filters["available"][0]["options"] = [
+    ## build updated filters
+    # TODO : this should be extracted into a separate function probably
+    # update entity type filters
+    entity_type_filters = [
         {"id": et, "label": et.title(), "count": count, "order": idx + 1}
         for idx, (et, count) in enumerate(sorted(counts["entity_types"].items()))
     ]
-    filters["available"][1]["options"] = [
+    existing_filter_entity_types = [
+        entity_type["id"] for entity_type in filters["available"][0]["options"]
+    ]
+    for entity_type_filter in entity_type_filters:
+        if entity_type_filter["id"] in existing_filter_entity_types:
+            index = existing_filter_entity_types.index(entity_type_filter["id"])
+            filters["available"][0]["options"][index]["count"] += entity_type_filter["count"]
+        else:
+            filters["available"][0]["options"].append(entity_type_filter)
+
+    # update role filters
+    role_filters = [
         {"id": role, "label": role.title(), "count": count, "order": idx + 1}
         for idx, (role, count) in enumerate(sorted(counts["roles"].items()))
     ]
+    existing_filter_roles = [role["id"] for role in filters["available"][1]["options"]]
+    for role_filter in role_filters:
+        if role_filter["id"] in existing_filter_roles:
+            index = existing_filter_roles.index(role_filter["id"])
+            filters["available"][1]["options"][index]["count"] += role_filter["count"]
+        else:
+            filters["available"][1]["options"].append(role_filter)
 
     return results, filters
 
