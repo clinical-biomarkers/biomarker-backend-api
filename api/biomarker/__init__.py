@@ -8,6 +8,7 @@ from logging import Logger
 from logging.handlers import RotatingFileHandler
 
 from .backend_utils import CustomFlask
+from .backend_utils.performance_logger import PerformanceLogger
 from .biomarker import api as biomarker_api
 
 MONGO_URI = os.getenv("MONGODB_CONNSTRING")
@@ -34,6 +35,8 @@ def create_app():
 
     app.api_logger = setup_logging()
     app.api_logger.info("API Started")
+
+    app.performance_logger = PerformanceLogger(logger=app.api_logger)
 
     CORS(app)
 
