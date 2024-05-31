@@ -100,10 +100,9 @@ def list(api_request: Request) -> Tuple[Dict, int]:
 
             # logging
             perf_logger.end_timer(f"Batch {i}", "Cache Miss, MongoDB Retrieval")
-        else:
-            # logging
-            perf_logger.end_timer(f"Batch {i}", "Cache Retrieval")
 
+        # logging
+        perf_logger.end_timer(f"Batch {i}", "Cache Retrieval")
 
         # logging
         perf_logger.start_timer(f"Batch {i}", "Filter and Format")
@@ -155,7 +154,11 @@ def list(api_request: Request) -> Tuple[Dict, int]:
 
     # logging
     perf_logger.end_timer(f"Total time for {batches + 1} batches")
-    perf_logger.log_times(total_ids=total_ids, query=cache_info["query"], timestamp=db_utils.create_timestamp())
+    perf_logger.log_times(
+        total_ids=total_ids,
+        query=cache_info["query"],
+        timestamp=db_utils.create_timestamp(),
+    )
 
     results = {
         "cache_info": cache_info,
