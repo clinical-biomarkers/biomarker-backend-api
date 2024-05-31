@@ -90,8 +90,6 @@ class PerformanceLogger:
 
     def log_times(self, **kwargs):
         """Dumps the times (and averages for the batch times) to the log."""
-        self.logger.info(self.timings)
-        self.logger.info(self.one_time_timings)
         log_str = "\n=======================================\n"
         log_str += "KWARGS:\n"
         for key, value in kwargs.items():
@@ -111,7 +109,7 @@ class PerformanceLogger:
         for parent, processes in self.timings.items():
             parent_times = list(processes.values())
             average_time = sum(parent_times) / len(parent_times) if parent_times else -1
-            log_str = f"\t{parent} - Avg Time: {average_time:.2f}s\n"
+            log_str += f"\t{parent} - Avg Time: {average_time:.2f}s\n"
 
         self.logger.info(log_str)
         self.reset()
