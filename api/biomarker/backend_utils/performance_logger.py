@@ -49,11 +49,7 @@ class PerformanceLogger:
         parent_name : str or None (default: None)
             The parent process name (for batch processes).
         """
-        timer_name = (
-            f"{parent_name}::{process_name}"
-            if parent_name is not None
-            else f"{process_name}"
-        )
+        timer_name = self._get_timer_name(process_name, parent_name)
         self.start_times[timer_name] = time.time()
 
     def end_timer(self, process_name: str, parent_name: Optional[str] = None):
@@ -67,11 +63,7 @@ class PerformanceLogger:
         parent_name : str or None (default: None)
             The parent process name (for batch processes).
         """
-        timer_name = (
-            f"{parent_name}::{process_name}"
-            if parent_name is not None
-            else f"{process_name}"
-        )
+        timer_name = self._get_timer_name(process_name, parent_name)
         if timer_name not in self.start_times:
             self.logger.error(
                 f"ERROR: attempted to end timer for {timer_name} but it was never started."
@@ -88,6 +80,20 @@ class PerformanceLogger:
         else:
             self.one_time_timings[process_name] = elapsed_time
 
+    def cancel_timer(self, process_name: str, parent_name: Optional[str] = None):
+        """Cancels a timer without recording its time.
+
+        Parameters
+        ----------
+        process_name : str
+            The process name for the timer.
+        parent_name : str or None (default: None)
+            The parent process name (for batch processes).
+        """
+        timer_name = self._get_timer_name(process_name, parent_name)
+        if timer_name in self.start_times:
+            del self.start_times
+
     def log_times(self, **kwargs):
         """Dumps the times (and averages for the batch times) to the log."""
         log_str = "\n=======================================\n"
@@ -97,19 +103,29 @@ class PerformanceLogger:
 
         log_str += "ONE TIME PROCESSES:\n"
         for process, time_val in self.one_time_timings.items():
-            log_str += f"\t{process}: {time_val:.2f}s\n"
+            log_str += f"\t{process}: {time_val:.6f}s\n"
 
         log_str += "BATCH PROCESSES:\n"
         for parent, processes in self.timings.items():
             log_str += f"\t{parent} Details:\n"
             for process, time_val in processes.items():
-                log_str += f"\t\t{process}: {time_val:.2f}\n"
+                log_str += f"\t\t{process}: {time_val:.6f}\n"
 
         log_str += "Averages:\n"
         for parent, processes in self.timings.items():
             parent_times = list(processes.values())
             average_time = sum(parent_times) / len(parent_times) if parent_times else -1
-            log_str += f"\t{parent} - Avg Time: {average_time:.2f}s\n"
+            log_str += f"\t{parent} - Avg Time: {average_time:.6f}s\n"
 
         self.logger.info(log_str)
         self.reset()
+
+    def _get_timer_name(
+        self, process_name: str, parent_name: Optional[str] = None
+    ) -> str:
+        timer_name = (
+            f"{parent_name}::{process_name}"
+            if parent_name is not None
+            else f"{process_name}"
+        )
+        return timer_name
