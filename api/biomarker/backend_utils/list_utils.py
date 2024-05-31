@@ -63,12 +63,12 @@ def list(api_request: Request) -> Tuple[Dict, int]:
 
     for i in range(0, batches + 1):
 
-        # logging
-        perf_logger.start_timer(f"Total batch {i} time")
-
         start_index = i * SEARCH_BATCH_SIZE
         end_index = min(start_index + SEARCH_BATCH_SIZE, total_ids)
         batch_ids = id_list[start_index:end_index]
+
+        # logging
+        perf_logger.start_timer(f"Total batch {i} time (size: {len(batch_ids)})")
 
         if not batch_ids:
             continue
@@ -132,7 +132,7 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         all_batches.append(sorted_batch)
 
         # logging
-        perf_logger.end_timer(f"Total batch {i} time")
+        perf_logger.end_timer(f"Total batch {i} time (size: {len(batch_ids)})")
 
     # sort batches within all batches list
     sorted_batch_list = sorted(
@@ -157,6 +157,7 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     perf_logger.log_times(
         total_ids=total_ids,
         query=cache_info["query"],
+        request_arguments=request_arguments,
         timestamp=db_utils.create_timestamp(),
     )
 
