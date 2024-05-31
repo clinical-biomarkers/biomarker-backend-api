@@ -92,7 +92,7 @@ class PerformanceLogger:
         """
         timer_name = self._get_timer_name(process_name, parent_name)
         if timer_name in self.start_times:
-            del self.start_times
+            del self.start_times[timer_name]
 
     def log_times(self, **kwargs):
         """Dumps the times (and averages for the batch times) to the log."""
