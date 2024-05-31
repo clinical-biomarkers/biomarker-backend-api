@@ -1,7 +1,7 @@
 """ Handles the backend logic for the biomarker list endpoint.
 """
 
-from flask import Request
+from flask import Request, current_app
 from typing import Tuple, Dict, List, Optional, Union, Set
 
 from . import utils as utils
@@ -53,9 +53,18 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     total_ids = len(id_list)
     batches = total_ids // SEARCH_BATCH_SIZE
 
+    custom_app = db_utils.cast_app(current_app)
+    perf_logger = custom_app.performance_logger
+
     all_batches: List[List] = []
 
+    # logging
+    perf_logger.start_timer(f"Total time for {batches + 1} batches")
+
     for i in range(0, batches + 1):
+
+        # logging
+        perf_logger.start_timer(f"Total batch {i} time")
 
         start_index = i * SEARCH_BATCH_SIZE
         end_index = min(start_index + SEARCH_BATCH_SIZE, total_ids)
@@ -64,16 +73,25 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         if not batch_ids:
             continue
 
+        # logging
+        perf_logger.start_timer(f"Batch {i}", "Cache Check")
+
         # this is confusing, the MongoDB cache collection is a pseudo cache
         # that still requires disk retrieval and is slow (holdover from legacy
-        # code which this API was ported from), this is the in memory cache which 
-        # is different than any "cache" functions defined in the db_utils namespace 
+        # code which this API was ported from), this is the in memory cache which
+        # is different than any "cache" functions defined in the db_utils namespace
         batch_cache_key = generate_cache_key(list_id, i)
         batch_results = batch_cache.get(batch_cache_key)
 
+        # logging
+        perf_logger.end_timer(f"Batch {i}", "Cache Check")
+
         # if cache miss, hit MongoDB
         if not batch_results:
-        
+
+            # logging
+            perf_logger.start_timer(f"Batch {i}", "Cache Miss, MongoDB Retrieval")
+
             batch_results, batch_http_code = db_utils.get_cache_batch(
                 batch_ids, i, {"_id": 0}, DB_COLLECTION
             )
@@ -82,11 +100,17 @@ def list(api_request: Request) -> Tuple[Dict, int]:
             # cache the batch in memory
             batch_cache[batch_cache_key] = batch_results
 
+            # logging
+            perf_logger.end_timer(f"Batch {i}", "Cache Miss, MongoDB Retrieval")
+
         formatted_return_results, filter_object = _filter_and_format(
             batch_results["results"],
             filter_object,
             filter_codes=filter_codes if filter_codes != {} else None,
         )
+
+        # logging
+        perf_logger.start_timer(f"Batch {i}", "Sort Batch")
 
         # sort batch
         sorted_batch = sorted(
@@ -94,7 +118,14 @@ def list(api_request: Request) -> Tuple[Dict, int]:
             key=lambda x: x[sort_field] if sort_field in x else "hit_score",
             reverse=reverse_flag,
         )
+
+        # logging
+        perf_logger.end_timer(f"Batch {i}", "Sort Batch")
+
         all_batches.append(sorted_batch)
+
+        # logging
+        perf_logger.end_timer(f"Total batch {i} time")
 
     # sort batches within all batches list
     sorted_batch_list = sorted(
@@ -103,10 +134,20 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         reverse=reverse_flag,
     )
 
+    # logging
+    perf_logger.start_timer("Merge batch list")
+
     # merge sorted batch list into one list
     merged_batch_list: List[Dict] = []
     for sorted_batch in sorted_batch_list:
         merged_batch_list.extend(sorted_batch)
+
+    # logging
+    perf_logger.end_timer("Merge batch list")
+
+    # logging
+    perf_logger.end_timer(f"Total time for {batches + 1} batches")
+    perf_logger.log_times(total_ids=total_ids, query=cache_info["query"])
 
     results = {
         "cache_info": cache_info,
