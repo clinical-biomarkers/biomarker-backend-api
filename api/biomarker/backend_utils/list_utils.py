@@ -147,7 +147,7 @@ def list(api_request: Request) -> Tuple[Dict, int]:
 
     # logging
     perf_logger.end_timer(f"Total time for {batches + 1} batches")
-    perf_logger.log_times(total_ids=total_ids, query=cache_info["query"])
+    perf_logger.log_times(total_ids=total_ids, query=cache_info["query"], timestamp=db_utils.create_timestamp())
 
     results = {
         "cache_info": cache_info,
