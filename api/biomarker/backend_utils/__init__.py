@@ -2,6 +2,7 @@ from flask import Flask
 from pymongo.database import Database
 from typing import Dict
 from logging import Logger
+from .performance_logger import PerformanceLogger
 
 DB_COLLECTION = "biomarker_collection"
 SEARCH_CACHE_COLLECTION = "search_cache"
@@ -17,3 +18,4 @@ class CustomFlask(Flask):
     hit_score_config: Dict
     mongo_db: Database
     api_logger: Logger
+    performance_logger: PerformanceLogger
