@@ -103,11 +103,17 @@ def list(api_request: Request) -> Tuple[Dict, int]:
             # logging
             perf_logger.end_timer(f"Batch {i}", "Cache Miss, MongoDB Retrieval")
 
+        # logging
+        perf_logger.start_timer(f"Batch {i}", "Filter and Format")
+
         formatted_return_results, filter_object = _filter_and_format(
             batch_results["results"],
             filter_object,
             filter_codes=filter_codes if filter_codes != {} else None,
         )
+
+        # logging
+        perf_logger.end_timer(f"Batch {i}", "Filter and Format")
 
         # logging
         perf_logger.start_timer(f"Batch {i}", "Sort Batch")
