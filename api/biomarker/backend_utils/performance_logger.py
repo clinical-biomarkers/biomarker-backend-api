@@ -65,8 +65,8 @@ class PerformanceLogger:
         """
         timer_name = self._get_timer_name(process_name, parent_name)
         if timer_name not in self.start_times:
-            self.logger.error(
-                f"ERROR: attempted to end timer for {timer_name} but it was never started."
+            self.logger.warning(
+                f"Timer for {timer_name} was likely cancelled."
             )
             return
 
