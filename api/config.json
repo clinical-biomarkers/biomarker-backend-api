@@ -27,6 +27,9 @@
             "canonical_id_map": "canonical_id_map_collection",
             "second_level_id_map": "second_id_map_collection",
             "unreviewed_collection": "unreviewed_collection",
+            "req_log_collection": "request_log_collection",
+            "error_log_collection": "error_log_collection",
+            "cache_collection": "search_cache",
             "user":"biomarkeradmin",
             "password":"biomarkerpass"
         }
