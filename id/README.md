@@ -54,7 +54,8 @@ This will have the same result of the above example. You can also explicitly lis
 python load_data.py -s $SER -u $FILE
 ```
 
-Where the `$SER` argument is the specified server and the `-u` flag is optional. The `-u` (or `--upsert`) flag allows you to specify a file that should be loaded in upsert mode, meaning regardless of collision status it will be loaded into the main biomarker collection and if a record already exists with that ID value it will be overwritten (if no existing record is found a new one will be created just as in a normal write).
+Where the `$SER` argument is the specified server and the `-u` flag is optional. The `-u` (or `--upsert`) flag allows you to specify a file that should be loaded in upsert mode, meaning regardless of collision status it will be loaded into the main biomarker collection and if a record already exists with that ID value it will be overwritten (if no existing record is found a new one will be created just as in a normal write). If using upsert mode for a file, it is recommended to remove the existing file before
+inserting the updated file in upsert mode (refer to the [deleting data](#deleting-data) section.
 
 The code will do some preliminary checks on the data that is to be loaded. It will make sure that each record has a valid formatted biomarker ID.
 
@@ -67,3 +68,7 @@ python copy_files.py -s tst
 ```
 
 After all these steps have been completed, the data has been successfully assigned their unique IDs and prepared for a new data release.
+
+## Deleting Data
+
+You can remove a file from the biomarker collection using the `remove_data.py` script. The script takes the file path to the file to remove and the server to remove from.
