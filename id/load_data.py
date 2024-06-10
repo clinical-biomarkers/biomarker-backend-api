@@ -302,8 +302,23 @@ def main():
     misc_fns.setup_logging(f"./logs/load_data_{server}.log")
     logging.info(f"Loading data for server: {server}. #####################")
 
-    ### setup first run biomarker_id index
+    ### setup first indexes
+    paths = [
+        "biomarker_component.biomarker",
+        "biomarker_component.assessed_biomarker_entity.recommended_name",
+        "biomarker_component.assessed_biomarker_entity_id",
+        "biomarker_component.assessed_entity_type",
+        "condition.recommended_name.name",
+        "best_biomarker_role.role",
+    ]
     misc_fns.setup_index(dbh, "biomarker_id", data_collection, "biomarker_id_1")
+    for path in paths:
+        misc_fns.setup_index(
+            dbh, path, data_collection, f"{path}_1", unique=False, order=1
+        )
+        misc_fns.setup_index(
+            dbh, path, data_collection, f"{path}_-1", unique=False, order=-1
+        )
 
     ### load the load map
     try:

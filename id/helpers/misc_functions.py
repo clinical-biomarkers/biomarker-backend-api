@@ -159,7 +159,12 @@ def create_connection_string(
 
 
 def setup_index(
-    dbh, index_col: str, collection_name: str, index_name: str = ""
+    dbh,
+    index_col: str,
+    collection_name: str,
+    index_name: str = "",
+    unique: bool = True,
+    order: int = 1,
 ) -> None:
     """Sets up an index on the specified index_name in the specified collection.
 
@@ -173,13 +178,22 @@ def setup_index(
         The name of the collection to create the index in.
     index_name: str (default = f'{index_col}_1')
         The name of the index to create.
+    unique : bool (default = True)
+        Whether the index should be a unique index.
+    order : int (default = 1)
+        The sort order of the index (1 for ascending, -1 for descending).
     """
     if not index_name:
-        index_name = f"{index_col}_1"
+        index_name = f"{index_col}_{order}"
     if index_name not in dbh[collection_name].index_information():
-        dbh[collection_name].create_index(
-            [(index_col, pymongo.ASCENDING)], name=index_name, unique=True
-        )
+        if order == 1:
+            dbh[collection_name].create_index(
+                [(index_col, pymongo.ASCENDING)], name=index_name, unique=unique
+            )
+        elif order == -1:
+            dbh[collection_name].create_index(
+                [(index_col, pymongo.DESCENDING)], name=index_name, unique=unique
+            )
         logging.info(
             f"Created index {index_name} on {index_col} in {collection_name} collection."
         )
@@ -383,6 +397,7 @@ def get_user_confirmation() -> None:
             sys.exit(0)
         else:
             print("Please enter 'y' for yes or 'n' for no.")
+
 
 def preprocess_checks(data: list) -> bool:
     """Performs preprocessing checks on the data by ensuring ID format
