@@ -338,7 +338,7 @@ def _format_filter_data(applied_filters: List, pipeline_result: Dict) -> Dict:
                 else entity_type["type"].title()
             ),
             "count": entity_type["count"],
-            "order": idx,
+            "order": idx + 1,
         }
         filter_object["available"][0]["options"].append(entity_type_entry)
 
@@ -347,7 +347,7 @@ def _format_filter_data(applied_filters: List, pipeline_result: Dict) -> Dict:
             "id": role_count["role"].lower(),
             "label": role_count["role"].title(),
             "count": role_count["count"],
-            "order": idx,
+            "order": idx + 1,
         }
         filter_object["available"][1]["options"].append(role_entry)
 
