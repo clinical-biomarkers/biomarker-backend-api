@@ -11,8 +11,7 @@ from . import (
     TIMEZONE,
     DB_COLLECTION,
     SEARCH_CACHE_COLLECTION,
-    CACHE_BATCH_SIZE,
-    CustomFlask
+    CustomFlask,
 )
 from typing import Optional, Dict, cast, Tuple, List, Any
 import datetime
@@ -192,16 +191,56 @@ def find_one(
     return result, 200
 
 
+def execute_pipeline(
+    pipeline: List, collection: str = DB_COLLECTION
+) -> Tuple[Dict, int]:
+    """Executes a MongoDB aggregation framework pipeline.
+
+    Parameters
+    ----------
+    pipeline : list
+        The aggregation framework pipeline.
+    collection : str (default: DB_COLLECTION)
+        The collection to run the pipeline against.
+
+    Returns
+    -------
+    tuple : (dict, int)
+        The result of the pipeline execution and the HTTP status code.
+    """
+    custom_app = cast_app(current_app)
+    dbh = custom_app.mongo_db
+    try:
+        cursor = dbh[collection].aggregate(pipeline)
+        result = next(cursor)
+        return result, 200
+    except PyMongoError as db_error:
+        error_obj = log_error(
+            error_log=f"PyMongoError querying database during aggregate.\n{db_error}",
+            error_msg="internal-database-error",
+            origin="execute_pipeline",
+        )
+        return error_obj, 500
+    except Exception as e:
+        error_obj = log_error(
+            error_log=f"Non-PyMongoError querying database during aggregate.\n{e}",
+            error_msg="internal-database-error",
+            origin="execute_pipeline",
+        )
+        return error_obj, 500
+
+
 def search_and_cache(
     request_object: Dict,
     query_object: Dict,
     search_type: str,
-    projection_object: Dict = {"biomarker_id": 1},
-    collection: str = DB_COLLECTION,
     cache_collection: str = SEARCH_CACHE_COLLECTION,
 ) -> Tuple[Dict[Any, Any], int]:
-    """Checks the cache and returns the cached value or performs the search and
-    caches the result.
+    """Checks the cache and returns the cached value or caches the search object.
+
+    Note: This two-step process with the list_id and query hashing is legacy code
+    and to stay inline with the GlyGen API workflow. This should eventually
+    be removed.
 
     Parameters
     ----------
@@ -224,24 +263,16 @@ def search_and_cache(
     tuple : (dict, int)
         The return object and HTTP status code.
     """
-    custom_app = cast_app(current_app)
-    dbh = custom_app.mongo_db
-
     list_id = _get_query_hash(query_object)
     cache_hit, error_object = _search_cache(list_id, cache_collection)
     if error_object is not None:
         return error_object, 500
 
     if not cache_hit:
-        result = dbh[collection].find(query_object, projection_object)
-        if result is None:
-            return {"list_id": ""}, 200
-        record_list = [record["biomarker_id"] for record in result]
         return_object, http_code = _cache_object(
             list_id,
             request_object,
             query_object,
-            record_list,
             search_type,
             cache_collection,
         )
@@ -257,7 +288,7 @@ def get_cached_objects(
     projection_object: Dict = {"_id": 0},
     cache_collection: str = SEARCH_CACHE_COLLECTION,
 ) -> Tuple[Dict, int]:
-    """Gets cached IDs under a list ID.
+    """Gets cached search query under a given list ID.
 
     Parameters
     ----------
@@ -273,14 +304,13 @@ def get_cached_objects(
     Returns
     -------
     tuple : (dict, int)
-        The biomarker id results and HTTP status code.
+        The cached query object and HTTP status code.
     """
     custom_app = cast_app(current_app)
     dbh = custom_app.mongo_db
 
     try:
-        cursor = dbh[cache_collection].find(query_object, projection_object)
-        cache_result = list(cursor)
+        cache_entry = dbh[cache_collection].find_one(query_object, projection_object)
     except PyMongoError as e:
         error_object = log_error(
             error_log=f"Pymongo error in querying for existing cache list id.\nlist id: `{query_object['list_id']}`\nrequest object: {request_object}\n{e}",
@@ -296,7 +326,7 @@ def get_cached_objects(
         )
         return error_object, 500
 
-    if cursor is None or len(cache_result) == 0:
+    if cache_entry is None:
         error_object = log_error(
             error_log=f"User search on non-existent list id.\nrequest object: {request_object}",
             error_msg="non-existent-search-results",
@@ -304,57 +334,10 @@ def get_cached_objects(
         )
         return error_object, 404
 
-    id_list = [id for doc in cache_result for id in doc["results"]]
-
-    return {"id_list": id_list, "cache_info": cache_result[0]["cache_info"]}, 200
-
-
-def get_cache_batch(
-    id_list: List[str],
-    batch_num: int,
-    projection_object: Dict[str, int] = {"_id": 0},
-    collection: str = DB_COLLECTION,
-) -> Tuple[Dict, int]:
-    """Gets a batch of data records based on biomarker ID.
-
-    Parameters
-    ----------
-    id_list : list[str]
-        The list of biomarker IDs.
-    projection_object : dict[str, int] (default: {"_id": 0})
-        The MongoDB projection object.
-    collection : str
-        The collection to search on.
-
-    Returns
-    -------
-    tuple : (dict, int)
-        The return data and HTTP code.
-    """
-    custom_app = cast_app(current_app)
-    dbh = custom_app.mongo_db
-    data_query = {"biomarker_id": {"$in": id_list}}
-
-    try:
-        batch_results = list(dbh[collection].find(data_query, projection_object))
-    except PyMongoError as e:
-        error_object = log_error(
-            error_log=f"PyMongo error in querying for biomarker IDs in batch `{batch_num}`.\n{id_list}\n{e}",
-            error_msg="internal-database-error",
-            origin="get_cache_batch",
-            batch_num=batch_num
-        )
-        return error_object, 500
-    except Exception as e:
-        error_object = log_error(
-            error_log=f"Unexpected error in querying for biomarker IDs in batch `{batch_num}`.\n{id_list}\n{e}",
-            error_msg="internal-database-error",
-            origin="get_cache_batch",
-            batch_num=batch_num
-        )
-        return error_object, 500
-
-    return {"results": batch_results}, 200
+    return {
+        "mongo_query": cache_entry["query"],
+        "cache_info": cache_entry["cache_info"],
+    }, 200
 
 
 def create_timestamp() -> str:
@@ -450,11 +433,10 @@ def _cache_object(
     list_id: str,
     request_arguments: Dict,
     query_object: Dict,
-    record_list: List[str],
     search_type: str,
     cache_collection: str = SEARCH_CACHE_COLLECTION,
 ) -> Tuple[Dict, int]:
-    """Caches a search.
+    """Caches a search request.
 
     Parameters
     ----------
@@ -464,8 +446,6 @@ def _cache_object(
         The parsed query string parameters associated with the API call.
     query_object : dict
         The MongoDB query.
-    record_list : list[str]
-        The list of biomarker ids found from the search.
     search_type : str
         The search type, either simple or full.
     cache_collection : str (default: SEARCH_CACHE_COLLECTION)
@@ -505,32 +485,22 @@ def _cache_object(
         )
         return error_object, 500
 
-    record_count = len(record_list)
-    partition_count = int((record_count + CACHE_BATCH_SIZE - 1) // CACHE_BATCH_SIZE)
-
-    for i in range(0, partition_count):
-        start_index = i * CACHE_BATCH_SIZE
-        end_index = min(start_index + CACHE_BATCH_SIZE, record_count)
-        curr_cache_obj = cache_object
-        curr_cache_obj["results"] = record_list[start_index:end_index]
-        if "_id" in curr_cache_obj:
-            curr_cache_obj.pop("_id")
-        try:
-            dbh[cache_collection].insert_one(curr_cache_obj)
-        except PyMongoError as e:
-            error_object = log_error(
-                error_log=f"PyMongo error caching search.\n{curr_cache_obj}\n{e}",
-                error_msg="internal-database-error",
-                origin="_cache_object",
-            )
-            return error_object, 500
-        except Exception as e:
-            error_object = log_error(
-                error_log=f"Unexpected error caching search.\n{curr_cache_obj}\n{e}",
-                error_msg="internal-database-error",
-                origin="_cache_object",
-            )
-            return error_object, 500
+    try:
+        dbh[cache_collection].insert_one(cache_object)
+    except PyMongoError as e:
+        error_object = log_error(
+            error_log=f"PyMongo error caching search request.\n{e}",
+            error_msg="internal-database-error",
+            origin="_cache_object",
+        )
+        return error_object, 500
+    except Exception as e:
+        error_object = log_error(
+            error_log=f"Unexpected error caching search.\n{e}",
+            error_msg="internal-database-error",
+            origin="_cache_object",
+        )
+        return error_object, 500
 
     return {"list_id": list_id}, 200
 
