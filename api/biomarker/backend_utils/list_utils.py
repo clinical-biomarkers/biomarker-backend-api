@@ -60,7 +60,7 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     )
     perf_logger.start_timer(process_name="unroll_results")
     formatted_results = _unroll_results(pipeline_result["results"])
-    perf_logger.end_timer(process_name="execute_pipeline")
+    perf_logger.end_timer(process_name="unroll_results")
 
     perf_logger.log_times(request_arguments=request_arguments, search_query=search_query)
 
