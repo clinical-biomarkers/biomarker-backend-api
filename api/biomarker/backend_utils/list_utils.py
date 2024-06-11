@@ -1,12 +1,13 @@
 """ Handles the backend logic for the biomarker list endpoint.
 """
 
-from flask import Request
+from flask import Request, current_app
 from typing import Tuple, Dict, List
 
 from . import utils as utils
 from . import db as db_utils
 from . import SEARCH_CACHE_COLLECTION
+from .performance_logger import PerformanceLogger
 
 
 def list(api_request: Request) -> Tuple[Dict, int]:
@@ -28,12 +29,17 @@ def list(api_request: Request) -> Tuple[Dict, int]:
 
     mongo_query, projection_object = _list_query_builder(request_arguments)
 
+    custom_app = db_utils.cast_app(current_app)
+    perf_logger = PerformanceLogger(custom_app.api_logger)
+
+    perf_logger.start_timer(process_name="get_cached_objects")
     cache_object, query_http_code = db_utils.get_cached_objects(
         request_object=request_arguments,
         query_object=mongo_query,
         projection_object=projection_object,
         cache_collection=SEARCH_CACHE_COLLECTION,
     )
+    perf_logger.end_timer(process_name="get_cached_objects")
 
     if query_http_code != 200:
         return cache_object, query_http_code
@@ -43,14 +49,20 @@ def list(api_request: Request) -> Tuple[Dict, int]:
 
     search_pipeline = _search_query_builder(search_query, request_arguments)
 
+    perf_logger.start_timer(process_name="execute_pipeline")
     pipeline_result, pipeline_http_code = db_utils.execute_pipeline(search_pipeline)
+    perf_logger.end_timer(process_name="execute_pipeline")
     if pipeline_http_code != 200:
         return pipeline_result, pipeline_http_code
 
     filter_object = _format_filter_data(
         request_arguments.get("filters", []), pipeline_result
     )
+    perf_logger.start_timer(process_name="unroll_results")
     formatted_results = _unroll_results(pipeline_result["results"])
+    perf_logger.end_timer(process_name="execute_pipeline")
+
+    perf_logger.log_times(request_arguments=request_arguments, search_query=search_query)
 
     results = {
         "cache_info": cache_info,
