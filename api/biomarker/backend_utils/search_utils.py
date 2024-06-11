@@ -36,6 +36,10 @@ def init() -> Tuple[Dict, int]:
             "gene",
             "chemical element",
             "cell",
+            "DNA",
+            "lipoprotein",
+            "protein complex",
+            "RNA",
         ],
         "simple_search_category": [
             {"id": "any", "display": "Any"},
@@ -65,14 +69,12 @@ def simple_search(api_request: Request) -> Tuple[Dict, int]:
     if request_http_code != 200:
         return request_arguments, request_http_code
 
-    mongo_query, projection_object = _search_query_builder(request_arguments, True)
+    mongo_query = _search_query_builder(request_arguments, True)
 
     return_object, query_http_code = db_utils.search_and_cache(
         request_object=request_arguments,
         query_object=mongo_query,
         search_type="simple",
-        projection_object=projection_object,
-        collection=DB_COLLECTION,
         cache_collection=SEARCH_CACHE_COLLECTION,
     )
 
@@ -98,22 +100,18 @@ def full_search(api_request: Request) -> Tuple[Dict, int]:
     if request_http_code != 200:
         return request_arguments, request_http_code
 
-    mongo_query, projection_object = _search_query_builder(request_arguments, False)
+    mongo_query = _search_query_builder(request_arguments, False)
     return_object, query_http_code = db_utils.search_and_cache(
         request_object=request_arguments,
         query_object=mongo_query,
         search_type="full",
-        projection_object=projection_object,
-        collection=DB_COLLECTION,
         cache_collection=SEARCH_CACHE_COLLECTION,
     )
 
     return return_object, query_http_code
 
 
-def _search_query_builder(
-    request_object: Dict, simple_search_flag: bool
-) -> Tuple[Dict, Dict]:
+def _search_query_builder(request_object: Dict, simple_search_flag: bool) -> Dict:
     """Biomarker search endpoint query builder.
 
     Parameters
@@ -125,8 +123,8 @@ def _search_query_builder(
 
     Returns
     -------
-    tuple : (dict, dict)
-        The MongoDB query and the projection object.
+    dict
+        The MongoDB query.
     """
     field_map = {
         "biomarker_id": "biomarker_id",
@@ -145,7 +143,6 @@ def _search_query_builder(
         "condition_synonym_name": "condition.synonyms.name",
     }
 
-    projection_object = {"biomarker_id": 1}
     query_list: List[Dict] = []
 
     if simple_search_flag:
@@ -153,9 +150,7 @@ def _search_query_builder(
         term_category = request_object["term_category"].strip().lower()
 
         if term_category == "any":
-            return {
-                "$text": {"$search": utils.prepare_search_term(search_term)}
-            }, projection_object
+            return {"$text": {"$search": utils.prepare_search_term(search_term)}}
 
         elif term_category == "biomarker":
             query_list = [
@@ -211,4 +206,4 @@ def _search_query_builder(
 
         mongo_query = {f"${operation}": query_list} if query_list else {}
 
-    return mongo_query, projection_object
+    return mongo_query
