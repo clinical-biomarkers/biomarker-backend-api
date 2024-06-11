@@ -332,8 +332,8 @@ def _format_filter_data(applied_filters: List, pipeline_result: Dict) -> Dict:
 
     for idx, role_count in enumerate(pipeline_result.get("role_counts", [])):
         role_entry = {
-            "id": role_count["type"].lower(),
-            "label": role_count["type"].title(),
+            "id": role_count["role"].lower(),
+            "label": role_count["role"].title(),
             "count": role_count["count"],
             "order": idx,
         }
