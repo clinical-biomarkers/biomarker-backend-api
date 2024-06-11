@@ -92,7 +92,8 @@ def update_biomarker_files(glob_pattern: str, score_map_path: str) -> None:
                     f"Biomarker ID {biomarker_id}, index: {idx} in file {filename} not found in score map. skipping...",
                 )
                 continue
-            biomarker["score"] = scores[biomarker_id]
+            biomarker["score"] = scores[biomarker_id]["score"]
+            biomarker["score_info"] = scores[biomarker_id]["score_info"]
 
         with open(fp, "w") as outfile:
             json.dump(biomarker_data, outfile, indent=4)
