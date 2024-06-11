@@ -271,7 +271,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
 
     counts_stage = {
         "$project": {
-            "total_counts": {"$arrayElemAt": ["$total_count.count", 0]},
+            "total_count": {"$arrayElemAt": ["$total_count.count", 0]},
             "role_counts": {"$arrayElemAt": ["$role_count.counts", 0]},
             "entity_type_counts": {"$arrayElemAt": ["$entity_type_count.counts", 0]},
             "results": 1,
