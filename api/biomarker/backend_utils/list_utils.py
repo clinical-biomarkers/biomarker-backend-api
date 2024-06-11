@@ -178,8 +178,8 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
     sort_field_map = {
         "biomarker_id": "biomarker_id",
         "biomarker": "biomarker_component.biomarker",
-        "biomarker_entity_name": "biomarker_component.assessed_biomarker_entity.recommended_name",
-        "biomarker_entity_id": "biomarker_component.assessed_biomarker_entity_id",
+        "assessed_biomarker_entity": "biomarker_component.assessed_biomarker_entity.recommended_name",
+        "assessed_biomarker_entity_id": "biomarker_component.assessed_biomarker_entity_id",
         "hit_score": "score",
         "condition": "condition.recommended_name.name",
     }
