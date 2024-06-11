@@ -335,7 +335,7 @@ def get_cached_objects(
         return error_object, 404
 
     return {
-        "mongo_query": cache_entry["query"],
+        "mongo_query": cache_entry["cache_info"]["query"],
         "cache_info": cache_entry["cache_info"],
     }, 200
 
