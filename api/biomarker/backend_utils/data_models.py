@@ -62,6 +62,7 @@ class SearchFullSchema(Schema):
 
     specimen_name = fields.Str(required=False)
     specimen_loinc_code = fields.Str(required=False)
+    biomarker_entity_type = fields.Str(required=False)
     biomarker_entity_name = fields.Str(required=False)
     biomarker_id = fields.Str(required=False)
     condition_name = fields.Str(required=False)
