@@ -216,11 +216,9 @@ def execute_pipeline(
 
         # TODO : delete logging
         custom_app.api_logger.info("********************************** Pipeline Log **********************************")
-        custom_app.api_logger.info("PIPELINE:")
-        custom_app.api_logger.info(f"{pipeline}\n")
+        custom_app.api_logger.info(f"PIPELINE:\n{pipeline}\n")
         explain_output = dbh.command("aggregate", collection, pipeline=pipeline, explain=True)
-        custom_app.api_logger.info("COMMAND EXPLAIN OUTPUT:")
-        custom_app.api_logger.info(f"{explain_output}\n")
+        custom_app.api_logger.info(f"COMMAND EXPLAIN OUTPUT:\n{explain_output}\n")
 
         return result, 200
     except PyMongoError as db_error:
