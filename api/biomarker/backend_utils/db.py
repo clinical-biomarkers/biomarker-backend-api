@@ -192,7 +192,7 @@ def find_one(
 
 
 def execute_pipeline(
-    pipeline: List, collection: str = DB_COLLECTION
+    pipeline: List, collection: str = DB_COLLECTION, disk_use: bool = True
 ) -> Tuple[Dict, int]:
     """Executes a MongoDB aggregation framework pipeline.
 
@@ -202,6 +202,9 @@ def execute_pipeline(
         The aggregation framework pipeline.
     collection : str (default: DB_COLLECTION)
         The collection to run the pipeline against.
+    disk_use : bool (default: True)
+        Whether or not to allow disk use during the pipeline execution. Can help
+        prevent segfaults with memory intensive pipelines.
 
     Returns
     -------
@@ -213,12 +216,16 @@ def execute_pipeline(
     try:
 
         # TODO : delete logging
-        custom_app.api_logger.info("********************************** Pipeline Log **********************************")
+        custom_app.api_logger.info(
+            "********************************** Pipeline Log **********************************"
+        )
         custom_app.api_logger.info(f"PIPELINE:\n{pipeline}\n")
-        explain_output = dbh.command("aggregate", collection, pipeline=pipeline, explain=True)
+        explain_output = dbh.command(
+            "aggregate", collection, pipeline=pipeline, explain=True
+        )
         custom_app.api_logger.info(f"COMMAND EXPLAIN OUTPUT:\n{explain_output}\n")
 
-        cursor = dbh[collection].aggregate(pipeline)
+        cursor = dbh[collection].aggregate(pipeline, allowDiskUse=disk_use)
         result = next(cursor)
 
         return result, 200
