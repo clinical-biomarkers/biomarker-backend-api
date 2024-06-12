@@ -7,5 +7,5 @@ Usage Guides:
 - [Biomarker ID Assignment Process](/id/README.md)
 - [ID Backend Implementation Documentation](/docs/id_implementation.md)
 - [Config File Definitions](/docs/config_file.md)
-
-API documentation can be found [here](./api/biomarker/README.md).
+- [Score Mapping](/scores/README.md)
+- [Miscellaneous Scripts](/misc_scripts/README.md)
