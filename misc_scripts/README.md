@@ -1,6 +1,23 @@
 # Miscellaneous Scripts
 
-Some useful scripts for debugging.
+Some miscellaneous useful scripts.
+
+- [Directory Structure](#directory-structure)
+- [Create Concat Field](#createconcatfieldpy)
+- [Peak Collections](#peakcollectionpy)
+- [Check Indexes](#checkindexespy)
+
+## Directory Structure
+
+| Directory/File           | Description                                               |
+| ------------------------ | --------------------------------------------------------- |
+| `create_concat_field.py` | Creates the `all_text` internal field for the text index. |
+| `check_indexes.py`       | Check the indexes on a specified collection.              |
+| `peak_collection.py`     | Peak at the recent entries in a specified collection.     |
+
+## create_concat_field.py
+
+Creates the `all_text` internal field in the biomarker collection used for the text index. The `all_text` field is a concatenated string of most of the string fields in the biomarker data model. This allows us to index the `all_text` field directly, avoiding a more costly wildcard text index.
 
 ## peak_collection.py
 
