@@ -17,7 +17,7 @@ import logging
 from typing import Union
 
 
-def update_biomarker_files(glob_pattern: str, score_map_path: str) -> None:
+def update_biomarker_files(glob_pattern: str, score_map_path: str):
     """Maps the scores from the score map to the JSON data model files.
 
     Parameters
