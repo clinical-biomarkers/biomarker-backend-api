@@ -142,7 +142,7 @@ def log_error(error_log: str, error_msg: str, origin: str, **kwargs) -> Dict:
 
 def find_one(
     query_object: Dict,
-    projection_object: Dict = {"_id": 0},
+    projection_object: Dict = {"_id": 0, "all_text": 0},
     collection: str = DB_COLLECTION,
 ) -> Tuple[Dict[Any, Any], int]:
     """Performs a find_one query on the specified collection.
@@ -151,7 +151,7 @@ def find_one(
     ----------
     query_object : dict
         The MongoDB query object.
-    projection_object : dict (default: {"_id": 0})
+    projection_object : dict (default: {"_id": 0, "all_text": 0})
         The projection object, by default it returns everything
         but the internal MongoDB _id field.
     collection : str (default: DB_COLLECTION)
@@ -257,11 +257,6 @@ def search_and_cache(
         The MongoDB query object.
     search_type : str
         The search type, either simple or full.
-    projection_object : dict (default: {"biomarker_id": 1})
-        The projection object, by default it returns everything
-        but the internal MongoDB _id field.
-    collection : str (default: DB_COLLECTION)
-        The collection to search on.
     cache_collection : str (default: SEARCH_CACHE_COLLECTION)
         The cache collection.
 
