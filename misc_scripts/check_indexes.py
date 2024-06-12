@@ -3,8 +3,9 @@ from pymongo.collection import Collection
 import sys
 import argparse
 
-# test server port
-host = "mongodb://127.0.0.1:6061"
+host = "mongodb://127.0.0.1:"
+tst_port = "6061"
+prd_port = "7071"
 db_name = "biomarkerdb_api"
 db_user = "biomarkeradmin"
 db_pass = "biomarkerpass"
@@ -40,6 +41,7 @@ def print_indexes(collection: Collection):
 def main():
 
     parser = argparse.ArgumentParser(prog="peak_collection.py")
+    parser.add_argument("server", help="tst/prd")
     parser.add_argument(
         "-b",
         "--biomarker",
@@ -71,6 +73,11 @@ def main():
         help="Store true argument for the cache collection.",
     )
     options = parser.parse_args()
+    server = options.server.lower().strip()
+    if server not in {"tst", "prd"}:
+        print("Invalid server.")
+        sys.exit(1)
+    host_w_port = f"{host}{tst_port}" if server == "tst" else f"{host}{prd_port}"
     option_list = [
         options.biomarker,
         options.canonical_map,
@@ -90,7 +97,7 @@ def main():
 
     try:
         client = pymongo.MongoClient(
-            host,
+            host_w_port,
             username=db_user,
             password=db_pass,
             authSource=db_name,
