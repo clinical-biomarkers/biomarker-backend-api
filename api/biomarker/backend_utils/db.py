@@ -221,7 +221,7 @@ def execute_pipeline(
         )
         custom_app.api_logger.info(f"PIPELINE:\n{pipeline}\n")
         explain_output = dbh.command(
-            "aggregate", collection, pipeline=pipeline, explain="executionStats"
+            "aggregate", collection, pipeline=pipeline, explain=True
         )
         custom_app.api_logger.info(f"COMMAND EXPLAIN OUTPUT:\n{explain_output}\n")
 
