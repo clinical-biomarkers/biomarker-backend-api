@@ -3,8 +3,8 @@
 
 import pymongo
 import sys
-import json
 import argparse
+import misc_functions as misc_fns
 
 
 def main():
@@ -22,13 +22,9 @@ def main():
         print('Invalid server name. Excepcts "tst" or "prd"')
         sys.exit(0)
 
-    config_obj = json.load(open("config.json", "r"))
-    mongo_port = config_obj["dbinfo"]["port"][server]
-    host = f"mongodb://127.0.0.1:{mongo_port}"
-    db_name = config_obj["dbinfo"]["dbname"]
-    db_user = config_obj["dbinfo"][db_name]["user"]
-    db_pass = config_obj["dbinfo"][db_name]["password"]
-    data_collection = config_obj["dbinfo"][db_name]["collection"]
+    _, host, db_name, db_user, db_pass, data_collection, _, _, _ = (
+        misc_fns.get_config_details(server)
+    )
 
     try:
         client = pymongo.MongoClient(
