@@ -37,8 +37,12 @@ def main():
         )
         client.server_info()
         dbh = client[db_name]
-        result = dbh[data_collection].create_index([("$**", pymongo.TEXT)])
-        print(f"result: {result}")
+        biomarker_collection = dbh[data_collection]
+        # TODO : this is just for first run to delete wildcard index, delete after
+        # result = biomarker_collection.create_index([("$**", pymongo.TEXT)])
+        biomarker_collection.drop_index("$**_text")
+        result = biomarker_collection.create_index([("all_text", "text")])
+        print(result)
     except Exception as e:
         print(e)
         sys.exit(1)
