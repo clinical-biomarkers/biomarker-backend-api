@@ -97,6 +97,8 @@ def main():
     db_pass = config_obj["dbinfo"][db_name]["password"]
     biomarker_collection_name = config_obj["dbinfo"][db_name]["collection"]
 
+    batch_size = 1_000
+
     try:
         client = pymongo.MongoClient(
             host,
@@ -111,7 +113,9 @@ def main():
         biomarker_collection = dbh[biomarker_collection_name]
 
         cursor = biomarker_collection.find()
-        for document in cursor:
+        for idx, document in enumerate(cursor):
+            if (idx + 1) % batch_size == 0:
+                print(f"Hit log checkpoint on idx {idx}")
             concatenated_string = concatenate_fields(document)
             biomarker_collection.update_one(
                 {"_id": document["_id"]}, {"$set": {"all_text": concatenated_string}}
