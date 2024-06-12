@@ -1,9 +1,9 @@
-"""Clears some supplementary collections.
+"""Clears some supplementary collections. Allows you to clear all or one of the cache, 
+log, and error collections.
 """
 
 import pymongo
 import sys
-import json
 import argparse
 import misc_functions as misc_fns
 
@@ -49,16 +49,17 @@ def main():
         print("Exiting...")
         sys.exit(0)
 
-    config_obj = json.load(open("config.json", "r"))
-    mongo_port = config_obj["dbinfo"]["port"][server]
-    host = f"mongodb://127.0.0.1:{mongo_port}"
-    db_name = config_obj["dbinfo"]["dbname"]
-    db_user = config_obj["dbinfo"][db_name]["user"]
-    db_pass = config_obj["dbinfo"][db_name]["password"]
-
-    cache_collection = config_obj["dbinfo"][db_name]["cache_collection"]
-    log_collection = config_obj["dbinfo"][db_name]["req_log_collection"]
-    error_collection = config_obj["dbinfo"][db_name]["error_log_collection"]
+    (
+        _,
+        host,
+        db_name,
+        db_user,
+        db_pass,
+        _,
+        cache_collection,
+        log_collection,
+        error_collection,
+    ) = misc_fns.get_config_details(server)
 
     try:
         client = pymongo.MongoClient(
