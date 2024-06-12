@@ -161,4 +161,4 @@ def _detail_query_builder(
     tuple : (dict[str, str], dict[str, int])
         The MongoDB query for the detail endpoint and the projection object.
     """
-    return {"biomarker_id": request_object["biomarker_id"]}, {"_id": 0}
+    return {"biomarker_id": request_object["biomarker_id"]}, {"_id": 0, "all_text": 0}
