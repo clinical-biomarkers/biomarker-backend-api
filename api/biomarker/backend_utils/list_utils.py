@@ -62,7 +62,9 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     formatted_results = _unroll_results(pipeline_result["results"])
     perf_logger.end_timer(process_name="unroll_results")
 
-    perf_logger.log_times(request_arguments=request_arguments, search_query=search_query)
+    perf_logger.log_times(
+        request_arguments=request_arguments, search_query=search_query
+    )
 
     results = {
         "cache_info": cache_info,
@@ -214,7 +216,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
     sort_stage = {"$sort": {mapped_sort_field: reverse_flag}}
     skip_stage = {"$skip": cleaned_offset}
     limit_stage = {"$limit": limit}
-    project_results_stage = {"$project": {"_id": 0}}
+    project_results_stage = {"$project": {"_id": 0, "all_text": 0}}
 
     if len(applied_filters) > 0:
         for filter in applied_filters:
