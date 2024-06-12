@@ -211,14 +211,15 @@ def execute_pipeline(
     custom_app = cast_app(current_app)
     dbh = custom_app.mongo_db
     try:
-        cursor = dbh[collection].aggregate(pipeline)
-        result = next(cursor)
 
         # TODO : delete logging
         custom_app.api_logger.info("********************************** Pipeline Log **********************************")
         custom_app.api_logger.info(f"PIPELINE:\n{pipeline}\n")
         explain_output = dbh.command("aggregate", collection, pipeline=pipeline, explain=True)
         custom_app.api_logger.info(f"COMMAND EXPLAIN OUTPUT:\n{explain_output}\n")
+
+        cursor = dbh[collection].aggregate(pipeline)
+        result = next(cursor)
 
         return result, 200
     except PyMongoError as db_error:
