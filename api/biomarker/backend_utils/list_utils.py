@@ -197,7 +197,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
     }
     filter_map = {
         "by_biomarker_role": "best_biomarker_role.role",
-        "by_entity_type": "biomarker_component.assessed_entity_type",
+        "by_assessed_entity_type": "biomarker_component.assessed_entity_type",
     }
 
     applied_filters = request_object.get("filters", [])
