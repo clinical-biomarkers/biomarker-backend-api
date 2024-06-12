@@ -6,7 +6,7 @@ import pymongo
 import sys
 import argparse
 import json
-from typing import List
+from typing import List, Optional
 
 
 def concatenate_fields(document: dict) -> str:
@@ -23,10 +23,11 @@ def concatenate_fields(document: dict) -> str:
         The concatenated string.
     """
 
-    def add_val(value: str):
-        value = f"{value.lower().strip()}"
-        if value not in result_str:
-            result_str.append(value)
+    def add_val(value: Optional[str]):
+        if value is not None:
+            value = f"{value.lower().strip()}"
+            if value not in result_str:
+                result_str.append(value)
 
     result_str: List[str] = []
     add_val(document["biomarker_id"])
