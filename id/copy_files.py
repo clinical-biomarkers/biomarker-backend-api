@@ -25,6 +25,9 @@ def main():
 
     ### get config info
     config_obj = misc_fns.load_json("../api/config.json")
+    if not isinstance(config_obj, dict):
+        print("Invalid config object type, expected dict.")
+        sys.exit(1)
     data_root_path = config_obj["data_path"]
 
     ### copy files

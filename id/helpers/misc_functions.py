@@ -268,8 +268,8 @@ def copy_file(src: str, dest: str) -> bool:
         return False
     dest_file = os.path.join(dest, os.path.basename(src))
     if os.path.exists(dest_file):
-        print(f"Error: File {dest_file} already exists.")
-        return False
+        print(f"File {dest_file} already exists. Overwrite?")
+        get_user_confirmation()
     try:
         subprocess.run(["cp", src, dest], check=True)
         return True
