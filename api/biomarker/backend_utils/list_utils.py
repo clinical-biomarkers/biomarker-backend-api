@@ -244,44 +244,41 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         combined_match_conditions = search_condition
     match_stage = {"$match": combined_match_conditions}
 
-    facet_stage = {
-        "$facet": {
-            "total_count": [{"$count": "count"}],
-            "role_count": [
-                {"$unwind": "$best_biomarker_role"},
-                {
-                    "$group": {
-                        "_id": "$best_biomarker_role.role",
-                        "count": {"$sum": 1},
-                    }
-                },
-                {
-                    "$group": {
-                        "_id": None,
-                        "counts": {"$push": {"role": "$_id", "count": "$count"}},
-                    }
-                },
-                {"$project": {"_id": 0}},
-            ],
-            "entity_type_count": [
-                {"$unwind": "$biomarker_component"},
-                {
-                    "$group": {
-                        "_id": "$biomarker_component.assessed_entity_type",
-                        "count": {"$sum": 1},
-                    }
-                },
-                {
-                    "$group": {
-                        "_id": None,
-                        "counts": {"$push": {"type": "$_id", "count": "$count"}},
-                    }
-                },
-                {"$project": {"_id": 0}},
-            ],
-            "results": [sort_stage, skip_stage, limit_stage, project_results_stage],
-        }
-    }
+    # facet steps
+    total_count_step = [{"$count": "count"}]
+    role_count_step = [
+        {"$unwind": "$best_biomarker_role"},
+        {
+            "$group": {
+                "_id": "$best_biomarker_role.role",
+                "count": {"$sum": 1},
+            }
+        },
+        {
+            "$group": {
+                "_id": None,
+                "counts": {"$push": {"role": "$_id", "count": "$count"}},
+            }
+        },
+        {"$project": {"_id": 0}},
+    ]
+    entity_type_count_step = [
+        {"$unwind": "$biomarker_component"},
+        {
+            "$group": {
+                "_id": "$biomarker_component.assessed_entity_type",
+                "count": {"$sum": 1},
+            }
+        },
+        {
+            "$group": {
+                "_id": None,
+                "counts": {"$push": {"type": "$_id", "count": "$count"}},
+            }
+        },
+        {"$project": {"_id": 0}},
+    ]
+    results_step = [skip_stage, limit_stage, project_results_stage]
 
     counts_stage = {
         "$project": {
@@ -292,7 +289,19 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         }
     }
 
-    pipeline = [match_stage, facet_stage, counts_stage]
+    pipeline = [
+        match_stage,
+        sort_stage,
+        {
+            "$facet": {
+                "total_count": total_count_step,
+                "role_count": role_count_step,
+                "entity_type_count": entity_type_count_step,
+                "results": results_step,
+            }
+        },
+        counts_stage,
+    ]
     return pipeline
 
 
