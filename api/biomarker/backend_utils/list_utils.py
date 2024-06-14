@@ -243,7 +243,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
     sort_stage = {"$sort": {mapped_sort_field: reverse_flag}}
     skip_stage = {"$skip": cleaned_offset}
     limit_stage = {"$limit": limit}
-    project_stage = {
+    project_results_stage = {
         "$project": {
             "_id": 0,
             "biomarker_id": 1,
@@ -297,7 +297,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         },
         {"$project": {"_id": 0}},
     ]
-    results_step = [project_stage, skip_stage, limit_stage]
+    results_step = [project_results_stage, sort_stage, skip_stage, limit_stage]
 
     counts_stage = {
         "$project": {
@@ -310,7 +310,6 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
 
     pipeline = [
         match_stage,
-        sort_stage,
         {
             "$facet": {
                 "total_count": total_count_step,
