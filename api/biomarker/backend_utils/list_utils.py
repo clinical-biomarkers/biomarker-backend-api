@@ -297,7 +297,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         },
         {"$project": {"_id": 0}},
     ]
-    results_step = [skip_stage, limit_stage]
+    results_step = [project_stage, skip_stage, limit_stage]
 
     counts_stage = {
         "$project": {
@@ -311,7 +311,6 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
     pipeline = [
         match_stage,
         sort_stage,
-        project_stage,
         {
             "$facet": {
                 "total_count": total_count_step,
