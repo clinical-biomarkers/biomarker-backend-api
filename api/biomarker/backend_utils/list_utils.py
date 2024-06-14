@@ -213,10 +213,6 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
 
     search_condition = query_object
     additional_condition_filters: List[Dict] = []
-    sort_stage = {"$sort": {mapped_sort_field: reverse_flag}}
-    skip_stage = {"$skip": cleaned_offset}
-    limit_stage = {"$limit": limit}
-    project_results_stage = {"$project": {"_id": 0, "all_text": 0}}
 
     if len(applied_filters) > 0:
         for filter in applied_filters:
@@ -244,10 +240,14 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         combined_match_conditions = search_condition
     match_stage = {"$match": combined_match_conditions}
 
+    sort_stage = {"$sort": {mapped_sort_field: reverse_flag}}
+    skip_stage = {"$skip": cleaned_offset}
+    limit_stage = {"$limit": limit}
+    project_early_stage = {"$project": {"_id": 0, "all_text": 0}}
+
     # facet steps
     total_count_step = [{"$count": "count"}]
     role_count_step = [
-        {"$unwind": "$best_biomarker_role"},
         {
             "$group": {
                 "_id": "$best_biomarker_role.role",
@@ -263,7 +263,6 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         {"$project": {"_id": 0}},
     ]
     entity_type_count_step = [
-        {"$unwind": "$biomarker_component"},
         {
             "$group": {
                 "_id": "$biomarker_component.assessed_entity_type",
@@ -278,7 +277,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         },
         {"$project": {"_id": 0}},
     ]
-    results_step = [skip_stage, limit_stage, project_results_stage]
+    results_step = [skip_stage, limit_stage]
 
     counts_stage = {
         "$project": {
@@ -291,6 +290,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
 
     pipeline = [
         match_stage,
+        project_early_stage,
         sort_stage,
         {
             "$facet": {
