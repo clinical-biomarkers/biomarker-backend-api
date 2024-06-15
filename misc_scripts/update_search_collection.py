@@ -4,6 +4,7 @@ creates the entries for the search collection.
 
 import pymongo
 from pymongo.database import Database
+import traceback
 import sys
 import argparse
 import json
@@ -132,7 +133,7 @@ def update_search_collection(
                 else:
                     entity_type_counts[entity_type] = 1
             specimen_names = [
-                specimen["name"] for comp in components for specimen in comp["speciemn"]
+                specimen["name"] for comp in components for specimen in comp["specimen"]
             ]
             specimen_ids = [
                 specimen["id"] for comp in components for specimen in comp["specimen"]
@@ -154,6 +155,7 @@ def update_search_collection(
 
         except Exception as e:
             print(f"Caught:\n{e}")
+            traceback.print_exc()
             return_value = False
             continue
 
@@ -190,6 +192,7 @@ def update_search_collection(
                 return_value = False
         except Exception as e:
             print(f"Update error: {e}")
+            traceback.print_exc()
             return_value = False
 
     return return_value
