@@ -7,7 +7,7 @@ from pymongo.database import Database
 import sys
 import argparse
 import json
-from typing import List, Optional, Set, Dict
+from typing import Set, Dict
 from create_concat_field import concatenate_fields
 
 LOG_BATCH_SIZE = 1_000
@@ -178,13 +178,12 @@ def update_search_collection(
 
         target_collection_handle = dbh[target_collection]
         try:
-            result = target_collection_handle.update_one(
-                {"biomarker_id": formatted_entry["biomarker_id"]},
-                {"$set": formatted_entry},
-                upsert=True
+            target_collection_handle.delete_many(
+                {"biomarker_id": formatted_entry["biomarker_id"]}
             )
-            if result.matched_count == 0 and result.upserted_id is None:
-                print(f"Update failed for biomarker_id: {biomarker_id}")
+            result = target_collection_handle.insert_one(formatted_entry)
+            if result.inserted_id is None:
+                print(f"Insert failed for biomarker_id: {biomarker_id}")
                 print(f"formatted_entry: {formatted_entry}")
                 return_value = False
         except Exception as e:
