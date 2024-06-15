@@ -214,32 +214,31 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
     search_condition = query_object
     additional_condition_filters: List[Dict] = []
 
-    if len(applied_filters) > 0:
-        for filter in applied_filters:
+    for filter in applied_filters:
 
-            filter_id = filter["id"]
-            operator = filter["operator"]
-            selected_values = filter["selected"]
+        filter_id = filter["id"]
+        operator = filter["operator"]
+        selected_values = filter["selected"]
 
-            if filter_id in filter_map:
-                condition = {filter_map[filter_id]: {"$in": selected_values}}
-            # ignore unsupported filter IDs
-            else:
-                continue
+        if filter_id in filter_map:
+            condition = {filter_map[filter_id]: {"$in": selected_values}}
+        # ignore unsupported filter IDs
+        else:
+            continue
 
-            if operator.lower().strip() == "or":
-                additional_condition_filters.append({"$or": [condition]})
-            else:
-                additional_condition_filters.append(condition)
+        if operator.lower().strip() == "or":
+            additional_condition_filters.append({"$or": [condition]})
+        else:
+            additional_condition_filters.append(condition)
 
-    if len(additional_condition_filters) > 0:
+    if additional_condition_filters:
         combined_match_conditions = {
             "$and": [search_condition] + additional_condition_filters
         }
     else:
         combined_match_conditions = search_condition
-    match_stage = {"$match": combined_match_conditions}
 
+    match_stage = {"$match": combined_match_conditions}
     sort_stage = {"$sort": {mapped_sort_field: reverse_flag}}
     skip_stage = {"$skip": cleaned_offset}
     limit_stage = {"$limit": limit}
@@ -261,10 +260,9 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         }
     }
 
-    # facet steps
-    total_count_step = [{"$project": {"biomarker_id": 1}}, {"$count": "count"}]
+    # main facet steps
+    total_count_step = [{"$count": "count"}]
     role_count_step = [
-        {"$project": {"best_biomarker_role.role": 1}},
         {"$unwind": "$best_biomarker_role"},
         {
             "$group": {
@@ -281,7 +279,6 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         {"$project": {"_id": 0}},
     ]
     entity_type_count_step = [
-        {"$project": {"biomarker_component.assessed_entity_type": 1}},
         {"$unwind": "$biomarker_component"},
         {
             "$group": {
@@ -297,7 +294,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         },
         {"$project": {"_id": 0}},
     ]
-    results_step = [project_results_stage, skip_stage, limit_stage]
+    results_step = [skip_stage, limit_stage, project_results_stage]
 
     counts_stage = {
         "$project": {
