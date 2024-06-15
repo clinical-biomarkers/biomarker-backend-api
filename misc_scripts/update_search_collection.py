@@ -95,12 +95,12 @@ def update_search_collection(
             condition_syn_ids = [
                 synonym["id"] for synonym in document["condition"]["synonyms"]
             ]
-            condition_ids_comb = condition_id + condition_syn_ids
+            condition_ids_comb = [condition_id] + condition_syn_ids
             condition_name = document["condition"]["recommended_name"]["name"]
             condition_syn_names = [
                 synonym["name"] for synonym in document["condition"]["synonyms"]
             ]
-            condition_names_comb = condition_name + condition_syn_names
+            condition_names_comb = [condition_name] + condition_syn_names
             top_pmids: Set[str] = set()
             for evidence in document["evidence_source"]:
                 top_pmids.add(evidence["id"])
@@ -117,7 +117,7 @@ def update_search_collection(
                 for synonym in comp["assessed_biomarker_entity"].get("synonyms", [])
             ]
             assessed_biomarker_entity_comb = (
-                assessed_biomarker_entity + assessed_biomarker_entity_syns
+                [assessed_biomarker_entity] + assessed_biomarker_entity_syns
             )
             biomarker_entity_ids = [
                 comp["assessed_biomarker_entity_id"] for comp in components
