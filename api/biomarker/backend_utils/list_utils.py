@@ -6,7 +6,7 @@ from typing import Tuple, Dict, List
 
 from . import utils as utils
 from . import db as db_utils
-from . import SEARCH_CACHE_COLLECTION
+from . import SEARCH_CACHE_COLLECTION, SEARCH_COLLECTION
 from .performance_logger import PerformanceLogger
 
 
@@ -50,7 +50,9 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     search_pipeline = _search_query_builder(search_query, request_arguments)
 
     perf_logger.start_timer(process_name="execute_pipeline")
-    pipeline_result, pipeline_http_code = db_utils.execute_pipeline(search_pipeline)
+    pipeline_result, pipeline_http_code = db_utils.execute_pipeline(
+        search_pipeline, SEARCH_COLLECTION, True
+    )
     perf_logger.end_timer(process_name="execute_pipeline")
     if pipeline_http_code != 200:
         return pipeline_result, pipeline_http_code
@@ -191,15 +193,15 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
     """
     sort_field_map = {
         "biomarker_id": "biomarker_id",
-        "biomarker": "biomarker_component.biomarker",
-        "assessed_biomarker_entity": "biomarker_component.assessed_biomarker_entity.recommended_name",
-        "assessed_biomarker_entity_id": "biomarker_component.assessed_biomarker_entity_id",
+        "biomarker": "biomarkers",
+        "assessed_biomarker_entity": "assessed_biomarker_entity",
+        "assessed_biomarker_entity_id": "assessed_biomarker_entity_id",
         "hit_score": "score",
-        "condition": "condition.recommended_name.name",
+        "condition": "condition_names",
     }
     filter_map = {
-        "by_biomarker_role": "best_biomarker_role.role",
-        "by_assessed_entity_type": "biomarker_component.assessed_entity_type",
+        "by_biomarker_role": "roles",
+        "by_assessed_entity_type": "assessed_entity_type",
     }
 
     applied_filters = request_object.get("filters", [])
@@ -242,23 +244,6 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
     sort_stage = {"$sort": {mapped_sort_field: reverse_flag}}
     skip_stage = {"$skip": cleaned_offset}
     limit_stage = {"$limit": limit}
-    project_results_stage = {
-        "$project": {
-            "_id": 0,
-            "biomarker_id": 1,
-            "biomarker_canonical_id": 1,
-            "biomarker_component.biomarker": 1,
-            "biomarker_component.assessed_biomarker_entity.recommended_name": 1,
-            "biomarker_component.assessed_biomarker_entity_id": 1,
-            "biomarker_component.assessed_entity_type": 1,
-            "biomarker_component.specimen": 1,
-            "best_biomarker_role.role": 1,
-            "condition.recommended_name.name": 1,
-            "condition.recommended_name.id": 1,
-            "score": 1,
-            "score_info": 1,
-        }
-    }
 
     # main facet steps
     total_count_step = [{"$count": "count"}]
@@ -294,7 +279,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         },
         {"$project": {"_id": 0}},
     ]
-    results_step = [skip_stage, limit_stage, project_results_stage]
+    results_step = [skip_stage, limit_stage]
 
     counts_stage = {
         "$project": {
