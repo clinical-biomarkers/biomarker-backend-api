@@ -128,19 +128,17 @@ def _search_query_builder(request_object: Dict, simple_search_flag: bool) -> Dic
     """
     field_map = {
         "biomarker_id": "biomarker_id",
-        "biomarker": "biomarker_component.biomarker",
-        "biomarker_entity_name": "biomarker_component.assessed_biomarker_entity.recommended_name",
-        "biomarker_entity_id": "biomarker_component.assessed_biomarker_entity_id",
-        "biomarker_entity_type": "biomarker_component.assessed_entity_type",
-        "specimen_name": "biomarker_component.specimen.name",
-        "specimen_id": "biomarker_component.specimen.id",
-        "specimen_loinc_code": "biomarker_component.specimen.loinc_code",
-        "best_biomarker_role": "best_biomarker_role.role",
-        "publication_id": "citation.reference.id",
-        "condition_id": "condition.recommended_name.id",
-        "condition_name": "condition.recommended_name.name",
-        "condition_synonym_id": "condition.synonyms.id",
-        "condition_synonym_name": "condition.synonyms.name",
+        "biomarker": "biomarkers",
+        "biomarker_entity_name": "assessed_biomarker_entity",
+        "biomarker_entity_id": "assessed_biomarker_entity_id",
+        "biomarker_entity_type": "assessed_entity_type",
+        "specimen_name": "specimen_names",
+        "specimen_id": "specimen_ids",
+        "specimen_loinc_code": "loinc_codes",
+        "best_biomarker_role": "roles",
+        "publication_id": "evidence_ids",
+        "condition_id": "condition_id",
+        "condition_name": "condition_names",
     }
 
     query_list: List[Dict] = []
@@ -165,8 +163,6 @@ def _search_query_builder(request_object: Dict, simple_search_flag: bool) -> Dic
                 not in {
                     "condition_id",
                     "condition_name",
-                    "condition_synonym_id",
-                    "condition_synonym_name",
                 }
             ]
 
@@ -183,8 +179,6 @@ def _search_query_builder(request_object: Dict, simple_search_flag: bool) -> Dic
                 in {
                     "condition_id",
                     "condition_name",
-                    "condition_synonym_id",
-                    "condition_synonym_name",
                 }
             ]
 
