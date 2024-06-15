@@ -117,9 +117,9 @@ def update_search_collection(
                 for comp in components
                 for synonym in comp["assessed_biomarker_entity"].get("synonyms", [])
             ]
-            assessed_biomarker_entity_comb = (
-                [assessed_biomarker_entity] + assessed_biomarker_entity_syns
-            )
+            assessed_biomarker_entity_comb = [
+                assessed_biomarker_entity
+            ] + assessed_biomarker_entity_syns
             biomarker_entity_ids = [
                 comp["assessed_biomarker_entity_id"] for comp in components
             ]
@@ -143,10 +143,13 @@ def update_search_collection(
                 for comp in components
                 for specimen in comp["specimen"]
             ]
-            comp_pmids: Set[str] = set()
+            comp_evidence_sources = [
+                evidence["id"]
+                for comp in components
+                for evidence in comp["evidence_source"]
+            ]
+            comp_pmids = set(comp_evidence_sources)
             comp_evidence_sources = [comp["evidence_source"] for comp in components]
-            for evidence in comp_evidence_sources:
-                comp_pmids.add(evidence["id"])
 
             pmids_comb = list(top_pmids) + list(comp_pmids)
 
