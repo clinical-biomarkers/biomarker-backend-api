@@ -11,6 +11,7 @@ from . import (
     TIMEZONE,
     DB_COLLECTION,
     SEARCH_CACHE_COLLECTION,
+    SEARCH_COLLECTION,
     CustomFlask,
 )
 from typing import Optional, Dict, cast, Tuple, List, Any
@@ -192,7 +193,7 @@ def find_one(
 
 
 def execute_pipeline(
-    pipeline: List, collection: str = DB_COLLECTION, disk_use: bool = True
+    pipeline: List, collection: str = SEARCH_COLLECTION, disk_use: bool = True
 ) -> Tuple[Dict, int]:
     """Executes a MongoDB aggregation framework pipeline.
 
@@ -200,7 +201,7 @@ def execute_pipeline(
     ----------
     pipeline : list
         The aggregation framework pipeline.
-    collection : str (default: DB_COLLECTION)
+    collection : str (default: SEARCH_COLLECTION)
         The collection to run the pipeline against.
     disk_use : bool (default: True)
         Whether or not to allow disk use during the pipeline execution. Can help
