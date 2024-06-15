@@ -61,6 +61,8 @@ def update_search_collection(
         The database handle.
     source_collection : str
         The source (biomarker) collection.
+    target_collection : str
+        The target (search) collection.
 
     Returns
     -------
@@ -82,7 +84,7 @@ def update_search_collection(
             biomarker_id = document["biomarker_id"]
             roles: Set[str] = set()
             role_counts: Dict[str, int] = {}
-            for role_obj in document["best_biomarker_roles"]:
+            for role_obj in document["best_biomarker_role"]:
                 role = role_obj["role"]
                 roles.add(role)
                 if role in role_counts:
