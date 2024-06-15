@@ -6,6 +6,7 @@ from .performance_logger import PerformanceLogger
 
 DB_COLLECTION = "biomarker_collection"
 SEARCH_CACHE_COLLECTION = "search_cache"
+SEARCH_COLLECTION = "search_collection"
 REQ_LOG_COLLECTION = "request_log_collection"
 REQ_LOG_MAX_LEN = 20_000
 ERROR_LOG_COLLECTION = "error_log_collection"
