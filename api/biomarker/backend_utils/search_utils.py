@@ -6,7 +6,7 @@ from typing import Tuple, Dict, List
 
 from . import db as db_utils
 from . import utils as utils
-from . import DB_COLLECTION, SEARCH_CACHE_COLLECTION
+from . import SEARCH_CACHE_COLLECTION
 
 
 def init() -> Tuple[Dict, int]:
