@@ -130,8 +130,10 @@ def prepare_search_term(term: str, wrap: bool = True) -> str:
     return quoted_term
 
 
+### DEPRECATED: Not used, scores are calculated beforehand and stored direclty
+### in the documents now. 
 def get_hit_score(doc: Dict) -> Tuple[float, Dict]:
-    """calculates a hit score for a record.
+    """Calculates a hit score for a record.
 
     Parameters
     ----------
@@ -143,7 +145,6 @@ def get_hit_score(doc: Dict) -> Tuple[float, Dict]:
     tuple : (float, dict)
         The hit score and the score info object.
     """
-    # TODO : implement hit score, hardcoding for now
     score_info = {
         "contributions": [{"c": "biomarker_exact_match", "w": 0.0, "f": 0.0}],
         "formula": "sum(w + 0.01*f)",
