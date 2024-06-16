@@ -15,12 +15,14 @@ canonical_id_collection = "canonical_id_map_collection"
 second_id_collection = "second_id_map_collection"
 error_log_collection = "error_log_collection"
 cache_collection = "search_cache"
+search_collection = "search_collection"
 collection_list = [
     biomarker_collection,
     canonical_id_collection,
     second_id_collection,
     error_log_collection,
     cache_collection,
+    search_collection,
 ]
 
 
@@ -58,6 +60,12 @@ def main():
         action="store_true",
         help="Store true argument for the cache collection.",
     )
+    parser.add_argument(
+        "-e",
+        "--search",
+        action="store_true",
+        help="Store true argument for the search collection.",
+    )
     parser.add_argument("-n", "--num", type=int, default=5)
     options = parser.parse_args()
     server = options.server.lower().strip()
@@ -71,6 +79,7 @@ def main():
         options.second_map,
         options.error,
         options.cache,
+        options.search,
     ]
     if not any(option_list):
         print("Need to specify one collection.")
