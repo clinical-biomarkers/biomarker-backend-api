@@ -75,7 +75,7 @@ def main():
         help="Store true argument for the cache collection.",
     )
     parser.add_argument(
-        "-h",
+        "-a",
         "--search",
         action="store_true",
         help="Store true argument for the search collection.",
