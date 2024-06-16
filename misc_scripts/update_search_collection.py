@@ -143,7 +143,8 @@ def process_document(document: Dict) -> Dict:
             role_counts[role] = 1
     condition_id = document["condition"]["recommended_name"]["id"]
     condition_syn_ids = [synonym["id"] for synonym in document["condition"]["synonyms"]]
-    condition_ids_comb = [condition_id] + list(set(condition_syn_ids))
+    condition_ids_comb = [condition_id] + condition_syn_ids
+    condition_ids_comb = list(set(condition_ids_comb))
     condition_name = document["condition"]["recommended_name"]["name"]
     condition_syn_names = [
         synonym["name"] for synonym in document["condition"]["synonyms"]
@@ -164,9 +165,9 @@ def process_document(document: Dict) -> Dict:
         for comp in components
         for synonym in comp["assessed_biomarker_entity"].get("synonyms", [])
     ]
-    assessed_biomarker_entity_comb = [
-        assessed_biomarker_entity
-    ] + assessed_biomarker_entity_syns
+    assessed_biomarker_entity_comb = (
+        assessed_biomarker_entity + assessed_biomarker_entity_syns
+    )
     biomarker_entity_ids = [comp["assessed_biomarker_entity_id"] for comp in components]
     entity_type_counts: Dict[str, int] = {}
     assessed_entity_types: Set[str] = set()
