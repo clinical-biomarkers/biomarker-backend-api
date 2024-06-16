@@ -170,7 +170,7 @@ def update_search_collection(
             "biomarkers": biomarker,
             "assessed_biomarker_entity": assessed_biomarker_entity_comb,
             "assessed_biomarker_entity_id": biomarker_entity_ids,
-            "assessed_entity_type": assessed_entity_types,
+            "assessed_entity_type": list(assessed_entity_types),
             "entity_type_counts": entity_type_counts,
             "specimen_names": specimen_names,
             "specimen_ids": specimen_ids,
