@@ -3,15 +3,17 @@ creates the entries for the search collection.
 """
 
 import pymongo
+from pymongo import UpdateOne
 from pymongo.database import Database
 import traceback
 import sys
 import argparse
 import json
-from typing import Set, Dict
+from typing import Set, Dict, List
 from create_concat_field import concatenate_fields
 
-LOG_BATCH_SIZE = 1_000
+LOG_BATCH_SIZE = 10_000
+WRITE_BATCH_SIZE = 500
 
 
 def get_dbh(host: str, db_name: str, db_user: str, db_pass: str) -> Database:
@@ -54,7 +56,7 @@ def update_search_collection(
     dbh: Database, source_collection: str, target_collection: str
 ) -> bool:
     """Loops over the source documents in the biomarker collection
-    and builds the formatted entries for the search optimized colleciton.
+    and builds the formatted entries for the search optimized collection.
 
     Parameters
     ----------
@@ -71,134 +73,149 @@ def update_search_collection(
         True on success, False on failure at any point.
     """
     cursor = dbh[source_collection].find()
+    target_collection_handle = dbh[target_collection]
     return_value = True
+    operations: List = []
+
     for idx, document in enumerate(cursor):
 
-        if (idx) % LOG_BATCH_SIZE == 0:
+        if idx % LOG_BATCH_SIZE == 0:
             print(f"Hit log checkpoint on idx {idx}")
 
         try:
-
-            components = document["biomarker_component"]
-
-            # top level fields
-            biomarker_id = document["biomarker_id"]
-            roles: Set[str] = set()
-            role_counts: Dict[str, int] = {}
-            for role_obj in document["best_biomarker_role"]:
-                role = role_obj["role"]
-                roles.add(role)
-                if role in role_counts:
-                    role_counts[role] += 1
-                else:
-                    role_counts[role] = 1
-            condition_id = document["condition"]["recommended_name"]["id"]
-            condition_syn_ids = [
-                synonym["id"] for synonym in document["condition"]["synonyms"]
-            ]
-            condition_ids_comb = [condition_id] + condition_syn_ids
-            condition_name = document["condition"]["recommended_name"]["name"]
-            condition_syn_names = [
-                synonym["name"] for synonym in document["condition"]["synonyms"]
-            ]
-            condition_names_comb = [condition_name] + condition_syn_names
-            top_pmids: Set[str] = set()
-            for evidence in document["evidence_source"]:
-                top_pmids.add(evidence["id"])
-
-            # component fields
-            biomarker = [comp["biomarker"] for comp in components]
-            assessed_biomarker_entity = [
-                comp["assessed_biomarker_entity"]["recommended_name"]
-                for comp in components
-            ]
-            assessed_biomarker_entity_syns = [
-                synonym["synonym"]
-                for comp in components
-                for synonym in comp["assessed_biomarker_entity"].get("synonyms", [])
-            ]
-            assessed_biomarker_entity_comb = [
-                assessed_biomarker_entity
-            ] + assessed_biomarker_entity_syns
-            biomarker_entity_ids = [
-                comp["assessed_biomarker_entity_id"] for comp in components
-            ]
-            entity_type_counts: Dict[str, int] = {}
-            assessed_entity_types: Set[str] = set()
-            for comp in components:
-                entity_type = comp["assessed_entity_type"].lower().strip()
-                assessed_entity_types.add(entity_type)
-                if entity_type in entity_type_counts:
-                    entity_type_counts[entity_type] += 1
-                else:
-                    entity_type_counts[entity_type] = 1
-            specimen_names = [
-                specimen["name"] for comp in components for specimen in comp["specimen"]
-            ]
-            specimen_ids = [
-                specimen["id"] for comp in components for specimen in comp["specimen"]
-            ]
-            loinc_codes = [
-                specimen["loinc_code"]
-                for comp in components
-                for specimen in comp["specimen"]
-            ]
-            comp_evidence_sources = [
-                evidence["id"]
-                for comp in components
-                for evidence in comp["evidence_source"]
-            ]
-            comp_pmids = set(comp_evidence_sources)
-            comp_evidence_sources = [comp["evidence_source"] for comp in components]
-
-            pmids_comb = list(top_pmids) + list(comp_pmids)
-
-            # text index field
-            all_text_field = concatenate_fields(document)
-
+            formatted_entry = process_document(document)
+            operations.append(
+                UpdateOne(
+                    {"biomarker_id": formatted_entry["biomarker_id"]},
+                    {"$set": formatted_entry},
+                    upsert=True,
+                )
+            )
         except Exception as e:
-            print(f"Caught:\n{e}")
+            print(f"Caught: {e}")
             traceback.print_exc()
             return_value = False
             continue
 
-        if not return_value:
-            return return_value
-
-        formatted_entry = {
-            "biomarker_id": biomarker_id,
-            "biomarkers": biomarker,
-            "assessed_biomarker_entity": assessed_biomarker_entity_comb,
-            "assessed_biomarker_entity_id": biomarker_entity_ids,
-            "assessed_entity_type": list(assessed_entity_types),
-            "entity_type_counts": entity_type_counts,
-            "specimen_names": specimen_names,
-            "specimen_ids": specimen_ids,
-            "loinc_codes": loinc_codes,
-            "roles": list(roles),
-            "role_counts": role_counts,
-            "condition_id": condition_ids_comb,
-            "condition_names": condition_names_comb,
-            "evidence_ids": pmids_comb,
-            "all_text": all_text_field,
-        }
-
-        target_collection_handle = dbh[target_collection]
-        try:
-            target_collection_handle.delete_many(
-                {"biomarker_id": formatted_entry["biomarker_id"]}
-            )
-            result = target_collection_handle.insert_one(formatted_entry)
-            if result.inserted_id is None:
-                print(f"Insert failed for biomarker_id: {biomarker_id}")
-                print(f"formatted_entry: {formatted_entry}")
+        if len(operations) >= WRITE_BATCH_SIZE:
+            try:
+                target_collection_handle.bulk_write(operations, ordered=False)
+                operations = []
+            except Exception as e:
+                print(f"Bulk write error: {e}")
+                traceback.print_exc()
                 return_value = False
+
+    if operations:
+        try:
+            target_collection_handle.bulk_write(operations, ordered=False)
         except Exception as e:
-            print(f"Update error: {e}")
+            print(f"Bulk write error: {e}")
             traceback.print_exc()
             return_value = False
 
     return return_value
+
+
+def process_document(document: Dict) -> Dict:
+    """Format the source document for the search collection.
+
+    Parameters
+    ----------
+    document : dict
+        The source document to process.
+
+    Returns
+    -------
+    dict
+        The formatted document.
+    """
+    # top level fields
+    biomarker_id = document["biomarker_id"]
+    roles: Set[str] = set()
+    role_counts: Dict[str, int] = {}
+    for role_obj in document["best_biomarker_role"]:
+        role = role_obj["role"]
+        roles.add(role)
+        if role in role_counts:
+            role_counts[role] += 1
+        else:
+            role_counts[role] = 1
+    condition_id = document["condition"]["recommended_name"]["id"]
+    condition_syn_ids = [synonym["id"] for synonym in document["condition"]["synonyms"]]
+    condition_ids_comb = [condition_id] + list(set(condition_syn_ids))
+    condition_name = document["condition"]["recommended_name"]["name"]
+    condition_syn_names = [
+        synonym["name"] for synonym in document["condition"]["synonyms"]
+    ]
+    condition_names_comb = [condition_name] + condition_syn_names
+    top_pmids: Set[str] = set()
+    for evidence in document["evidence_source"]:
+        top_pmids.add(evidence["id"])
+
+    # component fields
+    components = document["biomarker_component"]
+    biomarker = [comp["biomarker"] for comp in components]
+    assessed_biomarker_entity = [
+        comp["assessed_biomarker_entity"]["recommended_name"] for comp in components
+    ]
+    assessed_biomarker_entity_syns = [
+        synonym["synonym"]
+        for comp in components
+        for synonym in comp["assessed_biomarker_entity"].get("synonyms", [])
+    ]
+    assessed_biomarker_entity_comb = [
+        assessed_biomarker_entity
+    ] + assessed_biomarker_entity_syns
+    biomarker_entity_ids = [comp["assessed_biomarker_entity_id"] for comp in components]
+    entity_type_counts: Dict[str, int] = {}
+    assessed_entity_types: Set[str] = set()
+    for comp in components:
+        entity_type = comp["assessed_entity_type"].lower().strip()
+        assessed_entity_types.add(entity_type)
+        if entity_type in entity_type_counts:
+            entity_type_counts[entity_type] += 1
+        else:
+            entity_type_counts[entity_type] = 1
+    specimen_names = [
+        specimen["name"] for comp in components for specimen in comp["specimen"]
+    ]
+    specimen_ids = [
+        specimen["id"] for comp in components for specimen in comp["specimen"]
+    ]
+    loinc_codes = [
+        specimen["loinc_code"] for comp in components for specimen in comp["specimen"]
+    ]
+    comp_evidence_sources = [
+        evidence["id"] for comp in components for evidence in comp["evidence_source"]
+    ]
+    comp_pmids = set(comp_evidence_sources)
+    comp_evidence_sources = [comp["evidence_source"] for comp in components]
+
+    pmids_comb = list(top_pmids) + list(comp_pmids)
+
+    # text index field
+    all_text_field = concatenate_fields(document)
+
+    formatted_entry = {
+        "biomarker_id": biomarker_id,
+        "biomarkers": biomarker,
+        "assessed_biomarker_entity": assessed_biomarker_entity_comb,
+        "assessed_biomarker_entity_id": biomarker_entity_ids,
+        "assessed_entity_type": list(assessed_entity_types),
+        "entity_type_counts": entity_type_counts,
+        "specimen_names": specimen_names,
+        "specimen_ids": specimen_ids,
+        "loinc_codes": loinc_codes,
+        "roles": list(roles),
+        "role_counts": role_counts,
+        "condition_id": condition_ids_comb,
+        "condition_names": condition_names_comb,
+        "evidence_ids": pmids_comb,
+        "all_text": all_text_field,
+    }
+
+    return formatted_entry
 
 
 def main():
