@@ -169,6 +169,9 @@ def process_document(document: Dict) -> Dict:
     assessed_biomarker_entity_comb = (
         assessed_biomarker_entity + assessed_biomarker_entity_syns
     )
+    print(assessed_biomarker_entity)
+    print(assessed_biomarker_entity_syns)
+    print(assessed_biomarker_entity_comb)
     biomarker_entity_ids = [comp["assessed_biomarker_entity_id"] for comp in components]
     entity_type_counts: Dict[str, int] = {}
     assessed_entity_types: Set[str] = set()
