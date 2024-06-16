@@ -8,6 +8,7 @@ from pymongo.database import Database
 import traceback
 import sys
 import argparse
+from tqdm import tqdm
 import json
 from typing import Set, Dict, List
 from create_concat_field import concatenate_fields
@@ -77,7 +78,7 @@ def update_search_collection(
     return_value = True
     operations: List = []
 
-    for idx, document in enumerate(cursor):
+    for idx, document in tqdm(enumerate(cursor)):
 
         if idx % LOG_BATCH_SIZE == 0:
             print(f"Hit log checkpoint on idx {idx}")
