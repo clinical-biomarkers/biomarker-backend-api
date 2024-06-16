@@ -223,7 +223,11 @@ def main():
     biomarker_collection_name = config_obj["dbinfo"][db_name]["collection"]
     search_collection_name = config_obj["dbinfo"][db_name]["search_collection"]
 
-    if update_search_collection(dbh, biomarker_collection_name, search_collection_name):
+    if update_search_collection(
+        dbh=dbh,
+        source_collection=biomarker_collection_name,
+        target_collection=search_collection_name,
+    ):
         print("success")
     else:
         print("failure")
