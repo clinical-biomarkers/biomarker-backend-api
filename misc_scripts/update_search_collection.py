@@ -175,7 +175,7 @@ def update_search_collection(
             "specimen_names": specimen_names,
             "specimen_ids": specimen_ids,
             "loinc_codes": loinc_codes,
-            "roles": roles,
+            "roles": list(roles),
             "role_counts": role_counts,
             "condition_id": condition_ids_comb,
             "condition_names": condition_names_comb,
