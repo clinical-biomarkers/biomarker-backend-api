@@ -1,4 +1,4 @@
-"""Creates a text index on the biomarker collection.
+"""Creates a text index on the search collection.
 """
 
 import pymongo
@@ -22,9 +22,10 @@ def main():
         print('Invalid server name. Excepcts "tst" or "prd"')
         sys.exit(0)
 
-    _, host, db_name, db_user, db_pass, data_collection, _, _, _ = (
+    _, host, db_name, db_user, db_pass, _, _, _, _ = (
         misc_fns.get_config_details(server)
     )
+    collection = "search_collection"
 
     try:
         client = pymongo.MongoClient(
@@ -37,7 +38,7 @@ def main():
         )
         client.server_info()
         dbh = client[db_name]
-        biomarker_collection = dbh[data_collection]
+        biomarker_collection = dbh[collection]
         result = biomarker_collection.create_index([("all_text", "text")])
         print(result)
     except Exception as e:
