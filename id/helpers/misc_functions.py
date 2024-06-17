@@ -159,7 +159,7 @@ def create_connection_string(
 
 
 def setup_index(
-    dbh,
+    dbh: Database,
     index_col: str,
     collection_name: str,
     index_name: str = "",
@@ -170,7 +170,7 @@ def setup_index(
 
     Parameters
     ----------
-    dbh: pymongo.MongoClient
+    dbh: Database
         The database handle.
     index_col: str
         The field to index.
