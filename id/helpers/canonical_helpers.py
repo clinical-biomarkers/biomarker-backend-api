@@ -245,7 +245,7 @@ def _increment_ordinal_id(curr_max_id: str) -> str:
 
 
 def _extract_change(biomarker: str) -> str:
-    """Extracts the change from the biomarker string. For now, naive implementation (grabs first word).
+    """Extracts the change from the biomarker string. For now, naive implementation.
 
     Parameters
     ----------
@@ -257,4 +257,4 @@ def _extract_change(biomarker: str) -> str:
     str
         The extracted change.
     """
-    return biomarker.split(" ")[0]
+    return biomarker
