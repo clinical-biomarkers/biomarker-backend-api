@@ -59,6 +59,7 @@ def main():
         cache_collection,
         log_collection,
         error_collection,
+        _,
     ) = misc_fns.get_config_details(server)
 
     try:
