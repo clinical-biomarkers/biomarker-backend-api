@@ -69,17 +69,21 @@ def main():
         search_collection_handle = dbh[search_collection_name]
         search_existing_keys = search_collection_handle.index_information()
         search_index_keys = {
-            "all_text_text": ("all_text", "text"),
-            "biomarker_id_1": ("biomarker_id", pymongo.ASCENDING),
-            "biomarker_id_-1": ("biomarker_id", pymongo.DESCENDING),
-            "assessed_biomarker_entity_1": (
-                "assessed_biomarker_entity",
-                pymongo.ASCENDING,
-            ),
-            "assessed_biomarker_entity_-1": (
-                "assessed_biomarker_entity",
-                pymongo.DESCENDING,
-            ),
+            "all_text_text": [("all_text", "text")],
+            "biomarker_id_1": [("biomarker_id", pymongo.ASCENDING)],
+            "biomarker_id_-1": [("biomarker_id", pymongo.DESCENDING)],
+            "assessed_biomarker_entity_1": [
+                (
+                    "assessed_biomarker_entity",
+                    pymongo.ASCENDING,
+                )
+            ],
+            "assessed_biomarker_entity_-1": [
+                (
+                    "assessed_biomarker_entity",
+                    pymongo.DESCENDING,
+                )
+            ],
         }
         for index_name, index_key in search_index_keys.items():
             if index_name in search_existing_keys:
