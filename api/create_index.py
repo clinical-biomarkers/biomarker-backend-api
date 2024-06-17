@@ -1,9 +1,11 @@
-"""Creates a text index on the search collection.
+"""Creates the necessary indexes on the biomarker and search collections.
 """
 
 import pymongo
+from pymongo.database import Database
 import sys
 import argparse
+from typing import Optional
 import misc_functions as misc_fns
 
 
@@ -22,12 +24,21 @@ def main():
         print('Invalid server name. Excepcts "tst" or "prd"')
         sys.exit(0)
 
-    _, host, db_name, db_user, db_pass, _, _, _, _ = (
-        misc_fns.get_config_details(server)
-    )
-    collection = "search_collection"
+    (
+        _,
+        host,
+        db_name,
+        db_user,
+        db_pass,
+        biomarker_collection_name,
+        _,
+        _,
+        _,
+        search_collection_name,
+    ) = misc_fns.get_config_details(server)
 
     try:
+
         client = pymongo.MongoClient(
             host,
             username=db_user,
@@ -38,9 +49,56 @@ def main():
         )
         client.server_info()
         dbh = client[db_name]
-        biomarker_collection = dbh[collection]
-        result = biomarker_collection.create_index([("all_text", "text")])
-        print(result)
+
+        biomarker_collection_handle = dbh[biomarker_collection_name]
+        biomarker_existing_indexes = biomarker_collection_handle.index_information()
+        biomarker_index_keys = {"biomarker_id_1": [("biomarker_id", pymongo.ASCENDING)]}
+        for index_name, index_key in biomarker_index_keys.items():
+            if index_name in biomarker_existing_indexes:
+                print(
+                    f"The index `{index_name}` for collection `{biomarker_collection_name}` already exists."
+                )
+            else:
+                result = biomarker_collection_handle.create_index(
+                    index_key, name=index_name, unique=True
+                )
+                print(
+                    f"Created index `{result}` for collection `{biomarker_collection_name}`."
+                )
+
+        search_collection_handle = dbh[search_collection_name]
+        search_existing_keys = search_collection_handle.index_information()
+        search_index_keys = {
+            "all_text_text": ("all_text", "text"),
+            "biomarker_id_1": ("biomarker_id", pymongo.ASCENDING),
+            "biomarker_id_-1": ("biomarker_id", pymongo.DESCENDING),
+            "assessed_biomarker_entity_1": (
+                "assessed_biomarker_entity",
+                pymongo.ASCENDING,
+            ),
+            "assessed_biomarker_entity_-1": (
+                "assessed_biomarker_entity",
+                pymongo.DESCENDING,
+            ),
+        }
+        for index_name, index_key in search_index_keys.items():
+            if index_name in search_existing_keys:
+                print(
+                    f"The index `{index_name}` for collection `{search_collection_name}` already exists."
+                )
+            else:
+                if "biomarker_id" in index_name:
+                    result = search_collection_handle.create_index(
+                        index_key, name=index_name, unique=True
+                    )
+                else:
+                    result = search_collection_handle.create_index(
+                        index_key, name=index_name
+                    )
+                print(
+                    f"Created index `{result}` for collection `{search_collection_name}`."
+                )
+
     except Exception as e:
         print(e)
         sys.exit(1)
