@@ -57,8 +57,7 @@ def main():
             print(f"\tAverage document size (in bytes): {stats['avgObjSize']}")
             print(f"\tStorage size (in bytes): {stats['storageSize']}")
             print(f"\tNumber of indexes: {stats['nindexes']}")
-            print(f"\tTtotal index size (in bytes): {stats['totalIndexSize']}")
-            print(f"\tIndex details: {stats['indexDetails']}")
+            print(f"\tTotal index size (in bytes): {stats['totalIndexSize']}")
 
     except Exception as e:
         print(e)
