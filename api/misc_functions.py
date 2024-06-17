@@ -30,7 +30,7 @@ def load_json(filepath: str) -> Union[List, Dict]:
 
 def get_config_details(
     server: str, config_fp: str = "config.json"
-) -> Tuple[str, str, str, str, str, str, str, str, str]:
+) -> Tuple[str, str, str, str, str, str, str, str, str, str]:
     """Gets the config file details.
 
     Parameters
@@ -42,9 +42,9 @@ def get_config_details(
 
     Returns
     -------
-    tuple : (str, str, str, str, str, str, str, str, str)
+    tuple : (str, str, str, str, str, str, str, str, str, str)
         The mongo port, host string, database name, username, password, biomarker collection,
-        cache collection, log collection, and error collection.
+        cache collection, log collection, error collection, and search collection.
     """
     config_obj = load_json(config_fp)
     if not isinstance(config_obj, dict):
@@ -65,6 +65,7 @@ def get_config_details(
     cache_collection = config_obj["dbinfo"][db_name]["cache_collection"]
     log_collection = config_obj["dbinfo"][db_name]["req_log_collection"]
     error_collection = config_obj["dbinfo"][db_name]["error_log_collection"]
+    search_collection = config_obj["dbinfo"][db_name]["search_collection"]
 
     return (
         mongo_port,
@@ -76,6 +77,7 @@ def get_config_details(
         cache_collection,
         log_collection,
         error_collection,
+        search_collection,
     )
 
 
@@ -147,40 +149,6 @@ def get_mongo_handle(
         return None
 
     return client[db_name]
-
-
-def setup_index(
-    dbh: Database,
-    index_col: str,
-    collection_name: str,
-    index_name: Optional[str] = None,
-):
-    """Sets up an index on the specified index_name in the specified collection.
-
-    Parameters
-    ----------
-    dbh: Database
-        The database handle.
-    index_col: str
-        The field to index.
-    collection_name: str
-        The name of the collection to create the index in.
-    index_name: str (default = f'{index_col}_1')
-        The name of the index to create.
-    """
-    if index_name is None:
-        index_name = f"{index_col}_1"
-    if index_name not in dbh[collection_name].index_information():
-        dbh[collection_name].create_index(
-            [(index_col, pymongo.ASCENDING)], name=index_name, unique=True
-        )
-        logging.info(
-            f"Created index {index_name} on {index_col} in {collection_name} collection."
-        )
-    else:
-        logging.info(
-            f"Index {index_name} on {index_col} in {collection_name} collection already exists."
-        )
 
 
 def setup_logging(log_path: str):
