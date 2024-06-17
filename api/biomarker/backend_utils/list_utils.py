@@ -59,7 +59,7 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         request_arguments.get("filters", []), pipeline_result
     )
     perf_logger.start_timer(process_name="unroll_results")
-    formatted_results = _unroll_results(pipeline_result["results"])
+    formatted_results = _unroll_results(pipeline_result.get("results", []))
     perf_logger.end_timer(process_name="unroll_results")
 
     perf_logger.log_times(
@@ -73,7 +73,7 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         "pagination": {
             "offset": request_arguments["offset"],
             "limit": request_arguments["limit"],
-            "total_length": pipeline_result["total_count"],
+            "total_length": pipeline_result.get("total_count", 0),
             "sort": request_arguments["sort"],
             "order": request_arguments["order"],
         },
