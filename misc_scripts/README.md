@@ -11,9 +11,14 @@ Some miscellaneous useful scripts.
 
 | Directory/File           | Description                                               |
 | ------------------------ | --------------------------------------------------------- |
+| `check_collections.py`   | Prints the collections in the database.                   |
 | `create_concat_field.py` | Creates the `all_text` internal field for the text index. |
 | `check_indexes.py`       | Check the indexes on a specified collection.              |
 | `peak_collection.py`     | Peak at the recent entries in a specified collection.     |
+
+## check_collection.py
+
+Prints the collections in the database.
 
 ## create_concat_field.py
 
