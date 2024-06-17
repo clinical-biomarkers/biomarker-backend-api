@@ -68,8 +68,19 @@ def main():
 
         search_collection_handle = dbh[search_collection_name]
         search_existing_keys = search_collection_handle.index_information()
+
+        # TODO : one time execution delete this
+        incorrect_index_name = "all_text_text"
+        incorrect_index_details = {"v": 2, "key": [("all_text", 1), ("text", 1)]}
+        if incorrect_index_name in search_existing_keys:
+            if search_existing_keys[incorrect_index_name] == incorrect_index_details:
+                search_collection_handle.drop_index(incorrect_index_name)
+                print(
+                    f"Dropped incorrect index `{incorrect_index_name}` from collection `{search_collection_name}`."
+                )
+
         search_index_keys = {
-            "all_text_text": [("all_text", "text")],
+            "all_text_text": [("all_text", pymongo.TEXT)],
             "biomarker_id_1": [("biomarker_id", pymongo.ASCENDING)],
             "biomarker_id_-1": [("biomarker_id", pymongo.DESCENDING)],
             "assessed_biomarker_entity_1": [
