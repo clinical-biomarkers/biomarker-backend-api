@@ -81,7 +81,7 @@ def update_search_collection(
     for idx, document in tqdm(enumerate(cursor)):
 
         if idx % LOG_BATCH_SIZE == 0:
-            print(f"Hit log checkpoint on idx {idx}")
+            print(f"\nHit log checkpoint on idx {idx}")
 
         try:
             formatted_entry = process_document(document)
