@@ -13,6 +13,8 @@ CACHE_BATCH_SIZE = 5_000
 SEARCH_BATCH_SIZE = 3_000
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S %Z%z"
 TIMEZONE = "US/Eastern"
+CONTACT_SOURCE = "biomarkerpartnership"
+CONTACT_RECIPIENTS = ["daniallmasood@email.gwu.edu"]
 
 class CustomFlask(Flask):
     hit_score_config: Dict
