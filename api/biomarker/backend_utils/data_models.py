@@ -98,6 +98,21 @@ class ListSchema(Schema):
     filters = fields.List(fields.Nested(_FilterSchema), required=False)
 
 
+### Contact Schema
+
+
+class ContactSchema(Schema):
+
+    class Meta(Schema.Meta):
+        uknown = EXCLUDE
+
+    fname = fields.Str(required=True)
+    lname = fields.Str(required=True)
+    email = fields.Str(required=True)
+    subject = fields.Str(required=True)
+    message = fields.Str(required=True)
+
+
 ### Schema Map
 
 SCHEMA_MAP = {
@@ -105,4 +120,5 @@ SCHEMA_MAP = {
     "search_simple": SearchSimpleSchema,
     "search_full": SearchFullSchema,
     "list": ListSchema,
+    "contact": ContactSchema,
 }
