@@ -46,6 +46,12 @@ def list(api_request: Request) -> Tuple[Dict, int]:
 
     search_query = cache_object["mongo_query"]
     cache_info = cache_object["cache_info"]
+    # patching for now
+    mongo_query = cache_info["query"]
+    api_request = cache_info["api_request"]
+    cache_info["query"] = api_request
+    del cache_info["api_request"]
+    cache_info["mongo_query"] = mongo_query
 
     search_pipeline = _search_query_builder(search_query, request_arguments)
 
