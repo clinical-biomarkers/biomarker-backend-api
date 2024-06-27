@@ -1,10 +1,11 @@
 """ General purpose utility functions.
 """
 
-from flask import Request, current_app
+from flask import Request
 from typing import Dict, Optional, Tuple, Any
 import json
 from marshmallow.exceptions import ValidationError
+
 from . import db as db_utils
 from .data_models import SCHEMA_MAP
 
