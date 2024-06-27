@@ -12,3 +12,5 @@ class Contact(Resource):
     
     def get(self):
         return self.post()
+
+api.add_resource(Contact, "/contact")
