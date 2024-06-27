@@ -8,7 +8,7 @@ class Contact(Resource):
 
     @api.doc("contact")
     def post(self):
-        return 
+        return auth_utils.contact(request)
     
     def get(self):
         return self.post()
