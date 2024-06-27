@@ -1,7 +1,7 @@
 """ General purpose utility functions.
 """
 
-from flask import Request
+from flask import Request, current_app
 from typing import Dict, Optional, Tuple,Any
 import json
 from marshmallow.exceptions import ValidationError
@@ -24,14 +24,19 @@ def get_request_object(api_request: Request, endpoint: str) -> Tuple[Dict, int]:
     tuple : (dict, int)
         The parsed request object or error object and HTTP status code.
     """
+    custom_app = db_utils.cast_app(current_app)
     request_object: Optional[Dict[str, Any]] = None
     if api_request.method == "GET":
         query_string = api_request.args.get("query")
+        # TODO : delete logging
+        custom_app.logger.info(f"query string: {query_string}")
         if query_string:
             # this could be avoided and can use loads function directly with marshmallow schema,
             # leaving this for now
             try:
                 request_object = json.loads(query_string)
+                # TODO : delete logging
+                custom_app.logger.info(f"request_object: {request_object}")
             except json.JSONDecodeError as e:
                 error_obj = db_utils.log_error(
                     error_log=f"Failed to JSON decode query string.\nquery string: {query_string}\n{e}",
