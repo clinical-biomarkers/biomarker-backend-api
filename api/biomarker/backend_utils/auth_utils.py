@@ -1,7 +1,7 @@
 """ Handles the backend logic for the biomarker auth endpoints.
 """
 
-from flask import Request
+from flask import Request, current_app
 from typing import Tuple, Dict
 from dotenv import load_dotenv
 import os
@@ -41,6 +41,12 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
             origin="contact",
         )
         return error_obj, 500
+
+    custom_app = db_utils.cast_app(current_app)
+    custom_app.api_logger.info(
+        "********************************** Contact Log **********************************"
+    )
+    custom_app.logger.info(request_arguments)
 
     msg = MIMEText(request_arguments["message"])
     msg["Subject"] = request_arguments["subject"]
