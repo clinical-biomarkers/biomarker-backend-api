@@ -220,10 +220,10 @@ def execute_pipeline(
             "********************************** Pipeline Log **********************************"
         )
         custom_app.api_logger.info(f"PIPELINE:\n{pipeline}\n")
-        explain_output = dbh.command(
-            "aggregate", collection, pipeline=pipeline, explain=True
-        )
-        custom_app.api_logger.info(f"COMMAND EXPLAIN OUTPUT:\n{explain_output}\n")
+        # explain_output = dbh.command(
+        #     "aggregate", collection, pipeline=pipeline, explain=True
+        # )
+        # custom_app.api_logger.info(f"COMMAND EXPLAIN OUTPUT:\n{explain_output}\n")
 
         cursor = dbh[collection].aggregate(pipeline, allowDiskUse=disk_use)
         result = next(cursor)
