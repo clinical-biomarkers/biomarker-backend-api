@@ -58,7 +58,7 @@ def create_app():
         version="1.0",
         title="Biomarker APIs",
         description="Biomarker APIs",
-        openapi="3.0.2",
+        openapi="3.0.0",
     )
 
     api.add_namespace(biomarker_api)
