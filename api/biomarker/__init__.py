@@ -58,6 +58,7 @@ def create_app():
         version="1.0",
         title="Biomarker APIs",
         description="Biomarker APIs",
+        specs_url="/biomarker/api/swagger.json",
         openapi="3.0.0",
     )
 
