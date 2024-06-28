@@ -11,6 +11,7 @@ from .backend_utils import CustomFlask
 from .backend_utils.performance_logger import PerformanceLogger
 from .biomarker import api as biomarker_api
 from .auth import api as auth_api
+from .swagger import api as swagger_api
 
 MONGO_URI = os.getenv("MONGODB_CONNSTRING")
 DB_NAME = "biomarkerdb_api"
@@ -59,10 +60,10 @@ def create_app():
         title="Biomarker APIs",
         description="Biomarker APIs",
         specs_url="/biomarker/api/swagger.json",
-        openapi="3.0.0",
     )
 
     api.add_namespace(biomarker_api)
     api.add_namespace(auth_api)
+    api.add_namespace(swagger_api)
 
     return app
