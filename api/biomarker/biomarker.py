@@ -1,5 +1,5 @@
 from flask import request
-from flask_restx import Resource, Namespace  # type: ignore
+from flask_restx import Resource, Namespace, fields  # type: ignore
 from .backend_utils import detail_utils as detail_utils
 from .backend_utils import list_utils as list_utils
 from .backend_utils import search_utils as search_utils
@@ -29,12 +29,23 @@ class SearchInit(Resource):
         return self.post()
 
 
+search_simple_model = api.model(
+    "Biomarker Simple Search Query",
+    {
+        "term_category": fields.String(required=True, default="biomarker"),
+        "term": fields.String(required=True, default="AA4686-1"),
+    },
+)
+
+
 class SearchSimple(Resource):
 
     @api.doc("search_simple")
+    @api.expect(search_simple_model, validate=False)
     def post(self):
         return search_utils.simple_search(request)
 
+    @api.doc(False)
     def get(self):
         return self.post()
 

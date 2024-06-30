@@ -6,7 +6,7 @@ api = Namespace("auth", description="Authentication API namespace.")
 
 class Contact(Resource):
 
-    @api.doc("contact")
+    @api.doc(False)
     def post(self):
         return auth_utils.contact(request)
     

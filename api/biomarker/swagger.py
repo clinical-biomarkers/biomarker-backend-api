@@ -7,6 +7,7 @@ swagger_url = "https://hivelab.tst.biochemistry.gwu.edu/biomarker/api/swagger.js
 
 class SwaggerHack(Resource):
 
+    @api.doc(False)
     def get(self):
         
         swagger_response = requests.get(swagger_url)
