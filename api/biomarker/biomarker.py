@@ -9,20 +9,22 @@ api = Namespace("biomarker", description="Biomarker API namespace.")
 
 class Detail(Resource):
 
-    @api.doc("detail")
+    @api.doc(False)
     def post(self, biomarker_id):
         return detail_utils.detail(request, biomarker_id)
 
+    @api.doc("detail")
     def get(self, biomarker_id):
         return self.post(biomarker_id)
 
 
 class SearchInit(Resource):
 
-    @api.doc("search_init")
+    @api.doc(False)
     def post(self):
         return search_utils.init()
 
+    @api.doc("search_init")
     def get(self):
         return self.post()
 
