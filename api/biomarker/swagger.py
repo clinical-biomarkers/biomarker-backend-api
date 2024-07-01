@@ -1,7 +1,7 @@
 from flask_restx import Resource, Namespace  # type: ignore
 import requests
 
-api = Namespace("swagger", description="Temporary swagger hack.", hide=True)
+api = Namespace("swagger", description="Swagger endpoints.", hide=True)
 
 swagger_url = "https://hivelab.tst.biochemistry.gwu.edu/biomarker/api/swagger.json"
 
