@@ -48,7 +48,11 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
     )
     custom_app.logger.info(request_arguments)
 
-    msg = MIMEText(request_arguments["message"])
+    detailed_message = f"From {request_arguments['fname']} {request_arguments['lname']}"
+    detailed_message += f"\nEmail: {request_arguments['email']}, Subject: {request_arguments['subject']}"
+    detailed_message += f"\nMessage: {request_arguments['message']}"
+
+    msg = MIMEText(detailed_message)
     msg["Subject"] = request_arguments["subject"]
     msg["To"] = ", ".join(CONTACT_RECIPIENTS)
     msg["From"] = f"{CONTACT_SOURCE}@gmail.com"
