@@ -1,7 +1,9 @@
-from flask import Flask 
+from flask import Flask
 from pymongo.database import Database
-from typing import Dict
+from typing import Optional
 from logging import Logger
+import os
+from sqlitedict import SqliteDict  # type: ignore
 from .performance_logger import PerformanceLogger
 
 DB_COLLECTION = "biomarker_collection"
@@ -15,6 +17,23 @@ TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S %Z%z"
 TIMEZONE = "US/Eastern"
 CONTACT_SOURCE = "biomarkerpartnership"
 CONTACT_RECIPIENTS = ["daniallmasood@email.gwu.edu", "skim658@gwu.edu"]
+
+API_CALL_LOG_TABLE = "api_calls"
+FRONTEND_CALL_LOG_TABLE = "frontend_logs"
+LOG_DB_PATH = f"{os.environ.get('DATA_PATH')}{os.environ.get('SERVER')}/api_logs.db"
+logging_status: Optional[Exception] = None
+try:
+    API_LOG_DICT: Optional[SqliteDict] = SqliteDict(
+        LOG_DB_PATH, tablename=API_CALL_LOG_TABLE, autocommit=True
+    )
+    FRONTEND_LOG_DICT: Optional[SqliteDict] = SqliteDict(
+        LOG_DB_PATH, tablename=FRONTEND_CALL_LOG_TABLE, autocommit=True
+    )
+except Exception as e:
+    API_LOG_DICT = None
+    FRONTEND_LOG_DICT = None
+    logging_status = e
+
 
 class CustomFlask(Flask):
     hit_score_config: Dict
