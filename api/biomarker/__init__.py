@@ -1,17 +1,21 @@
 from flask_cors import CORS  # type: ignore
 from flask_restx import Api  # type: ignore
+from flask import request, g
 from pymongo import MongoClient
 import os
 import json
 import logging
+import time
 from logging import Logger
 from logging.handlers import RotatingFileHandler
 
-from .backend_utils import CustomFlask
+from .backend_utils import CustomFlask, logging_status
+from .backend_utils import logging_utils
 from .backend_utils.performance_logger import PerformanceLogger
 from .biomarker import api as biomarker_api
 from .auth import api as auth_api
 from .swagger import api as swagger_api
+from .log import api as log_api
 
 MONGO_URI = os.getenv("MONGODB_CONNSTRING")
 DB_NAME = "biomarkerdb_api"
@@ -37,8 +41,28 @@ def create_app():
 
     app.api_logger = setup_logging()
     app.api_logger.info("API Started")
+    if logging_status is None:
+        app.api_logger.info("Sqlite DB initialization successful.")
+    else:
+        app.api_logger.error(f"Error initializing Sqlite DB: {str(logging_status)}")
 
     app.performance_logger = PerformanceLogger(logger=app.api_logger)
+
+    @app.before_request
+    def start_timer():
+        g.start_time = time.time()
+
+    @app.after_request
+    def log_request(response):
+        duration = time.time() - g.start_time
+        logging_utils.api_log(
+            request_object=request.json if request.is_json else request.args.to_dict(),
+            endpoint=request.path,
+            api_request=request,
+            duration=duration,
+            status_code=response.status_code,
+        )
+        return response
 
     CORS(app)
 
@@ -64,5 +88,6 @@ def create_app():
     api.add_namespace(biomarker_api)
     api.add_namespace(auth_api)
     api.add_namespace(swagger_api)
+    api.add_namespace(log_api)
 
     return app
