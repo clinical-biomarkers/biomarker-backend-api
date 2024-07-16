@@ -1,11 +1,7 @@
-""" General functions that interact with the general database collections such as the
-logging collection and the error logging collection.
-"""
+""" General functions that interact with the MongoDB database collections."""
 
-from flask import current_app, Request, Flask
+from flask import current_app, Flask
 from . import (
-    REQ_LOG_COLLECTION,
-    REQ_LOG_MAX_LEN,
     ERROR_LOG_COLLECTION,
     TIMESTAMP_FORMAT,
     TIMEZONE,
@@ -20,66 +16,66 @@ import string
 import random
 import json
 import hashlib
-from user_agents import parse  # type: ignore
 from pymongo.errors import PyMongoError
 
 
-def log_request(
-    request_object: Optional[Dict], endpoint: str, api_request: Request
-) -> Optional[Dict[Any, Any]]:
-    """Logs an API request in the request log collection.
-
-    Parameters
-    ----------
-    request_object : dict or None
-        The parsed query string parameters associated with the API call (if available).
-    endpoint : str
-        The endpoint the request came in for.
-    api_request : Request
-        The flask request object.
-
-    Returns
-    -------
-    dict or None
-        None on success, error object on error.
-    """
-    if request_object and len(json.dumps(request_object)) > REQ_LOG_MAX_LEN:
-        error_obj = log_error(
-            error_log=f"Request object length exceeds REQ_LOG_MAX_LEN ({REQ_LOG_MAX_LEN})",
-            error_msg="request-object-exceeded-max-length",
-            origin="log_request",
-        )
-        return error_obj
-
-    header_dict = {
-        "user_agent": api_request.headers.get("User-Agent"),
-        "referer": api_request.headers.get("Referer"),
-        "origin": api_request.headers.get("Origin"),
-        "ip": api_request.environ.get("HTTP_X_FORWARDED_FOR", api_request.remote_addr),
-    }
-    user_agent = parse(api_request.headers.get("User-Agent"))
-    header_dict["is_bot"] = user_agent.is_bot
-
-    log_object = {
-        "api": endpoint,
-        "request": request_object,
-        "timestamp": create_timestamp(),
-        "headers": header_dict,
-    }
-    custom_app = cast_app(current_app)
-    dbh = custom_app.mongo_db
-
-    try:
-        dbh[REQ_LOG_COLLECTION].insert_one(log_object)
-    except Exception as e:
-        error_obj = log_error(
-            error_log=f"Failed to log request.\n{e}",
-            error_msg="log-failure",
-            origin="log_request",
-        )
-        return error_obj
-
-    return None
+## DEPRECATED 
+# def log_request(
+#     request_object: Optional[Dict], endpoint: str, api_request: Request
+# ) -> Optional[Dict[Any, Any]]:
+#     """Logs an API request in the request log collection.
+#
+#     Parameters
+#     ----------
+#     request_object : dict or None
+#         The parsed query string parameters associated with the API call (if available).
+#     endpoint : str
+#         The endpoint the request came in for.
+#     api_request : Request
+#         The flask request object.
+#
+#     Returns
+#     -------
+#     dict or None
+#         None on success, error object on error.
+#     """
+#     if request_object and len(json.dumps(request_object)) > REQ_LOG_MAX_LEN:
+#         error_obj = log_error(
+#             error_log=f"Request object length exceeds REQ_LOG_MAX_LEN ({REQ_LOG_MAX_LEN})",
+#             error_msg="request-object-exceeded-max-length",
+#             origin="log_request",
+#         )
+#         return error_obj
+#
+#     header_dict = {
+#         "user_agent": api_request.headers.get("User-Agent"),
+#         "referer": api_request.headers.get("Referer"),
+#         "origin": api_request.headers.get("Origin"),
+#         "ip": api_request.environ.get("HTTP_X_FORWARDED_FOR", api_request.remote_addr),
+#     }
+#     user_agent = parse(api_request.headers.get("User-Agent"))
+#     header_dict["is_bot"] = user_agent.is_bot
+#
+#     log_object = {
+#         "api": endpoint,
+#         "request": request_object,
+#         "timestamp": create_timestamp(),
+#         "headers": header_dict,
+#     }
+#     custom_app = cast_app(current_app)
+#     dbh = custom_app.mongo_db
+#
+#     try:
+#         dbh[REQ_LOG_COLLECTION].insert_one(log_object)
+#     except Exception as e:
+#         error_obj = log_error(
+#             error_log=f"Failed to log request.\n{e}",
+#             error_msg="log-failure",
+#             origin="log_request",
+#         )
+#         return error_obj
+#
+#     return None
 
 
 def log_error(error_log: str, error_msg: str, origin: str, **kwargs) -> Dict:

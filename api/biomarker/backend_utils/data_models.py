@@ -113,6 +113,21 @@ class ContactSchema(Schema):
     message = fields.Str(required=True)
 
 
+### Frontend Logging Schema
+
+
+class FrontendLogger(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    type = fields.Str(required=True)
+    page = fields.Str(required=True)
+    user = fields.Str(required=True)
+    id = fields.Str(required=True)
+    message = fields.Str(required=True)
+
+
 ### Schema Map
 
 SCHEMA_MAP = {
@@ -121,4 +136,5 @@ SCHEMA_MAP = {
     "search_full": SearchFullSchema,
     "list": ListSchema,
     "contact": ContactSchema,
+    "frontend_logging": FrontendLogger,
 }

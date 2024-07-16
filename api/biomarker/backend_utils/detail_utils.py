@@ -58,9 +58,6 @@ def detail(api_request: Request, biomarker_id: str) -> Tuple[Dict, int]:
         return_object = _process_document(return_object, request_arguments)
 
     biomarker_data = _add_metadata(return_object)
-    db_utils.log_request(
-        request_object=request_object, endpoint="detail", api_request=api_request
-    )
     return biomarker_data, 200
 
 
