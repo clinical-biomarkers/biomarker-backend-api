@@ -21,6 +21,7 @@ CONTACT_RECIPIENTS = ["daniallmasood@email.gwu.edu", "skim658@gwu.edu"]
 API_CALL_LOG_TABLE = "api_calls"
 FRONTEND_CALL_LOG_TABLE = "frontend_logs"
 LOG_DB_PATH = f"{os.environ.get('DATA_PATH')}{os.environ.get('SERVER')}/api_logs.db"
+os.makedirs(os.path.dirname(LOG_DB_PATH), exist_ok=True)
 logging_status: Optional[Exception] = None
 try:
     API_LOG_DICT: Optional[SqliteDict] = SqliteDict(
