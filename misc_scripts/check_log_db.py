@@ -39,10 +39,10 @@ def main():
     rows = cursor.fetchall()
     for idx, row in enumerate(rows):
         header = "-" * 40
-        header += f" Row: {row} "
+        header += f" Row: {idx} "
         header = "-" * 40
         deserialized_row = deserialize_row(row)
-        print(json.dumps(deserialized_row, index=2, default=str))
+        print(json.dumps(deserialized_row, indent=2, default=str))
 
     conn.close()
 
