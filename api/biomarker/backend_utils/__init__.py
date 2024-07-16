@@ -1,6 +1,6 @@
 from flask import Flask
 from pymongo.database import Database
-from typing import Optional
+from typing import Optional, Dict
 from logging import Logger
 import os
 from sqlitedict import SqliteDict  # type: ignore
