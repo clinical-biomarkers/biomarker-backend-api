@@ -13,6 +13,7 @@ COMPONENT_COUNTS: List[Dict] = [
     {"$project": {"component_count": {"$size": "$biomarker_component"}}},
     {
         "$group": {
+            "_id": None,
             "single_biomarker_count": {
                 "$sum": {"$cond": [{"$eq": ["$component_count", 1]}, 1, 0]}
             },
