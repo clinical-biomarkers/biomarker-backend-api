@@ -10,6 +10,7 @@ import pymongo
 from pymongo.database import Database
 from pymongo.errors import BulkWriteError
 from helpers import misc_functions as misc_fns
+from helpers.statistics import process_stats
 import argparse
 import logging
 
@@ -428,6 +429,14 @@ def main():
                     output = f"Failed to load data entirely into reviewed collection for file: {fp}.\n\tCheck logs."
             logging.error(output)
             print(output)
+
+    logging.info("Calculating metadata..")
+
+    if not process_stats(dbh=dbh):
+        logging.error("Error calculating data statistics.")
+        print("Error calculating data statistics.")
+    else:
+        logging.info("Finished metadata calculations.")
 
     logging.info(f"Finished loading data for server: {server}. ---------------------")
 

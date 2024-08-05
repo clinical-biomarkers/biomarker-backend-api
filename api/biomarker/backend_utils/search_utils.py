@@ -6,7 +6,7 @@ from typing import Tuple, Dict, List
 
 from . import db as db_utils
 from . import utils as utils
-from . import DB_COLLECTION, SEARCH_CACHE_COLLECTION
+from . import SEARCH_CACHE_COLLECTION
 
 
 def init() -> Tuple[Dict, int]:
@@ -18,7 +18,26 @@ def init() -> Tuple[Dict, int]:
     tuple : (dict, int)
         The searchable fields and the HTTP code.
     """
-    # TODO : implement a separate collection for this eventually, hardcoding for now
+    entity_type_splits, splits_http_code = db_utils.get_stats(mode="split")
+    if splits_http_code != 200:
+        return entity_type_splits, splits_http_code
+    try:
+        entity_types = {
+            (
+                entity_type_obj["entity_type"].upper()
+                if entity_type_obj["entity_type"] in {"dna", "rna"}
+                else entity_type_obj["entity_type"]
+            )
+            for entity_type_obj in entity_type_splits
+            if entity_type_obj["entity_type"]
+        }
+    except Exception as e:
+        error_object = db_utils.log_error(
+            error_log=f"Unexpected error in search init.\n{e}",
+            error_msg="internal-server-error",
+            origin="init",
+        )
+        return error_object, 500
     response_object = {
         "best_biomarker_role": [
             "prognostic",
@@ -29,18 +48,7 @@ def init() -> Tuple[Dict, int]:
             "safety",
             "response",
         ],
-        "assessed_entity_type": [
-            "protein",
-            "glycan",
-            "metabolite",
-            "gene",
-            "chemical element",
-            "cell",
-            "DNA",
-            "lipoprotein",
-            "protein complex",
-            "RNA",
-        ],
+        "assessed_entity_type": list(entity_types),
         "simple_search_category": [
             {"id": "any", "display": "Any"},
             {"id": "biomarker", "display": "Biomarker"},
