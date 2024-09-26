@@ -7,9 +7,10 @@ from . import (
     TIMEZONE,
     DB_COLLECTION,
     SEARCH_CACHE_COLLECTION,
+    STATS_COLLECTION,
     CustomFlask,
 )
-from typing import Optional, Dict, cast, Tuple, List, Any
+from typing import Optional, Dict, cast, Tuple, List, Any, Literal
 import datetime
 import pytz  # type: ignore
 import string
@@ -19,7 +20,7 @@ import hashlib
 from pymongo.errors import PyMongoError
 
 
-## DEPRECATED 
+## DEPRECATED
 # def log_request(
 #     request_object: Optional[Dict], endpoint: str, api_request: Request
 # ) -> Optional[Dict[Any, Any]]:
@@ -344,6 +345,54 @@ def get_cached_objects(
         "mongo_query": cache_entry["cache_info"]["query"],
         "cache_info": cache_entry["cache_info"],
     }, 200
+
+
+def get_stats(
+    mode: Literal["stats", "split", "both"] = "both",
+    stat_collection: str = STATS_COLLECTION,
+) -> Tuple[Dict, int]:
+    """Gets the stat collection data.
+
+    Parameters
+    ----------
+    mode : Literal
+        What data to retun from the stat collection.
+    stat_collection : str, optional
+        The stat collection to retrieve from.
+
+    Returns
+    -------
+    tuple : (dict, int)
+        The requested stat object and HTTP status code.
+    """
+    custom_app = cast_app(current_app)
+    dbh = custom_app.mongo_db
+
+    try:
+        data: Dict = {}
+        if mode in ["stats", "both"]:
+            stats = dbh[stat_collection].find_one({"_id": "stats"})
+            data["stats"] = stats if stats else {}
+        if mode in ["split", "both"]:
+            splits = dbh[stat_collection].find_one({"_id": "entity_type_splits"})
+            data["entity_type_splits"] = splits["splits"] if splits else []
+
+        return data, 200
+
+    except PyMongoError as e:
+        error_object = log_error(
+            error_log=f"Pymongo error in querying for database stats.\n{e}",
+            error_msg="internal-database-error",
+            origin="get_stats",
+        )
+        return error_object, 500
+    except Exception as e:
+        error_object = log_error(
+            error_log=f"Unexpected error in querying for existing cache list id.\n{e}",
+            error_msg="internal-database-error",
+            origin="get_stats",
+        )
+        return error_object, 500
 
 
 def create_timestamp() -> str:
