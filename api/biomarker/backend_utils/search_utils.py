@@ -28,7 +28,7 @@ def init() -> Tuple[Dict, int]:
                 if entity_type_obj["entity_type"] in {"dna", "rna"}
                 else entity_type_obj["entity_type"]
             )
-            for entity_type_obj in entity_type_splits
+            for entity_type_obj in entity_type_splits["entity_type_splits"]
             if entity_type_obj["entity_type"]
         }
     except Exception as e:
