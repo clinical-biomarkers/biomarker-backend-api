@@ -1,38 +1,21 @@
-import pymongo
 import sys
-import argparse
-
-host = "mongodb://127.0.0.1:"
-tst_port = "6061"
-prd_port = "7071"
-db_name = "biomarkerdb_api"
-db_user = "biomarkeradmin"
-db_pass = "biomarkerpass"
-auth_mechanism = "SCRAM-SHA-1"
+from utils.db import get_standard_db_handle
+from utils.parser import standard_parser
 
 
 def main():
 
-    parser = argparse.ArgumentParser(prog="peak_collection.py")
-    parser.add_argument("server", help="tst/prd")
+    parser, server_list = standard_parser()
     options = parser.parse_args()
     server = options.server.lower().strip()
-    if server not in {"tst", "prd"}:
+    if server not in server_list:
         print("Invalid server.")
+        parser.print_help()
         sys.exit(1)
-    host_w_port = f"{host}{tst_port}" if server == "tst" else f"{host}{prd_port}"
+
+    dbh = get_standard_db_handle(server=server)
 
     try:
-        client = pymongo.MongoClient(
-            host_w_port,
-            username=db_user,
-            password=db_pass,
-            authSource=db_name,
-            authMechanism=auth_mechanism,
-            serverSelectionTimeoutMS=1000,
-        )
-        client.server_info()
-        dbh = client[db_name]
         collections = dbh.list_collection_names()
         print("Collections:")
         for collection in collections:

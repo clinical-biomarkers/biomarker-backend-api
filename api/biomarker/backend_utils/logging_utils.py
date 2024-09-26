@@ -2,7 +2,7 @@
 """
 
 from flask import Request, current_app
-from user_agents import parse  # type: ignore
+from user_agents import parse
 from . import API_LOG_DICT, FRONTEND_LOG_DICT
 from . import utils as utils
 from .db import create_timestamp, cast_app

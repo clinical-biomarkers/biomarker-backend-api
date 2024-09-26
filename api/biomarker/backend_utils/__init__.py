@@ -3,7 +3,7 @@ from pymongo.database import Database
 from typing import Optional, Dict
 from logging import Logger
 import os
-from sqlitedict import SqliteDict  # type: ignore
+from sqlitedict import SqliteDict
 from .performance_logger import PerformanceLogger
 
 DB_COLLECTION = "biomarker_collection"

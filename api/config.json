@@ -7,6 +7,10 @@
         "dev":"8089"
     },
     "data_path":"/data/shared/biomarkerdb/",
+    "generated_path_segment": ["generated", "datamodel"],
+    "new_data_segment": ["new_data", "current"],
+    "existing_data_segment": ["existing_data"],
+    "merged_data_segment": ["merged", "current"],
     "dbinfo":{
         "dbname":"biomarkerdb_api",
         "port":{ 

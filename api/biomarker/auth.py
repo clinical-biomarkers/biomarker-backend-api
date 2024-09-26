@@ -1,5 +1,5 @@
 from flask import request
-from flask_restx import Resource, Namespace  # type: ignore
+from flask_restx import Resource, Namespace
 from .backend_utils import auth_utils as auth_utils
 
 api = Namespace("auth", description="Authentication API namespace.", hide=True)

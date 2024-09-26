@@ -1,4 +1,5 @@
-""" Script that handles the data load into the MongoDB instance.
+""" DEPRECATED
+Script that handles the data load into the MongoDB instance.
 """
 
 import subprocess
@@ -259,6 +260,10 @@ def load_id_collection(connection_string: str, load_path: str, collection: str) 
 
 
 def main():
+
+    # deprecated message
+    print("This load method is deprecated. You are probably looking for the load script in the load/ directory.")
+    misc_fns.get_user_confirmation()
 
     ### handle command line arguments
     parser = argparse.ArgumentParser(
