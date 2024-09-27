@@ -56,3 +56,9 @@ def log_msg(
         logger.error(msg)
     if to_stdout:
         print(msg)
+
+
+def start_message(logger: Logger, msg: str) -> None:
+    """Logs a standardized start message."""
+    start_message = f"############### {msg} ###############"
+    log_msg(logger=logger, msg=start_message)

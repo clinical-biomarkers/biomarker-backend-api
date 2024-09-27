@@ -29,7 +29,7 @@ from tutils.general import (
     write_json,
 )
 from tutils.config import get_config
-from tutils.logging import setup_logging, log_msg
+from tutils.logging import setup_logging, log_msg, start_message
 from load.preprocess_utils import attempt_merge
 from tutils.parser import standard_parser
 
@@ -195,11 +195,7 @@ def main() -> None:
         print(f"This script can only be run on the {target_server} server.")
         sys.exit(1)
 
-    log_msg(
-        logger=LOGGER,
-        msg=f"Preprocessing data for server: {server}. #####################",
-        to_stdout=True,
-    )
+    start_message(logger=LOGGER, msg=f"Preprocessing data for server: {server}")
 
     config_obj = get_config()
     # the root path to the biomarkerdb data

@@ -111,7 +111,8 @@ def _merge_records(merge_record: dict, collision_record: dict) -> dict:
     )
 
     merge_record["citation"].extend(
-        citation for citation in collision_record["citation"]
+        citation
+        for citation in collision_record["citation"]
         if citation not in merge_record["citation"]
     )
 

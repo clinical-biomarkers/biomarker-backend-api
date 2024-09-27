@@ -19,8 +19,13 @@ from tutils.db import get_standard_db_handle
 from tutils.config import get_config
 from tutils.general import load_json_type_safe, resolve_symlink, get_user_confirmation
 from tutils.parser import standard_parser
-from tutils.logging import setup_logging, log_msg
-from load.load_utils import clear_collections, create_load_record_command, bulk_load
+from tutils.logging import setup_logging, log_msg, start_message
+from load.load_utils import (
+    clear_collections,
+    create_load_record_command,
+    bulk_load,
+    process_stats,
+)
 from load.preprocess import CHECKPOINT_VAL
 
 LOGGER = setup_logging("load_data.log")
@@ -40,13 +45,12 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
 
-    log_msg(
-        logger=LOGGER,
-        msg=f"Loading data for server: {server}. #####################",
-        to_stdout=True,
-    )
+    start_message(logger=LOGGER, msg=f"Loading data for server: {server}")
 
     config_obj = get_config()
+    db_name = config_obj["dbinfo"]["dbname"]
+    biomarker_collection = config_obj["dbinfo"][db_name]["collection"]
+    stats_collection = config_obj["dbinfo"][db_name]["stats_collection"]
     data_root_path_segment = config_obj["data_path"]
     generated_path_segment = config_obj["generated_path_segment"]
     merged_data_path_segment = config_obj["merged_data_segment"]
@@ -121,11 +125,24 @@ def main() -> None:
         to_stdout=True,
     )
 
-    finish_str = "Finished loading data."
+    log_msg(logger=LOGGER, msg="Calculating metadata stats...", to_stdout=True)
+    stats_start_time = time.time()
+    process_stats(
+        dbh=dbh, data_collection=biomarker_collection, stat_collection=stats_collection
+    )
+    stats_elapsed_time = round(time.time() - stats_start_time, 2)
+    log_msg(
+        logger=LOGGER,
+        msg=f"Finished calculating stats in {stats_elapsed_time} seconds.",
+        to_stdout=True,
+    )
+
+    finish_str = "Finished loading data and calculating new metadata stats."
     finish_str += f"\n\tClearing old data took {clear_collection_elapsed_time} seconds."
     finish_str += f"\n\tLoading merged data took {merged_elapsed_time} seconds."
     finish_str += f"\n\tLoading collision data took {collision_elapsed_time} seconds."
-    finish_str += f"\n\tTotal time: {clear_collection_elapsed_time + merged_elapsed_time + collision_elapsed_time} seconds."
+    finish_str += f"\n\tCalculating stats took {stats_elapsed_time} seconds."
+    finish_str += f"\n\tTotal time: {clear_collection_elapsed_time + merged_elapsed_time + collision_elapsed_time + stats_elapsed_time} seconds."
     log_msg(logger=LOGGER, msg=finish_str, to_stdout=True)
 
 

@@ -5,6 +5,7 @@ from pymongo.database import Database
 from pymongo.collection import Collection
 from logging import Logger
 from typing import Optional, NoReturn, Literal
+from urllib.parse import quote_plus
 from tutils.config import get_config
 from tutils.logging import log_msg
 
@@ -121,3 +122,20 @@ def create_text_index(collection: Collection, logger: Optional[Logger] = None) -
     if logger is not None:
         log_msg(logger=logger, msg=status_message)
     print(status_message)
+
+
+def get_connection_string(
+    server: str,
+    host: str = "127.0.0.1:",
+    auth_source: Optional[str] = None,
+    auth_mechanism: str = "SCRAM-SHA-1",
+) -> str:
+    """Return a connection string."""
+    config_obj = get_config()
+    db_name = config_obj["dbinfo"]["dbname"]
+    port = config_obj["dbinfo"]["port"][server]
+    db_user = quote_plus(config_obj["dbinfo"][db_name]["user"])
+    db_pass = quote_plus(config_obj["dbinfo"][db_name]["password"])
+    auth_source = auth_source if auth_source is not None else db_name
+    uri = f"mongodb://{db_user}:{db_pass}@{host}{port}/{db_name}?authSource={auth_source}&authMechanism={auth_mechanism}"
+    return uri

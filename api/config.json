@@ -34,6 +34,7 @@
             "req_log_collection": "request_log_collection",
             "error_log_collection": "error_log_collection",
             "cache_collection": "search_cache",
+            "stats_collection": "stats_collection",
             "user":"biomarkeradmin",
             "password":"biomarkerpass"
         }

@@ -1,4 +1,8 @@
-""" Handles the logic for updating the supplemental metadata collections.
+""" DEPRECATED
+
+Handles the logic for updating the supplemental metadata collections.
+
+From id/helpers
 """
 
 import logging
