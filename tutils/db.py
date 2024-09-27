@@ -26,8 +26,8 @@ def get_database_handle(
             host=f"{host}{port}",
             username=username,
             password=password,
-            auth_source=auth_source,
-            auth_mechanism=auth_mechanism,
+            authSource=auth_source,
+            authMechanism=auth_mechanism,
             serverSelectionTimeoutMS=timeout,
         )
         dbh = client[db_name]
