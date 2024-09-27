@@ -1,3 +1,14 @@
+"""Loads the preprocessed data into MongoDB.
+
+usage: parser.py [-h] server
+
+positional arguments:
+  server      prd/beta/tst/dev
+
+options:
+  -h, --help  show this help message and exit
+"""
+
 import glob
 import sys
 import time

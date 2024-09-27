@@ -4,6 +4,14 @@ For now this is the implementation that I created on the fly. However, its slow,
 As the project gets more and more data this approach will be very slow. This is a heavily IO bound workflow. In an ideal
 world, you could complete this logic in memory and avoid excessive IO calls. However, with the amount of data we currently 
 have that is not feasible.
+
+usage: parser.py [-h] server
+
+positional arguments:
+  server      prd/beta/tst/dev
+
+options:
+  -h, --help  show this help message and exit
 """
 
 import ijson

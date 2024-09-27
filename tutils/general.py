@@ -2,6 +2,7 @@ import json
 import sys
 import os
 import decimal
+import subprocess
 from typing import Union, Literal, overload, Optional, NoReturn
 
 
@@ -116,3 +117,8 @@ def resolve_symlink(path: str) -> Optional[str]:
         return None
     read_link = os.readlink(path)
     return read_link
+
+
+def copy_file(src: str, dest: str) -> None:
+    """Copies a file from src to dest."""
+    subprocess.run(["cp", src, dest], check=True)
