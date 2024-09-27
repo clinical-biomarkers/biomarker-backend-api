@@ -12,16 +12,18 @@ import subprocess
 import glob
 import os
 import sys
-from utils.general import (
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.general import (
     get_user_confirmation,
     load_json_type_safe,
     resolve_symlink,
     write_json,
 )
-from utils.config import get_config
-from utils.logging import setup_logging, log_msg
+from tutils.config import get_config
+from tutils.logging import setup_logging, log_msg
 from load.preprocess_utils import attempt_merge
-from utils.parser import standard_parser
+from tutils.parser import standard_parser
 
 LOGGER = setup_logging("preprocess_data.log")
 CHECKPOINT_VAL = 5_000

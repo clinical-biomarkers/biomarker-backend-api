@@ -1,40 +1,25 @@
 import sys
-import argparse
-from misc_functions import load_json, get_mongo_handle
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.parser import standard_parser, parse_server
+from tutils.config import get_config
+from tutils.db import get_standard_db_handle
 
 
-def main():
+def main() -> None:
 
-    ### handle command line arguments
-    parser = argparse.ArgumentParser(
-        prog="init_mongodb.py", usage="python init_mongodb.py [options] server"
-    )
-    parser.add_argument("-s", "--server", help="tst/prd")
+    parser, server_list = standard_parser()
     options = parser.parse_args()
-    if not options.server or options.server not in {"tst", "prd"}:
-        parser.print_help()
-        sys.exit(1)
-    server = options.server
+    server = parse_server(parser=parser, server=options.server, server_list=server_list)
 
-    ### get config info for database connection
-    config_obj = load_json("config.json")
-    if not isinstance(config_obj, dict):
-        print("Invalid config JSON type, expected dict.")
-        sys.exit(1)
-    mongo_port = config_obj["dbinfo"]["port"][server]
-    host = f"mongodb://127.0.0.1:{mongo_port}"
-    admin_user = config_obj["dbinfo"]["admin"]["user"]
-    admin_pass = config_obj["dbinfo"]["admin"]["password"]
-    admin_db = config_obj["dbinfo"]["admin"]["db"]
+    config_obj = get_config()
     db_name = config_obj["dbinfo"]["dbname"]
     db_user = config_obj["dbinfo"][db_name]["user"]
     db_pass = config_obj["dbinfo"][db_name]["password"]
 
     ### get database handle and create the db user
-    dbh = get_mongo_handle(host, admin_db, admin_user, admin_pass, db_name)
-    if dbh is None:
-        print("Error creating database handle.")
-        sys.exit(1)
+    dbh = get_standard_db_handle(server=server)
     dbh.command(
         "createUser", db_user, pwd=db_pass, roles=[{"role": "readWrite", "db": db_name}]
     )

@@ -2,43 +2,39 @@
 """
 
 import argparse
-import json
-import pymongo
-from pymongo.database import Database
+from pymongo.collection import Collection
 import sys
-import logging
+import os
 import glob
-from map_scores import _handle_output
 
-host = "mongodb://127.0.0.1:"
-tst_port = "6061"
-prd_port = "7071"
-db_name = "biomarkerdb_api"
-db_user = "biomarkeradmin"
-db_pass = "biomarkerpass"
-auth_mechanism = "SCRAM-SHA-1"
-biomarker_collection = "biomarker_collection"
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.general import load_json_type_safe
+from tutils.logging import setup_logging, log_msg
+from tutils.parser import standard_parser, parse_server
+from tutils.db import get_standard_db_handle
+from tutils.config import get_config
+
+LOGGER = setup_logging("update_scores.log")
 
 
-def update_scores(file_list: list[str], dbh: Database) -> bool:
+def update_scores(file_list: list[str], collection_handle: Collection) -> bool:
     """Updates the scores in MongoDB.
 
     Parameters
     ----------
     file_list : list[str]
         The list of file paths to update in MongoDB.
-    dbh : Database
-        The database handle.
+    collection_handle : Collection
+        The collection handle.
 
     Returns
     -------
     bool
         True on success, False on failure.
     """
-    collection_handle = dbh[biomarker_collection]
     for fp in file_list:
-        _handle_output("info", f"Starting processing file: {fp}")
-        data = json.load(open(fp, "r"))
+        log_msg(logger=LOGGER, msg=f"Starting processing file: {fp}", to_stdout=True)
+        data = load_json_type_safe(filepath=fp, return_type="list")
         for document in data:
             collision_status = document.pop("collision")
             if collision_status != 0:
@@ -53,64 +49,57 @@ def update_scores(file_list: list[str], dbh: Database) -> bool:
                 },
             )
             if update_result.modified_count != 1:
-                _handle_output(
-                    "error",
-                    f"Error updating entry for biomarker ID {document['biomarker_id']}\nModified count: {update_result.modified_count}\nEntry: {document}.",
+                log_str = (
+                    f"Error updating entry for biomarker ID {document['biomarker_id']}"
                 )
+                log_str += f"\nModified count: {update_result.modified_count}"
+                log_str += f"\nEntry: {document}"
+                log_msg(logger=LOGGER, msg=log_str, level="error", to_stdout=True)
                 return False
-        _handle_output("info", f"Success: completed processing file: {fp}")
+        log_msg(
+            logger=LOGGER,
+            msg=f"Success: completed processing file: {fp}",
+            to_stdout=True,
+        )
     return True
 
 
 def main():
 
     parser = argparse.ArgumentParser(prog="update_scores.py")
-    parser.add_argument("server", help="tst/prd")
+    parser, server_list = standard_parser()
     parser.add_argument(
         "glob_pattern", help="glob pattern for the files to update scores for"
     )
     if len(sys.argv) <= 2:
         sys.argv.append("-h")
     options = parser.parse_args()
-    server = options.server.lower().strip()
-    if server not in {"tst", "prd"}:
-        print("Invalid server.")
-        sys.exit(1)
-
-    logging.basicConfig(
-        filename="update_score.log",
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-    )
+    server = parse_server(parser=parser, server=options.server, server_list=server_list)
 
     glob_files = glob.glob(options.glob_pattern)
     if len(glob_files) == 0:
-        _handle_output(
-            "error", "Glob pattern picked up zero files, check glob pattern."
+        log_msg(
+            logger=LOGGER,
+            msg="Glob pattern picked up zero files, check glob pattern.",
+            level="error",
+            to_stdout=True,
         )
         sys.exit(1)
 
-    host_w_port = f"{host}{tst_port}" if server == "tst" else f"{host}{prd_port}"
+    config_obj = get_config()
+    db_name = config_obj["dbinfo"]["dbname"]
+    biomarker_collection = config_obj["dbinfo"][db_name]["collection"]
+    dbh = get_standard_db_handle(server=server)
 
-    try:
-        client = pymongo.MongoClient(
-            host_w_port,
-            username=db_user,
-            password=db_pass,
-            authSource=db_name,
-            authMechanism=auth_mechanism,
-            serverSelectionTimeoutMS=1000,
-        )
-        client.server_info()
-        dbh = client[db_name]
-    except Exception as e:
-        print(e)
-        sys.exit(1)
-
-    if update_scores(glob_files, dbh):
-        _handle_output("info", "Success!")
+    if update_scores(glob_files, dbh[biomarker_collection]):
+        log_msg(logger=LOGGER, msg="Success!", to_stdout=True)
     else:
-        _handle_output("error", "Failed somewhere, potential partial data load.")
+        log_msg(
+            logger=LOGGER,
+            msg="Failed somewhere, potential partial data load.",
+            level="error",
+            to_stdout=True,
+        )
 
 
 if __name__ == "__main__":

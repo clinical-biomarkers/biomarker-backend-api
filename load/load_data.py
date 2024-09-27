@@ -3,11 +3,13 @@ import sys
 import time
 import os
 from load.preprocess import CHECKPOINT_VAL
-from utils.db import get_standard_db_handle
-from utils.config import get_config
-from utils.general import load_json_type_safe, resolve_symlink, get_user_confirmation
-from utils.parser import standard_parser
-from utils.logging import setup_logging, log_msg
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.db import get_standard_db_handle
+from tutils.config import get_config
+from tutils.general import load_json_type_safe, resolve_symlink, get_user_confirmation
+from tutils.parser import standard_parser
+from tutils.logging import setup_logging, log_msg
 from load.load_utils import clear_collections, create_load_record_command, bulk_load
 
 LOGGER = setup_logging("load_data.log")

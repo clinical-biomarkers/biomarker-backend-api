@@ -1,17 +1,19 @@
 """Clears some supplementary collections. Allows you to clear all or one of the cache, 
 log, and error collections.
 """
-
-import pymongo
+import os
 import sys
-import argparse
-import misc_functions as misc_fns
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.db import get_standard_db_handle
+from tutils.config import get_config
+from tutils.parser import standard_parser, parse_server
+from tutils.general import get_user_confirmation
 
 
 def main():
 
-    parser = argparse.ArgumentParser(prog="clear_collections.py")
-    parser.add_argument("server", help="server to clear ")
+    parser, server_list = standard_parser()
     parser.add_argument(
         "-c",
         "--cache",
@@ -31,10 +33,7 @@ def main():
         help="Store false argument for clearing the error log collection.",
     )
     options = parser.parse_args()
-    server = options.server.lower().strip()
-    if server not in {"tst", "prd"}:
-        print("Invalid server.")
-        sys.exit(0)
+    server = parse_server(parser=parser, server=options.server, server_list=server_list)
 
     confimation_message = "Clearing the following collections:"
     if options.cache:
@@ -45,36 +44,14 @@ def main():
         confimation_message += "\n\tError collection"
 
     print(confimation_message)
-    if not misc_fns.get_user_confirmation():
-        print("Exiting...")
-        sys.exit(0)
+    get_user_confirmation()
 
-    (
-        _,
-        host,
-        db_name,
-        db_user,
-        db_pass,
-        _,
-        cache_collection,
-        log_collection,
-        error_collection,
-    ) = misc_fns.get_config_details(server)
-
-    try:
-        client = pymongo.MongoClient(
-            host,
-            username=db_user,
-            password=db_pass,
-            authSource=db_name,
-            authMechanism="SCRAM-SHA-1",
-            serverSelectionTimeoutMS=10000,
-        )
-        client.server_info()
-        dbh = client[db_name]
-    except Exception as e:
-        print(e)
-        sys.exit(1)
+    dbh = get_standard_db_handle(server)
+    config_obj = get_config()
+    db_name = config_obj["dbinfo"]["dbname"]
+    cache_collection = config_obj["dbinfo"][db_name]["cache_collection"]
+    log_collection = config_obj["dbinfo"][db_name]["req_log_collection"]
+    error_collection = config_obj["dbinfo"][db_name]["error_log_collection"]
 
     if options.cache:
         try:

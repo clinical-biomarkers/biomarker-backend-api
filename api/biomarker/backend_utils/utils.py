@@ -1,6 +1,7 @@
 """ General purpose utility functions.
 """
 
+from typing_extensions import deprecated
 from flask import Request
 from typing import Dict, Optional, Tuple, Any
 import json
@@ -141,6 +142,7 @@ def prepare_search_term(term: str, wrap: bool = True) -> str:
     return quoted_term
 
 
+@deprecated("Scores are pre-computed and already within the data records")
 def get_hit_score(doc: Dict) -> Tuple[float, Dict]:
     """calculates a hit score for a record.
 

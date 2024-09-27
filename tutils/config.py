@@ -1,7 +1,6 @@
-import sys
 import os
-from utils.general import load_json_type_safe
-from utils import ROOT_DIR
+from tutils.general import load_json_type_safe
+from tutils import ROOT_DIR
 
 
 def get_config() -> dict:

@@ -1,4 +1,6 @@
-"""Loops through all the data in the biomarker collection and
+"""DEPRECATED
+
+Loops through all the data in the biomarker collection and
 creates a concatenated sub field for text indexing.
 """
 

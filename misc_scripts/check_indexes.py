@@ -1,7 +1,10 @@
 from pymongo.collection import Collection
 import sys
-from utils.db import get_standard_db_handle, get_collection_list
-from utils.parser import standard_parser
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.db import get_standard_db_handle, get_collection_list
+from tutils.parser import standard_parser, parse_server
 
 COLLECTION_LIST = get_collection_list()
 
@@ -34,11 +37,7 @@ def main():
             help=help_str,
         )
     options = parser.parse_args()
-    server = options.server.lower().strip()
-    if server not in server_list:
-        print("Invalid server.")
-        parser.print_help()
-        sys.exit(1)
+    server = parse_server(parser=parser, server=options.server, server_list=server_list)
 
     option_list = [key for key in options.__dict__.values()]
     if not any(option_list):

@@ -1,28 +1,20 @@
-import sys
-import argparse
-from misc_functions import load_json
 import subprocess
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.parser import standard_parser, parse_server
+from tutils.config import get_config
 
 
-def main():
+def main() -> None:
 
-    ### handle command line arguments
-    parser = argparse.ArgumentParser(
-        prog="create_api_container.py",
-        usage="python create_api_container.py [options] server",
-    )
-    parser.add_argument("-s", "--server", help="tst/prd")
+    parser, server_list = standard_parser()
     options = parser.parse_args()
-    if not options.server or options.server not in {"tst", "prd"}:
-        parser.print_help()
-        sys.exit(1)
-    server = options.server
+    server = parse_server(parser=parser, server=options.server, server_list=server_list)
 
     ### get config info for docker container creation
-    config_obj = load_json("config.json")
-    if not isinstance(config_obj, dict):
-        print("Invalid config object type, expected dict.")
-        sys.exit(1)
+    config_obj = get_config()
     api_image = f"{config_obj['project']}_api_{server}"
     api_container_name = f"running_{api_image}"
     mongo_container_name = f"running_{config_obj['project']}_mongo_{server}"
@@ -33,11 +25,6 @@ def main():
     db_user = config_obj["dbinfo"][db_name]["user"]
     db_pass = config_obj["dbinfo"][db_name]["password"]
     conn_str = f"mongodb://{db_user}:{db_pass}@{mongo_container_name}:27017/?authSource={db_name}"
-
-    # mail configuration (not used right now)
-    # mail_server = config_obj['mail']['server']
-    # mail_port = config_obj['mail']['port']
-    # mail_sender = config_obj['mail']['sender']
 
     ### create and populate command list
     cmd_list = []
@@ -62,7 +49,6 @@ def main():
     cmd = f"docker create --name {api_container_name} --network {mongo_network_name} -p 127.0.0.1:{api_port}:80"
     cmd += f" -v {data_path}:{data_path} -v /software/pipes:/hostpipe -e MONGODB_CONNSTRING={conn_str} -e DB_NAME={db_name}"
     cmd += f" -e DATA_PATH={data_path} -e SERVER={server} {api_image}"
-    # -e MAIL_SERVER={mail_server} -e MAIL_PORT={mail_port} -e MAIL_SENDER={mail_sender}
     cmd_list.append(cmd)
 
     def run_command(cmd):

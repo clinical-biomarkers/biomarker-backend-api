@@ -13,8 +13,12 @@ import json
 import glob
 import sys
 import os
-import logging
-from typing import Union
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.general import load_json_type_safe
+from tutils.logging import setup_logging, log_msg
+
+LOGGER = setup_logging("map_scores.log")
 
 
 def update_biomarker_files(glob_pattern: str, score_map_path: str):
@@ -31,25 +35,27 @@ def update_biomarker_files(glob_pattern: str, score_map_path: str):
     processed_files: set[str] = set()
     glob_files = set([os.path.basename(file) for file in glob.glob(glob_pattern)])
     if not glob_files:
-        _handle_output(
-            "error", "Error: glob pattern picked up zero files. Check glob pattern."
+        log_msg(
+            logger=LOGGER,
+            msg="Error: glob pattern picked up zero files. Check glob pattern.",
+            level="error",
+            to_stdout=True,
         )
         sys.exit(1)
 
     # load score map
-    score_map = _load_json(score_map_path)
-    if not isinstance(score_map, dict):
-        _handle_output(
-            "error",
-            f"Error reading score_map, expected dict and got {type(score_map)}.",
-        )
-        sys.exit(1)
+    score_map = load_json_type_safe(filepath=score_map_path, return_type="dict")
     score_map_files = set(score_map.keys())
 
     if glob_files != score_map_files:
-        _handle_output(
-            "warning",
-            f"Warning: glob files picked up do not match all keys listed in score map keys.\nglob files: {glob_files}\nscore map files: {score_map_files}",
+        log_str = "Warning: glob files picked up do not match all keys listed in score map keys."
+        log_str += f"\nglob files: {glob_files}"
+        log_str += f"\nscore map files: {score_map_files}"
+        log_msg(
+            logger=LOGGER,
+            msg=log_str,
+            level="warning",
+            to_stdout=True,
         )
 
     # work through data files
@@ -57,39 +63,42 @@ def update_biomarker_files(glob_pattern: str, score_map_path: str):
 
         filename = os.path.basename(fp)
         if filename in processed_files:
-            _handle_output(
-                "warning",
-                f"Duplicate file found for file name: {filename}. Skipping duplicate...",
+            log_msg(
+                logger=LOGGER,
+                msg=f"Duplicate file found for file name: {filename}. Skipping duplicate...",
+                level="warning",
+                to_stdout=True,
             )
             continue
         processed_files.add(filename)
 
         if filename not in score_map:
-            _handle_output(
-                "error", f"Error: file {filename} not in score map, skipping..."
+            log_msg(
+                logger=LOGGER,
+                msg=f"Error: file {filename} not in score map, skipping...",
+                level="error",
+                to_stdout=True,
             )
             continue
         scores = score_map[filename]
 
-        biomarker_data = _load_json(fp)
-        if not isinstance(biomarker_data, list):
-            _handle_output(
-                "error",
-                f"Error reading file {filename}, expected list and got {type(biomarker_data)}. Skipping...",
-            )
-            continue
+        biomarker_data = load_json_type_safe(filepath=fp, return_type="list")
         for idx, biomarker in enumerate(biomarker_data):
             biomarker_id = biomarker.get("biomarker_id", None)
             if biomarker_id is None:
-                _handle_output(
-                    "error",
-                    f"Error on index {idx} of file {filename}. No biomarker_id found. Skipping... \nEntry: {biomarker}",
+                log_msg(
+                    logger=LOGGER,
+                    msg=f"Error on index {idx} of file {filename}. No biomarker_id found. Skipping... \nEntry: {biomarker}",
+                    level="error",
+                    to_stdout=True,
                 )
                 continue
             if biomarker_id not in scores:
-                _handle_output(
-                    "error",
-                    f"Biomarker ID {biomarker_id}, index: {idx} in file {filename} not found in score map. skipping...",
+                log_msg(
+                    logger=LOGGER,
+                    msg=f"Biomarker ID {biomarker_id}, index: {idx} in file {filename} not found in score map. skipping...",
+                    level="error",
+                    to_stdout=True,
                 )
                 continue
             biomarker["score"] = scores[biomarker_id]["score"]
@@ -97,52 +106,9 @@ def update_biomarker_files(glob_pattern: str, score_map_path: str):
 
         with open(fp, "w") as outfile:
             json.dump(biomarker_data, outfile, indent=4)
-        _handle_output("info", f"Successfully mapped file {filename}.")
-
-
-def _handle_output(level: str, message: str) -> None:
-    """Handles print and logging.
-
-    Parameters
-    ----------
-    level : str
-        Logging level (accepts "info", "warning", "error")
-    message : str
-        The message to print and log.
-    """
-    if level == "info":
-        logging.info(message)
-        print(message)
-    elif level == "warning":
-        logging.warning(message)
-        print(message)
-    elif level == "error":
-        logging.error(message)
-        print(message)
-    else:
-        logging.error(f"Unsupported logging level. Message: {message}")
-
-
-def _load_json(fp: str) -> Union[dict, list]:
-    """Reads in a JSON file.
-
-    Parameters
-    ----------
-    fp : str
-        The filepath to the file.
-
-    Returns
-    -------
-    dict or list
-        The JSON data.
-    """
-    try:
-        with open(fp, "r") as f:
-            json_obj = json.load(f)
-    except FileNotFoundError as e:
-        print(f"FileNotFoundError in load_json for filepath: `{fp}`.\n{e}")
-        sys.exit(1)
-    return json_obj
+        log_msg(
+            logger=LOGGER, msg=f"Successfully mapped file {filename}.", to_stdout=True
+        )
 
 
 def main():
@@ -157,12 +123,6 @@ def main():
     if len(sys.argv) <= 2:
         sys.argv.append("-h")
     options = parser.parse_args()
-
-    logging.basicConfig(
-        filename="map_score.log",
-        level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s",
-    )
 
     update_biomarker_files(options.glob_pattern, options.score_map)
 

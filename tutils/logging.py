@@ -2,7 +2,7 @@ import logging
 from logging import Logger
 import os
 from typing import Literal
-from utils import ROOT_DIR
+from tutils import ROOT_DIR
 
 
 def setup_logging(logger_name: str) -> Logger:

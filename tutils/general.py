@@ -2,7 +2,7 @@ import json
 import sys
 import os
 import decimal
-from typing import Union, Literal, overload, Optional
+from typing import Union, Literal, overload, Optional, NoReturn
 
 
 def load_json(filepath: str) -> Union[dict, list]:
@@ -86,12 +86,12 @@ def write_json(
             json.dump(data, f, indent=4)
 
 
-def get_user_confirmation() -> None:
+def get_user_confirmation() -> None | NoReturn:
     """Prompts the user for a confirmation or denial."""
     while True:
         user_input = input("Continue? (y/n) ").strip().lower()
         if user_input == "y":
-            return
+            return None
         elif user_input == "n":
             sys.exit(0)
         else:
