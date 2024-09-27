@@ -2,7 +2,6 @@ import glob
 import sys
 import time
 import os
-from load.preprocess import CHECKPOINT_VAL
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.db import get_standard_db_handle
@@ -11,6 +10,7 @@ from tutils.general import load_json_type_safe, resolve_symlink, get_user_confir
 from tutils.parser import standard_parser
 from tutils.logging import setup_logging, log_msg
 from load.load_utils import clear_collections, create_load_record_command, bulk_load
+from load.preprocess import CHECKPOINT_VAL
 
 LOGGER = setup_logging("load_data.log")
 WRITE_BATCH = 1_000
