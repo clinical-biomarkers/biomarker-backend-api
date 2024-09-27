@@ -18,6 +18,9 @@ def setup_logging(logger_name: str) -> Logger:
     Logger
     """
     logger = logging.getLogger(logger_name)
+    log_dir_path = os.path.join(ROOT_DIR, "logs")
+    if not os.path.isdir(log_dir_path):
+        os.mkdir(log_dir_path)
     handler = logging.FileHandler(os.path.join(ROOT_DIR, "logs", logger_name))
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
     handler.setFormatter(formatter)
