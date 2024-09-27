@@ -1,3 +1,23 @@
+"""Check the indexes on a collection.
+
+usage: parser.py [-h] [--biomarker_collection] [--canonical_id_map_collection] 
+                 [--second_id_map_collection] [--unreviewed_collection] [--request_log_collection]
+                 [--error_log_collection] [--search_cache] server
+
+positional arguments:
+  server                prd/beta/tst/dev
+
+options:
+  -h, --help                        show this help message and exit
+  --biomarker_collection            Store true argument for the biomarker collection.
+  --canonical_id_map_collection     Store true argument for the canonical id map collection.
+  --second_id_map_collection        Store true argument for the second id map collection.
+  --unreviewed_collection           Store true argument for the unreviewed collection.
+  --request_log_collection          Store true argument for the request log collection.
+  --error_log_collection            Store true argument for the error log collection.
+  --search_cache                    Store true argument for the search cache collection.
+"""
+
 from pymongo.collection import Collection
 import sys
 import os

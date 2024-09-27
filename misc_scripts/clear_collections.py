@@ -1,5 +1,16 @@
 """Clears some supplementary collections. Allows you to clear all or one of the cache, 
 log, and error collections.
+
+usage: parser.py [-h] [-c] [-l] [-e] server
+
+positional arguments:
+  server       prd/beta/tst/dev
+
+options:
+  -h, --help   show this help message and exit
+  -c, --cache  Store false argument for clearing the cache collection.
+  -l, --log    Store false argument for clearing the log collection.
+  -e, --error  Store false argument for clearing the error log collection.
 """
 import os
 import sys

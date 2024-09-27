@@ -1,3 +1,16 @@
+"""Peak into the sqlite log database.
+
+usage: parser.py [-h] server table limit
+
+positional arguments:
+  server      prd/beta/tst/dev
+  table       api_calls/frontend_logs
+  limit
+
+options:
+  -h, --help  show this help message and exit
+"""
+
 import sqlite3
 import sys
 import pickle

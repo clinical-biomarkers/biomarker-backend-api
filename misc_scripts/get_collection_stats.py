@@ -1,3 +1,14 @@
+"""Get some metadata stats for all the collections.
+
+usage: parser.py [-h] server
+
+positional arguments:
+  server      prd/beta/tst/dev
+
+options:
+  -h, --help  show this help message and exit
+"""
+
 import sys
 import os
 
