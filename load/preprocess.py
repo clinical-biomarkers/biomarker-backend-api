@@ -72,12 +72,12 @@ def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
     start_time = time.time()
     total_record_count = 0
     collision_count = 0
+    log_msg(
+        logger=LOGGER,
+        msg="==================== Starting First Pass ====================",
+        to_stdout=True,
+    )
     for file_idx, file_path in enumerate(files):
-        log_msg(
-            logger=LOGGER,
-            msg="==================== Starting First Pass ====================",
-            to_stdout=True,
-        )
         log_msg(
             logger=LOGGER,
             msg=f"------------- Processing file {file_idx + 1} of {len(files)}: {os.path.basename(file_path)}",
