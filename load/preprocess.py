@@ -90,6 +90,10 @@ def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
 
             collision = record.pop("collision")
             biomarker_id = record["biomarker_id"]
+            if "score" in record:
+                _ = record.pop("score")
+            if "score_info" in record:
+                _ = record.pop("score_info")
 
             if collision == 0:
                 output_path = os.path.join(merged_dir, f"{biomarker_id}.json")
