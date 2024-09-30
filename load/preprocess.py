@@ -72,7 +72,7 @@ def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
     start_time = time.time()
     total_record_count = 0
     collision_count = 0
-    for file_idx, file in enumerate(files):
+    for file_idx, file_path in enumerate(files):
         log_msg(
             logger=LOGGER,
             msg="==================== Starting First Pass ====================",
@@ -80,9 +80,10 @@ def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
         )
         log_msg(
             logger=LOGGER,
-            msg=f"------------- Processing file {file_idx + 1} of {len(files)}: {os.path.basename(file)}",
+            msg=f"------------- Processing file {file_idx + 1} of {len(files)}: {os.path.basename(file_path)}",
             to_stdout=True,
         )
+        file = open(file_path, "r")
         for record_idx, record in enumerate(ijson.items(file, "item")):
             total_record_count += 1
             if record_idx + 1 % CHECKPOINT_VAL == 0:
@@ -112,6 +113,7 @@ def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
                 raise ValueError(
                     f"Found invalid collision value: `{collision}` (idx: {record_idx})"
                 )
+        file.close()
     elapsed_time = round(time.time() - start_time)
     log_msg(
         logger=LOGGER,
