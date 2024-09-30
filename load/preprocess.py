@@ -256,7 +256,7 @@ def main() -> None:
     if not is_dir_empty(merged_target_path_collision):
         rm_command = f"rm -r {merged_target_path_collision}"
         confirmation_str = f"Found existing directory at {merged_target_path_collision}, going to clear with the following command:"
-        confirmation_str += "\n\t{rm_command}"
+        confirmation_str += f"\n\t{rm_command}"
         print(confirmation_str)
         get_user_confirmation()
         subprocess.run(rm_command, shell=True)
