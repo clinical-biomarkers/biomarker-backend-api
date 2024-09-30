@@ -1,4 +1,5 @@
 from typing import Optional
+import os
 
 
 def attempt_merge(merge_record: dict, collision_record: dict) -> Optional[dict]:
@@ -191,3 +192,8 @@ def _merge_evidence_sources(merge_sources: list, collision_sources: list) -> lis
             merge_sources.append(collision_source)
 
     return merge_sources
+
+
+def is_dir_empty(path: str) -> bool:
+    """Checks whether a directory is empty."""
+    return os.path.isdir(path) and len(os.listdir(path)) == 0

@@ -30,7 +30,7 @@ from tutils.general import (
 )
 from tutils.config import get_config
 from tutils.logging import setup_logging, log_msg, start_message
-from load.preprocess_utils import attempt_merge
+from load.preprocess_utils import attempt_merge, is_dir_empty
 from tutils.parser import standard_parser
 
 LOGGER = setup_logging("preprocess_data.log")
@@ -238,13 +238,14 @@ def main() -> None:
     if not os.path.isdir(merged_target_path_merged):
         os.mkdir(merged_target_path_merged)
     else:
-        rm_command = ["rm", os.path.join(merged_target_path_merged, "*.json")]
-        rm_command_str = " ".join(rm_command)
-        print(
-            f"Found existing directory at {merged_target_path_merged}, going to clear with the following command:\n\t{rm_command_str}"
-        )
-        get_user_confirmation()
-        subprocess.run(rm_command)
+        if not is_dir_empty(merged_target_path_merged):
+            rm_command = ["rm", os.path.join(merged_target_path_merged, "*.json")]
+            rm_command_str = " ".join(rm_command)
+            print(
+                f"Found existing directory at {merged_target_path_merged}, going to clear with the following command:\n\t{rm_command_str}"
+            )
+            get_user_confirmation()
+            subprocess.run(rm_command, shell=True)
     # create the path to the collision directory or clear them out if they exist
     # this is where the collision value != 0 records will go
     # after the first pass to dump the collision records here, each record will be attempted to be merged with the non-collision record
@@ -253,13 +254,14 @@ def main() -> None:
     if not os.path.isdir(merged_target_path_collision):
         os.mkdir(merged_target_path_collision)
     else:
-        rm_command = ["rm", os.path.join(merged_target_path_collision, "*.json")]
-        rm_command_str = " ".join(rm_command)
-        print(
-            f"Found existing directory at {merged_target_path_collision}, going to clear with the following command:\n\t{rm_command_str}"
-        )
-        get_user_confirmation()
-        subprocess.run(rm_command)
+        if not is_dir_empty(merged_target_path_merged):
+            rm_command = ["rm", os.path.join(merged_target_path_collision, "*.json")]
+            rm_command_str = " ".join(rm_command)
+            print(
+                f"Found existing directory at {merged_target_path_collision}, going to clear with the following command:\n\t{rm_command_str}"
+            )
+            get_user_confirmation()
+            subprocess.run(rm_command, shell=True)
 
     first_pass_time = first_pass(
         files=all_data_files,
