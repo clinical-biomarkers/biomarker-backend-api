@@ -239,10 +239,9 @@ def main() -> None:
         os.mkdir(merged_target_path_merged)
     else:
         if not is_dir_empty(merged_target_path_merged):
-            rm_command = ["rm", os.path.join(merged_target_path_merged, "*.json")]
-            rm_command_str = " ".join(rm_command)
+            rm_command = f"rm {os.path.join(merged_target_path_merged, '*.json')}"
             print(
-                f"Found existing directory at {merged_target_path_merged}, going to clear with the following command:\n\t{rm_command_str}"
+                f"Found existing directory at {merged_target_path_merged}, going to clear with the following command:\n\t{rm_command}"
             )
             get_user_confirmation()
             subprocess.run(rm_command, shell=True)
@@ -254,11 +253,10 @@ def main() -> None:
     if not os.path.isdir(merged_target_path_collision):
         os.mkdir(merged_target_path_collision)
     else:
-        if not is_dir_empty(merged_target_path_merged):
-            rm_command = ["rm", os.path.join(merged_target_path_collision, "*.json")]
-            rm_command_str = " ".join(rm_command)
+        if not is_dir_empty(merged_target_path_collision):
+            rm_command = f"rm {os.path.join(merged_target_path_collision, '*.json')}"
             print(
-                f"Found existing directory at {merged_target_path_collision}, going to clear with the following command:\n\t{rm_command_str}"
+                f"Found existing directory at {merged_target_path_collision}, going to clear with the following command:\n\t{rm_command}"
             )
             get_user_confirmation()
             subprocess.run(rm_command, shell=True)
