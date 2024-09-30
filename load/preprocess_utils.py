@@ -195,5 +195,5 @@ def _merge_evidence_sources(merge_sources: list, collision_sources: list) -> lis
 
 
 def is_dir_empty(path: str) -> bool:
-    """Checks whether a directory is empty."""
+    """Checks whether a directory exists and is empty."""
     return os.path.isdir(path) and len(os.listdir(path)) == 0

@@ -240,31 +240,27 @@ def main() -> None:
     # create the path to the merged json directory or clear them out if they exist
     # this is where the finalized merged JSON data will go
     merged_target_path_merged = os.path.join(merged_target_path, "merged_json")
-    if not os.path.isdir(merged_target_path_merged):
-        os.mkdir(merged_target_path_merged)
-    else:
-        if not is_dir_empty(merged_target_path_merged):
-            rm_command = f"rm {os.path.join(merged_target_path_merged, '*.json')}"
-            print(
-                f"Found existing directory at {merged_target_path_merged}, going to clear with the following command:\n\t{rm_command}"
-            )
-            get_user_confirmation()
-            subprocess.run(rm_command, shell=True)
+    if not is_dir_empty(merged_target_path_merged):
+        rm_command = f"rm -r {merged_target_path_merged}"
+        confirmation_str = f"Found existing directory at {merged_target_path_merged}, going to remove with the following command:"
+        confirmation_str += f"\n\t{rm_command}"
+        print(confirmation_str)
+        get_user_confirmation()
+        subprocess.run(rm_command, shell=True)
+    os.mkdir(merged_target_path_merged)
     # create the path to the collision directory or clear them out if they exist
     # this is where the collision value != 0 records will go
     # after the first pass to dump the collision records here, each record will be attempted to be merged with the non-collision record
     # equivalent, if it cannot be, it will remain in this directory
     merged_target_path_collision = os.path.join(merged_target_path, "collision_json")
-    if not os.path.isdir(merged_target_path_collision):
-        os.mkdir(merged_target_path_collision)
-    else:
-        if not is_dir_empty(merged_target_path_collision):
-            rm_command = f"rm {os.path.join(merged_target_path_collision, '*.json')}"
-            print(
-                f"Found existing directory at {merged_target_path_collision}, going to clear with the following command:\n\t{rm_command}"
-            )
-            get_user_confirmation()
-            subprocess.run(rm_command, shell=True)
+    if not is_dir_empty(merged_target_path_collision):
+        rm_command = f"rm -r {merged_target_path_collision}"
+        confirmation_str = f"Found existing directory at {merged_target_path_collision}, going to clear with the following command:"
+        confirmation_str += "\n\t{rm_command}"
+        print(confirmation_str)
+        get_user_confirmation()
+        subprocess.run(rm_command, shell=True)
+    os.mkdir(merged_target_path_collision)
 
     first_pass_time = first_pass(
         files=all_data_files,
