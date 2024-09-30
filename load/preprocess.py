@@ -247,7 +247,8 @@ def main() -> None:
         print(confirmation_str)
         get_user_confirmation()
         subprocess.run(rm_command, shell=True)
-    os.mkdir(merged_target_path_merged)
+    if not os.path.isdir(merged_target_path_merged):
+        os.mkdir(merged_target_path_merged)
     # create the path to the collision directory or clear them out if they exist
     # this is where the collision value != 0 records will go
     # after the first pass to dump the collision records here, each record will be attempted to be merged with the non-collision record
@@ -260,7 +261,8 @@ def main() -> None:
         print(confirmation_str)
         get_user_confirmation()
         subprocess.run(rm_command, shell=True)
-    os.mkdir(merged_target_path_collision)
+    if not os.path.isdir(merged_target_path_collision):
+        os.mkdir(merged_target_path_collision)
 
     first_pass_time = first_pass(
         files=all_data_files,
