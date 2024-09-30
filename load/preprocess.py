@@ -221,7 +221,7 @@ def main() -> None:
     )
     # grab all the files in the existing data directory (latest version of each JSON datamodel formatted data)
     all_data_files = glob.glob(existing_data_pattern)
-    all_data_log_msg = "Found existing files:\n" + "\n".join(all_data_files)
+    all_data_log_msg = "Found existing files:\n" + "\n\t".join(all_data_files)
     log_msg(logger=LOGGER, msg=all_data_log_msg, to_stdout=True)
     get_user_confirmation()
 
@@ -238,10 +238,10 @@ def main() -> None:
     if not os.path.isdir(merged_target_path_merged):
         os.mkdir(merged_target_path_merged)
     else:
-        rm_command = ["rm", os.path.join(merged_target_path_merged), "*.json"]
+        rm_command = ["rm", os.path.join(merged_target_path_merged, "*.json")]
         rm_command_str = " ".join(rm_command)
         print(
-            f"Found existing directory at {merged_target_path_merged}, going to clear with the following command:\n{rm_command_str}"
+            f"Found existing directory at {merged_target_path_merged}, going to clear with the following command:\n\t{rm_command_str}"
         )
         get_user_confirmation()
         subprocess.run(rm_command)
@@ -253,10 +253,10 @@ def main() -> None:
     if not os.path.isdir(merged_target_path_collision):
         os.mkdir(merged_target_path_collision)
     else:
-        rm_command = ["rm", os.path.join(merged_target_path_collision), "*.json"]
+        rm_command = ["rm", os.path.join(merged_target_path_collision, "*.json")]
         rm_command_str = " ".join(rm_command)
         print(
-            f"Found existing directory at {merged_target_path_collision}, going to clear with the following command:\n{rm_command_str}"
+            f"Found existing directory at {merged_target_path_collision}, going to clear with the following command:\n\t{rm_command_str}"
         )
         get_user_confirmation()
         subprocess.run(rm_command)
