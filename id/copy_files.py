@@ -4,11 +4,8 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.config import get_config
-from tutils.logging import setup_logging, log_msg
 from tutils.parser import standard_parser, parse_server
 from tutils.general import get_user_confirmation, copy_file
-
-LOGGER = setup_logging("preprocess_data.log")
 
 
 def main() -> None:
@@ -16,7 +13,7 @@ def main() -> None:
     parser, server_list = standard_parser()
     options = parser.parse_args()
     server = parse_server(parser=parser, server=options.server, server_list=server_list)
-    if server.lower() != "tst":
+    if server != "tst":
         print("Can only run this script on the `tst` server.")
         sys.exit(1)
 
@@ -30,7 +27,7 @@ def main() -> None:
         data_root_path, *generated_path_segment, *new_data_segment, "*.json"
     )
     existing_data_path = os.path.join(
-        data_root_path, *generated_path_segment, existing_data_segment
+        data_root_path, *generated_path_segment, *existing_data_segment
     )
 
     files_to_copy = glob.glob(new_data_glob_pattern)
@@ -44,17 +41,6 @@ def main() -> None:
         if "load_map.json" in fp:
             continue
         copy_file(src=fp, dest=existing_data_path)
-        log_msg(
-            logger=LOGGER,
-            msg=f"Copied file {os.path.basename(fp)} to {existing_data_path}.",
-            to_stdout=True,
-        )
-
-    log_msg(
-        logger=LOGGER,
-        msg=f"Finished copying {len(files_to_copy)} files.",
-        to_stdout=True,
-    )
 
 
 if __name__ == "__main__":
