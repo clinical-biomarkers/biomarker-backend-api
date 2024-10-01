@@ -1,6 +1,7 @@
 from pymongo.database import Database
 from pymongo import InsertOne
 from typing import Optional, Literal
+import subprocess
 import sys
 import os
 
@@ -203,3 +204,44 @@ def _count_documents(dbh: Database, pipeline: list[dict], collection: str) -> in
         dbh[collection].aggregate(pipeline + [{"$count": "count"}], allowDiskUse=True)
     )
     return result[0]["count"] if result else 0
+
+
+def load_id_collection(connection_string: str, load_path: str, collection: str) -> bool:
+    """Loads the local ID collections into the prod database.
+
+    Parameters
+    ----------
+    connection_string : str
+        Connection string for the MongoDB connection.
+    load_path : str
+        The filepath to the local ID map.
+    collection : str
+        The collection to load into.
+
+    Returns
+    -------
+    bool
+        Indication if the collection was loaded successfully.
+    """
+    command = [
+        "mongoimport",
+        "--uri",
+        connection_string,
+        "--collection",
+        collection,
+        "--file",
+        load_path,
+        "--mode",
+        "upsert",
+    ]
+
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        print("Args passed:")
+        print(f"Connection string: {connection_string}")
+        print(f"Load path: {load_path}")
+        print(f"Collection: {collection}")
+        print(e)
+        return False
+    return True
