@@ -11,6 +11,7 @@
     "new_data_segment": ["new_data", "current"],
     "existing_data_segment": ["existing_data"],
     "merged_data_segment": ["merged", "current"],
+    "ftp_dir_path": "/data/shared/biomarkerdb/releases/ftp/current",
     "dbinfo":{
         "dbname":"biomarkerdb_api",
         "port":{ 
