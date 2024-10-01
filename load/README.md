@@ -2,7 +2,7 @@
 
 ## Preprocessing
 
-The `preprocess.py` script with perform two passes on the data.
+The `preprocess.py` script will perform two passes on the data.
 
 During the first pass:
 
@@ -44,4 +44,4 @@ These fields can be merged:
 
 ## Loading
 
-All the files in the merged directory will be loaded into the biomarker collection. All the files remaining in the collision directory will be loaded into the unreviewed collection.
+The `load_data.py` script will load all the files in the merged directory into the biomarker collection. All the files remaining in the collision directory will be loaded into the unreviewed collection.
