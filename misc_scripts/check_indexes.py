@@ -59,7 +59,8 @@ def main():
     options = parser.parse_args()
     server = parse_server(parser=parser, server=options.server, server_list=server_list)
 
-    option_list = [key for key in options.__dict__.values()]
+    option_dict = options.__dict__
+    option_list = [val for val in option_dict.values() if isinstance(val, bool)]
     if not any(option_list):
         print("Need to specify one collection.")
         parser.print_help()
