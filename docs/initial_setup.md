@@ -5,9 +5,9 @@ This usage guide should be followed if setting up this repository on a server fr
 - [Server Dependencies](#server-dependencies)
 - [Clone the Repository](#clone-the-repository)
 - [Creating and Starting the Docker Container for the MongoDB](#creating-and-starting-the-docker-container-for-the-mongodb)
-- [Managing the Docker Containers with a Service File](#managing-the-docker-containers-with-a-service-file)
 - [Initialize MongoDB User](#initialize-mongodb-user)
-- [Creating and Starting Docker Container for the API](#creating-and-starting-docker-container-for-the-apis)
+- [Creating and Starting Docker Container for the API](#creating-and-starting-docker-container-for-the-api)
+- [Managing the Docker Containers with a Service File](#managing-the-docker-containers-with-a-service-file)
 
 ## Server Dependencies
 
