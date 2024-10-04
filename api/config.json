@@ -16,9 +16,9 @@
         "dbname":"biomarkerdb_api",
         "port":{ 
             "prd":"7071",
-            "beta":"7770",
-            "tst":"6061",
-            "dev":"27017"
+            "beta":"7071",
+            "tst":"7071",
+            "dev":"7071"
         },
         "bridge_network":"biomarker_api_backend_network",
         "admin":{
