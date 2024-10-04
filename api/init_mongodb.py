@@ -4,7 +4,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.parser import standard_parser, parse_server
 from tutils.config import get_config
-from tutils.db import get_standard_db_handle
+from tutils.db import get_database_handle
 
 
 def main() -> None:
@@ -15,11 +15,15 @@ def main() -> None:
 
     config_obj = get_config()
     db_name = config_obj["dbinfo"]["dbname"]
+    port = config_obj["dbinfo"]["port"][server]
+    admin_user = config_obj["dbinfo"]["admin"]["user"]
+    admin_pass = config_obj["dbinfo"]["admin"]["password"]
+    admin_db = config_obj["dbinfo"]["admin"]["db"]
     db_user = config_obj["dbinfo"][db_name]["user"]
     db_pass = config_obj["dbinfo"][db_name]["password"]
 
     ### get database handle and create the db user
-    dbh = get_standard_db_handle(server=server)
+    dbh = get_database_handle(db_name=admin_db, port=port, username=admin_user, password=admin_pass)
     dbh.command(
         "createUser", db_user, pwd=db_pass, roles=[{"role": "readWrite", "db": db_name}]
     )
