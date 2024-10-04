@@ -142,7 +142,6 @@ def _unroll_results(results: List[Dict]) -> List:
             "component_count": len(components),
             "record_type": "biomarker",
             "hit_score": document["score"],
-            # TODO : clean this up when score info gets mapped
             "score_info": document.get(
                 "score_info",
                 {

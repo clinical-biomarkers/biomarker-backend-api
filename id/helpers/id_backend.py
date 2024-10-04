@@ -1,37 +1,36 @@
 """ Public facing entry point for ID backend processing/generating/assignment.
 
-Public functions:
-    process_file_data: Processes the data objects for a file.
-    get_record_by_id: Gets record(s) by the biomarker ID.
-    validate_id_format: Validates biomarker ID formats for preprocess checks.
-
-Private functions:
-    _id_assign: Goes through the complete ID assign process for an incoming data record.
 """
 
+from typing import Optional
 from pymongo.database import Database
-from typing import Union
 import os
-import logging
+import sys
 from . import canonical_helpers as canonical
 from . import second_level_helpers as second
 import datetime
-from . import misc_functions as misc_fn
-import deepdiff as dd  # type: ignore
+import deepdiff as dd
 import re
-import json
 import subprocess
+from logging import Logger
+import json
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+from tutils.logging import log_msg
+from tutils.general import write_json
+from tutils.constants import biomarker_default, unreviewed_default
 
 CANONICAL_DEFAULT = canonical.CANONICAL_DEFAULT
 SECOND_DEFAULT = second.SECOND_DEFAULT
-DATA_DEFAULT = "biomarker_collection"
-UNREVIEWED_DEFAULT = "unreviewed_collection"
+DATA_DEFAULT = biomarker_default()
+UNREVIEWED_DEFAULT = unreviewed_default()
 
 
 def process_file_data(
     data: list,
     dbh: Database,
     filepath: str,
+    logger: Logger,
     data_coll: str = DATA_DEFAULT,
     unreviewed_coll: str = UNREVIEWED_DEFAULT,
     can_id_coll: str = CANONICAL_DEFAULT,
@@ -47,6 +46,8 @@ def process_file_data(
         The database handle.
     filepath: str
         The filepath of the current file being processed.
+    logger: Logger
+        The logger to use.
     data_coll: str
         The main data collection.
     unreviewed_coll: str
@@ -62,8 +63,12 @@ def process_file_data(
         Returns the updated data list with the ID values assigned.
     """
     if not data:
-        logging.error(f"No data found for `{filepath}`.")
-        print(f"No data found for `{filepath}`.")
+        log_msg(
+            logger=logger,
+            msg=f"No data found for `{filepath}`.",
+            level="error",
+            to_stdout=True,
+        )
         return []
 
     updated_data: list[dict] = []
@@ -79,7 +84,13 @@ def process_file_data(
     for idx, document in enumerate(data):
 
         canonical_id, second_level_id, second_level_collision, hash_value, core_str = (
-            _id_assign(document, dbh, can_id_coll, second_id_coll)
+            _id_assign(
+                document=document,
+                dbh=dbh,
+                logger=logger,
+                canonical_id_coll=can_id_coll,
+                second_id_coll=second_id_coll,
+            )
         )
         document["biomarker_canonical_id"] = canonical_id
         document["biomarker_id"] = second_level_id
@@ -158,26 +169,25 @@ def process_file_data(
                 )
                 document["collision"] = 1
 
-            logging.warning(output_message)
-            print(output_message)
+            log_msg(logger=logger, msg=output_message, to_stdout=True)
 
         else:
             document["collision"] = 0
 
         updated_data.append(document)
 
-    misc_fn.write_json(collision_filepath, collisions)
-    logging.info(
-        f"Finished assigning ID's for {filepath}.\n\t\
-        Soft collisions: {standard_collision_count}\n\t\
-        Hard collisions: {hard_collision_count}"
-    )
+    write_json(filepath=collision_filepath, data=collisions)
+    log_str = f"Finished assigning IDs for {filepath}"
+    log_str += f"\n\tSoft collisions: {standard_collision_count}"
+    log_str += f"\n\tHard collisions: {hard_collision_count}"
+    log_msg(logger=logger, msg=log_str)
     return updated_data
 
 
 def _id_assign(
     document: dict,
     dbh: Database,
+    logger: Logger,
     canonical_id_coll: str = CANONICAL_DEFAULT,
     second_id_coll: str = SECOND_DEFAULT,
 ) -> tuple:
@@ -189,6 +199,8 @@ def _id_assign(
         The document to assign the ID for.
     dbh: Database
         The database handle.
+    logger: Logger
+        The logger to use.
     can_id_coll: str (default: CANONICAL_DEFAULT)
         The name of the collection to check for hash collisions.
     second_id_coll: str (default: SECOND_DEFAULT)
@@ -199,10 +211,17 @@ def _id_assign(
         The assigned canonical biomarker ID, second level ID, collision boolean, hash value, and core values string.
     """
     canonical_id, hash_value, core_values_str, canonical_collision = (
-        canonical.get_ordinal_id(document, dbh, canonical_id_coll)
+        canonical.get_ordinal_id(
+            document=document, dbh=dbh, logger=logger, id_collection=canonical_id_coll
+        )
     )
     second_level_id, second_level_collision = second.get_second_level_id(
-        canonical_id, canonical_collision, document, dbh, second_id_coll
+        canonical_id=canonical_id,
+        canonical_collision=canonical_collision,
+        document=document,
+        dbh=dbh,
+        logger=logger,
+        id_collection=second_id_coll,
     )
     return (
         canonical_id,
@@ -215,7 +234,7 @@ def _id_assign(
 
 def get_record_by_id(
     biomarker_id: str, canonical_level: bool, dbh: Database, db_collection: str
-) -> Union[dict, None]:
+) -> Optional[dict]:
     """Gets the record by the biomarker ID at the specified level.
 
     Parameters

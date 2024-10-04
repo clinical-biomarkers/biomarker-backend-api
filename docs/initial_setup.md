@@ -26,11 +26,11 @@ Navigate to the `/api` subdirectory and run the `create_mongodb_container.py` sc
 
 ```bash 
 cd api 
-python create_mongodb_container.py -s $SER 
+python create_mongodb_container.py $SER 
 docker ps --all 
 ```
 
-The first command will navigate you into the api directory. The second command will run the script. The `$SER` argument should be replaced with the server you are running on (dev, tst, beta, prd). The last command lists all docker containers. You should see the docker mongodb docker container that the script created, in the format of `running_biomarker-api_mongo_$SER` where `$SER` is the specified server (i.e. `tst` or `prd`).
+The first command will navigate you into the api directory. The second command will run the script. The `$SER` argument should be replaced with the server you are running on (dev, tst, beta, prd). The last command lists all docker containers. You should see the docker mongodb docker container that the script created, in the format of `running_biomarker-api_mongo_$SER` where `$SER` is the specified server.
 
 Start the MongoDB container using the `docker start {container}` command or by creating a service file (instructions for this in the [Managing the Docker Containers with a Service File](#managing-the-docker-containers-with-a-service-file)) section. 
 
@@ -39,7 +39,7 @@ Start the MongoDB container using the `docker start {container}` command or by c
 Stay in the `/api` subdirectory and run the `init_mongodb.py` script: 
 
 ```bash
-python init_mongodb.py -s $SER
+python init_mongodb.py $SER
 ```
 
 Where the `$SER` argument is the specified server. This should only be run once on initial setup for each server.
@@ -49,7 +49,7 @@ Where the `$SER` argument is the specified server. This should only be run once 
 To create the API container, run the `create_api_container.py` script from the `/api` directory. 
 
 ```bash 
-python create_api_container.py -s $SER
+python create_api_container.py $SER
 docker ps --all
 ```
 

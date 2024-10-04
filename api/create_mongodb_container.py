@@ -1,29 +1,20 @@
-import sys
-import argparse
 import subprocess
-import misc_functions as misc_fns
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.parser import standard_parser, parse_server
+from tutils.config import get_config
 
 
-def main():
+def main() -> None:
 
-    ### handle command line arguments
-    parser = argparse.ArgumentParser(
-        prog="create_mongodb_container.py", usage="python load_data.py [options] server"
-    )
-    parser.add_argument("-s", "--server", help="tst/prd")
+    parser, server_list = standard_parser()
     options = parser.parse_args()
-    if not options.server or options.server not in {"tst", "prd"}:
-        parser.print_help()
-        sys.exit(1)
-    server = options.server
+    server = parse_server(parser=parser, server=options.server, server_list=server_list)
 
     ### get config info for docker container creation
-    config_obj = misc_fns.load_json("config.json")
-    if not isinstance(config_obj, dict):
-        print(
-            f"Error reading config JSON, expected type dict and got {type(config_obj)}."
-        )
-        sys.exit(1)
+    config_obj = get_config()
     api_container_name = f"running_{config_obj['project']}_api_{server}"
     mongo_container_name = f"running_{config_obj['project']}_mongo_{server}"
     mongo_network_name = f"{config_obj['dbinfo']['bridge_network']}_{server}"

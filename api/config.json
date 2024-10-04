@@ -7,13 +7,18 @@
         "dev":"8089"
     },
     "data_path":"/data/shared/biomarkerdb/",
+    "generated_path_segment": ["generated", "datamodel"],
+    "new_data_segment": ["new_data", "current"],
+    "existing_data_segment": ["existing_data"],
+    "merged_data_segment": ["merged", "current"],
+    "ftp_dir_path": "/data/shared/biomarkerdb/releases/ftp/current",
     "dbinfo":{
         "dbname":"biomarkerdb_api",
         "port":{ 
             "prd":"7071",
-            "beta":"7770",
-            "tst":"6061",
-            "dev":"27017"
+            "beta":"7071",
+            "tst":"7071",
+            "dev":"7071"
         },
         "bridge_network":"biomarker_api_backend_network",
         "admin":{
@@ -30,6 +35,7 @@
             "req_log_collection": "request_log_collection",
             "error_log_collection": "error_log_collection",
             "cache_collection": "search_cache",
+            "stats_collection": "stats_collection",
             "user":"biomarkeradmin",
             "password":"biomarkerpass"
         }

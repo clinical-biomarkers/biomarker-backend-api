@@ -1,4 +1,4 @@
-from flask_restx import Resource, Namespace  # type: ignore
+from flask_restx import Resource, Namespace
 import requests
 
 api = Namespace("swagger", description="Swagger endpoints.", hide=True)

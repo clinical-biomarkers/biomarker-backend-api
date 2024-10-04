@@ -1,5 +1,5 @@
 from flask import request
-from flask_restx import Resource, Namespace  # type: ignore
+from flask_restx import Resource, Namespace
 from .backend_utils import logging_utils
 
 api = Namespace("log", description="Logging API namespace.")

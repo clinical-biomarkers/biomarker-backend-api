@@ -1,5 +1,4 @@
-from flask import request
-from flask_restx import Resource, Namespace  # type: ignore
+from flask_restx import Resource, Namespace
 from .backend_utils import pages_utils as pages_utils
 
 api = Namespace("pages", description="Pages API namespace.")

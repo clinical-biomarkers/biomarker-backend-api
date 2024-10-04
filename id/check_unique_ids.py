@@ -3,7 +3,10 @@
 
 import argparse
 import sys
-from helpers import misc_functions as misc_fns
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.general import load_json_type_safe
 
 
 def main():
@@ -12,18 +15,13 @@ def main():
     parser.add_argument("file_path", help="filepath to the file to check")
     options = parser.parse_args()
     if len(sys.argv) <= 1:
-        sys.argv.append("--help")
+        parser.print_help()
+        sys.exit(1)
     file_path = options.file_path
-    if not misc_fns.validate_filepath(filepath=file_path, mode="input"):
-        print("Invalid filepath.")
-        sys.exit(0)
     if not file_path.endswith(".json"):
         print("Invalid file extension, expects JSON.")
-        sys.exit(0)
-    data = misc_fns.load_json(file_path)
-    if not isinstance(data, list):
-        print(f"Error reading data, expected type `list`, got {type(data)}")
-        sys.exit(0)
+        sys.exit(1)
+    data = load_json_type_safe(filepath=file_path, return_type="list")
 
     seen_ids = set()
     for idx, document in enumerate(data):

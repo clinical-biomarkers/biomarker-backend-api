@@ -1,11 +1,26 @@
-"""Peak into the sqlite logs database.
+"""Peak into the sqlite log database.
+
+usage: parser.py [-h] server table limit
+
+positional arguments:
+  server      prd/beta/tst/dev
+  table       api_calls/frontend_logs
+  limit
+
+options:
+  -h, --help  show this help message and exit
 """
 
 import sqlite3
 import sys
-import argparse
 import pickle
 import json
+import os
+
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.parser import standard_parser, parse_server
+from tutils.config import get_config
 
 
 def deserialize_row(row):
@@ -15,23 +30,23 @@ def deserialize_row(row):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="check_log_db.py")
-    parser.add_argument("server", help="tst/prd")
+    parser, server_list = standard_parser()
     parser.add_argument("table", help="api_calls/frontend_logs")
     parser.add_argument("limit", type=int, default=5)
     options = parser.parse_args()
 
-    server = options.server.lower().strip()
+    server = parse_server(parser=parser, server=options.server, server_list=server_list)
     table = options.table.lower().strip()
     limit = options.limit
-    if server not in {"tst", "prd"}:
-        print("Invalid server.")
-        sys.exit(1)
     if table not in {"api_calls", "frontend_logs"}:
         print("Invalid table.")
         sys.exit(1)
 
-    conn = sqlite3.connect(f"/data/shared/biomarkerdb/log_db/{server}/api_logs.db")
+    config_obj = get_config()
+    data_root_path = config_obj["data_path"]
+    sqlite_db_path = os.path.join(data_root_path, "log_db", server, "api_logs.db")
+
+    conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
 
     cursor.execute(f"SELECT * FROM {table} LIMIT {limit}")
