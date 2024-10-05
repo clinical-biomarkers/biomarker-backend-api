@@ -1,4 +1,5 @@
 import sys
+import subprocess
 from pymongo import MongoClient
 import pymongo
 from pymongo.database import Database
@@ -139,3 +140,83 @@ def get_connection_string(
     auth_source = auth_source if auth_source is not None else db_name
     uri = f"mongodb://{db_user}:{db_pass}@{host}{port}/{db_name}?authSource={auth_source}&authMechanism={auth_mechanism}"
     return uri
+
+
+def dump_id_collection(connection_string: str, save_path: str, collection: str) -> bool:
+    """Dumps the ID collections to disk to be used later for replication in the
+    production database. Can only be run on the tst server.
+
+    Parameters
+    ----------
+    connection_string: str
+        Connection string for the MongoDB connection.
+    save_path: str
+        The filepath to the local ID map.
+    collection: str
+        The collection to dump.
+
+    Returns
+    -------
+    bool
+        Indication if the collection was dumped successfully.
+    """
+    command = [
+        "mongoexport",
+        "--uri",
+        connection_string,
+        "--collection",
+        collection,
+        "--out",
+        save_path,
+    ]
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        print("Args passed:")
+        print(f"Connection string: {connection_string}")
+        print(f"Save path: {save_path}")
+        print(f"Collection: {collection}")
+        print(e)
+        return False
+    return True
+
+
+def load_id_collection(connection_string: str, load_path: str, collection: str) -> bool:
+    """Loads the local ID collections into the prod database.
+
+    Parameters
+    ----------
+    connection_string : str
+        Connection string for the MongoDB connection.
+    load_path : str
+        The filepath to the local ID map.
+    collection : str
+        The collection to load into.
+
+    Returns
+    -------
+    bool
+        Indication if the collection was loaded successfully.
+    """
+    command = [
+        "mongoimport",
+        "--uri",
+        connection_string,
+        "--collection",
+        collection,
+        "--file",
+        load_path,
+        "--mode",
+        "upsert",
+    ]
+
+    try:
+        subprocess.run(command, check=True)
+    except subprocess.CalledProcessError as e:
+        print("Args passed:")
+        print(f"Connection string: {connection_string}")
+        print(f"Load path: {load_path}")
+        print(f"Collection: {collection}")
+        print(e)
+        return False
+    return True

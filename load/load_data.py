@@ -20,6 +20,7 @@ from tutils.db import (
     get_connection_string,
     setup_index,
     create_text_index,
+    load_id_collection,
 )
 from tutils.config import get_config
 from tutils.general import load_json_type_safe, resolve_symlink, get_user_confirmation
@@ -30,7 +31,6 @@ from load.load_utils import (
     create_load_record_command,
     bulk_load,
     process_stats,
-    load_id_collection,
 )
 from load.preprocess import CHECKPOINT_VAL
 

@@ -5,7 +5,12 @@ import os
 from helpers import id_backend as id_backend
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from tutils.db import get_standard_db_handle, setup_index, get_connection_string
+from tutils.db import (
+    get_standard_db_handle,
+    setup_index,
+    get_connection_string,
+    dump_id_collection,
+)
 from tutils.parser import standard_parser, parse_server
 from tutils.config import get_config
 from tutils.general import (
@@ -107,7 +112,7 @@ def main() -> None:
     )
 
     connection_string = get_connection_string(server=server)
-    if id_backend.dump_id_collection(
+    if dump_id_collection(
         connection_string=connection_string,
         save_path=canonical_id_collection_local_path,
         collection=canonical_id_collection,
@@ -122,7 +127,7 @@ def main() -> None:
             level="error",
             to_stdout=True,
         )
-    if id_backend.dump_id_collection(
+    if dump_id_collection(
         connection_string,
         second_level_id_collection_local_path,
         second_level_id_collection,
