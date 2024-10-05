@@ -23,7 +23,7 @@ def main() -> None:
     db_pass = config_obj["dbinfo"][db_name]["password"]
 
     ### get database handle and create the db user
-    dbh = get_database_handle(db_name=admin_db, port=port, username=admin_user, password=admin_pass)
+    dbh = get_database_handle(db_name=db_name, port=port, username=admin_user, password=admin_pass, auth_source=admin_db)
     dbh.command(
         "createUser", db_user, pwd=db_pass, roles=[{"role": "readWrite", "db": db_name}]
     )
