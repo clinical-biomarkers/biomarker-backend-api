@@ -28,13 +28,11 @@ def main() -> None:
             "name": canonical_id_collection,
         },
         "second_level": {
-            "path": {
-                os.path.join(
-                    data_root_path,
-                    *generated_path_segment,
-                    "second_level_id_collection.json",
-                )
-            },
+            "path": os.path.join(
+                data_root_path,
+                *generated_path_segment,
+                "second_level_id_collection.json",
+            ),
             "name": second_level_id_collection,
         },
     }
