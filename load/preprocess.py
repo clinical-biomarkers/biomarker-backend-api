@@ -160,6 +160,7 @@ def second_pass(merged_dir: str, collision_dir: str) -> float:
 
     start_time = time.time()
     for file_idx, file in enumerate(all_collision_files):
+
         if file_idx + 1 % CHECKPOINT_VAL == 0:
             print(f"Hit checkpoint at file index: {file_idx}.")
 
@@ -167,12 +168,15 @@ def second_pass(merged_dir: str, collision_dir: str) -> float:
         biomarker_id = collision_record["biomarker_id"]
         merge_record_path = os.path.join(merged_dir, f"{biomarker_id}.json")
         if not os.path.isfile(merge_record_path):
-            raise ValueError(
-                f"Did not find corresponding source record for collision biomarker id {biomarker_id}, file: {file}."
+            log_msg(
+                logger=LOGGER,
+                msg=f"Did not find corresponding source record for collision biomarker id {biomarker_id}, file: {file}.",
+                to_stdout=True,
             )
-
+            write_json(filepath=merge_record_path, data=collision_record)
+            continue
         merge_record = load_json_type_safe(
-            filepath=os.path.join(merged_dir, f"{biomarker_id}.json"),
+            filepath=merge_record_path,
             return_type="dict",
         )
         merge_result = attempt_merge(
