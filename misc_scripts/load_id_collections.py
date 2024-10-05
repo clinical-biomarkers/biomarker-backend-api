@@ -16,7 +16,7 @@ def main() -> None:
     config_obj = get_config()
     data_root_path = config_obj["data_path"]
     generated_path_segment = config_obj["generated_path_segment"]
-    db_name = config_obj["dbinfo"]["db_name"]
+    db_name = config_obj["dbinfo"]["dbname"]
     canonical_id_collection = config_obj["dbinfo"][db_name]["canonical_id_map"]
     second_level_id_collection = config_obj["dbinfo"][db_name]["second_level_id_map"]
 
