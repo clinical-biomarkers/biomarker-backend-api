@@ -204,8 +204,8 @@ def main() -> None:
         parser.print_help()
         sys.exit(1)
     server = options.server.lower().strip()
-    # only allow running this script on the tst server
-    target_server = "tst"
+    # only allow running this script on the dev server
+    target_server = "dev"
     if server != target_server:
         print(f"This script can only be run on the {target_server} server.")
         sys.exit(1)
