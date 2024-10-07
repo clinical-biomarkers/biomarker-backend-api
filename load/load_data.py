@@ -13,6 +13,7 @@ import glob
 import sys
 import time
 import os
+import traceback
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.db import (
@@ -179,7 +180,13 @@ def main() -> None:
     for idx, file in enumerate(merged_data_files):
         if idx + 1 % CHECKPOINT_VAL == 0:
             print(f"Hit merged data load checkpoint at index: {idx}")
-        record = load_json_type_safe(filepath=file, return_type="dict")
+        try:
+            record = load_json_type_safe(filepath=file, return_type="dict")
+        except Exception as e:
+            print(f"{e}")
+            traceback.print_exc()
+            print(f"file: {file}")
+            sys.exit(1)
         merged_ops.append(create_load_record_command(record=record, all_text=True))
         if len(merged_ops) == WRITE_BATCH:
             log_msg(logger=LOGGER, msg=f"Bulk writing at index: {idx + 1}.")
