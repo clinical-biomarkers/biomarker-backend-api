@@ -30,7 +30,7 @@ from tutils.general import (
 )
 from tutils.config import get_config
 from tutils.logging import setup_logging, log_msg, start_message
-from load.preprocess_utils import attempt_merge, is_dir_empty
+from load.preprocess_utils import attempt_merge
 from tutils.parser import standard_parser
 
 LOGGER = setup_logging("preprocess_data.log")
@@ -250,7 +250,10 @@ def main() -> None:
         confirmation_str += f"\n\t{rm_command}"
         print(confirmation_str)
         get_user_confirmation()
+        rm_time = time.time()
         subprocess.run(rm_command, shell=True)
+        rm_elapsed = round(time.time() - rm_time, 2)
+        log_msg(logger=LOGGER, msg=f"Finished removing directory, took {rm_elapsed} seconds.", to_stdout=True)
     os.mkdir(merged_target_path_merged)
     # create the path to the collision directory or clear them out if they exist
     # this is where the collision value != 0 records will go
@@ -263,7 +266,10 @@ def main() -> None:
         confirmation_str += f"\n\t{rm_command}"
         print(confirmation_str)
         get_user_confirmation()
+        rm_time = time.time()
         subprocess.run(rm_command, shell=True)
+        rm_elapsed = round(time.time() - rm_time, 2)
+        log_msg(logger=LOGGER, msg=f"Finished removing directory, took {rm_elapsed} seconds.", to_stdout=True)
     os.mkdir(merged_target_path_collision)
 
     first_pass_time = first_pass(
