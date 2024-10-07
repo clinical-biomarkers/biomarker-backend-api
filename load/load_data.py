@@ -175,19 +175,26 @@ def main() -> None:
     )
     merged_start_time = time.time()
     merged_ops = []
+    total_merged_ops = 0
     for idx, file in enumerate(merged_data_files):
         if idx + 1 % CHECKPOINT_VAL == 0:
             print(f"Hit merged data load checkpoint at index: {idx}")
         record = load_json_type_safe(filepath=file, return_type="dict")
         merged_ops.append(create_load_record_command(record=record, all_text=True))
         if len(merged_ops) == WRITE_BATCH:
+            log_msg(logger=LOGGER, msg=f"Bulk writing at index: {idx + 1}.")
             bulk_load(dbh=dbh, ops=merged_ops, destination="biomarker")
+            total_merged_ops += len(merged_ops)
+            merged_ops = []
     if merged_ops:
+        log_msg(logger=LOGGER, msg="Writing leftover records...")
         bulk_load(dbh=dbh, ops=merged_ops, destination="biomarker")
+        total_merged_ops += len(merged_ops)
+        merged_ops = []
     merged_elapsed_time = round(time.time() - merged_start_time, 2)
     log_msg(
         logger=LOGGER,
-        msg=f"Finished loading merged data in {merged_elapsed_time} seconds.",
+        msg=f"Finished loading merged data in {merged_elapsed_time} seconds, completed {total_merged_ops} writes.",
         to_stdout=True,
     )
 
@@ -198,19 +205,26 @@ def main() -> None:
     )
     collision_start_time = time.time()
     collision_ops = []
+    total_collision_ops = 0
     for idx, file in enumerate(collision_data_files):
         if idx + 1 % CHECKPOINT_VAL == 0:
             print(f"Hit collision load checkpoint at index: {idx}")
         record = load_json_type_safe(filepath=file, return_type="dict")
         collision_ops.append(create_load_record_command(record=record, all_text=False))
         if len(collision_ops) == WRITE_BATCH:
+            log_msg(logger=LOGGER, msg=f"Bulk writing at index: {idx + 1}.")
             bulk_load(dbh=dbh, ops=collision_ops, destination="collision")
+            total_collision_ops += len(collision_ops)
+            collision_ops = []
     if collision_ops:
+        log_msg(logger=LOGGER, msg="Writing leftover records...")
         bulk_load(dbh=dbh, ops=collision_ops, destination="collision")
+        total_collision_ops += len(collision_ops)
+        collision_ops = []
     collision_elapsed_time = round(time.time() - collision_start_time, 2)
     log_msg(
         logger=LOGGER,
-        msg=f"Finished loading collision data in {collision_elapsed_time} seconds.",
+        msg=f"Finished loading collision data in {collision_elapsed_time} seconds, completed {total_collision_ops} writes.",
         to_stdout=True,
     )
 
