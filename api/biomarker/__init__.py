@@ -83,6 +83,8 @@ def create_app():
         version="1.0",
         title="Biomarker APIs",
         description="Biomarker Knowledgebase API",
+        # doc="/api",
+        swagger_ui_params={"url": "/api/swagger.json"},
     )
 
     api.add_namespace(biomarker_api)
