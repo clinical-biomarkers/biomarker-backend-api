@@ -1,6 +1,6 @@
 from flask_cors import CORS
-from flask_restx import Api
-from flask import request, g
+from flask_restx import Api, apidoc
+from flask import request, g, render_template
 from pymongo import MongoClient
 import os
 import json
@@ -83,9 +83,17 @@ def create_app():
         version="1.0",
         title="Biomarker APIs",
         description="Biomarker Knowledgebase API",
-        # doc="/api",
-        swagger_ui_params={"url": "/api/swagger.json"},
     )
+
+    @apidoc.apidoc.add_app_template_global
+    def swagger_static(filename):
+        return f"./swaggerui/{filename}"
+
+    @api.documentation
+    def custom_ui():
+        return render_template(
+            "swagger-ui.html", title=api.title, specs_url="./swagger.json"
+        )
 
     api.add_namespace(biomarker_api)
     api.add_namespace(auth_api)
