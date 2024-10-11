@@ -79,7 +79,7 @@ def create_app():
 
     @apidoc.apidoc.add_app_template_global
     def swagger_static(filename):
-        return f"./swaggerui/{filename}"
+        return f"./api/swaggerui/{filename}"
 
     # setup the api using the flask_restx library
     api = Api(
@@ -92,7 +92,7 @@ def create_app():
     @api.documentation
     def custom_ui():
         return render_template(
-            "swagger-ui.html", title=api.title, specs_url="./swagger.json"
+            "swagger-ui.html", title=api.title, specs_url="./api/swagger.json"
         )
 
     api.add_namespace(biomarker_api)
