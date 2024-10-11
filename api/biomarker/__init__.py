@@ -77,6 +77,10 @@ def create_app():
     mongo_db = mongo_client[DB_NAME]
     app.mongo_db = mongo_db
 
+    @apidoc.apidoc.add_app_template_global
+    def swagger_static(filename):
+        return f"./swaggerui/{filename}"
+
     # setup the api using the flask_restx library
     api = Api(
         app,
@@ -84,10 +88,6 @@ def create_app():
         title="Biomarker APIs",
         description="Biomarker Knowledgebase API",
     )
-
-    @apidoc.apidoc.add_app_template_global
-    def swagger_static(filename):
-        return f"./swaggerui/{filename}"
 
     @api.documentation
     def custom_ui():
