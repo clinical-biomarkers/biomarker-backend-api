@@ -37,7 +37,7 @@ def setup_logging() -> Logger:
 def create_app():
 
     # create flask instance
-    app = CustomFlask(__name__, static_url_path="/api/swaggerui")
+    app = CustomFlask(__name__)
 
     app.api_logger = setup_logging()
     app.api_logger.info("API Started")
@@ -83,7 +83,6 @@ def create_app():
         version="1.0",
         title="Biomarker APIs",
         description="Biomarker Knowledgebase API",
-        doc="/api"
     )
 
     api.add_namespace(biomarker_api)
