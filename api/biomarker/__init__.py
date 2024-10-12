@@ -93,7 +93,9 @@ def create_app():
     class SwaggerJson(Resource):
         def get(self):
             swagger_spec = api.__schema__.copy()
+            app.logger.info(f"swagger spec copy: {swagger_spec}")
             swagger_spec["basePath"] = "/api"
+            app.logger.info(f"after swagger spec copy: {swagger_spec}")
             return swagger_spec
 
     @api.documentation
