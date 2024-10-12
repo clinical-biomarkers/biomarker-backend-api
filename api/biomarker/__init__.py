@@ -1,5 +1,5 @@
 from flask_cors import CORS
-from flask_restx import Api, apidoc
+from flask_restx import Api, apidoc, Resource
 from flask import request, g, render_template
 from pymongo import MongoClient
 import os
@@ -87,8 +87,14 @@ def create_app():
         version="1.0",
         title="Biomarker APIs",
         description="Biomarker Knowledgebase API",
-        base_path="/api",
     )
+
+    @api.route("/swagger.json")
+    class SwaggerJson(Resource):
+        def get(self):
+            swagger_spec = api.__schema__.copy()
+            swagger_spec["basePath"] = "/api"
+            return swagger_spec
 
     @api.documentation
     def custom_ui():
