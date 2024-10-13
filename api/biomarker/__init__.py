@@ -1,6 +1,6 @@
 from flask_cors import CORS
-from flask_restx import Api
-from flask import request, g
+from flask_restx import Api, apidoc, Resource
+from flask import request, g, render_template
 from pymongo import MongoClient
 import os
 import json
@@ -14,12 +14,23 @@ from .backend_utils import logging_utils
 from .backend_utils.performance_logger import PerformanceLogger
 from .biomarker import api as biomarker_api
 from .auth import api as auth_api
-from .swagger import api as swagger_api
 from .log import api as log_api
 from .pages import api as pages_api
 
 MONGO_URI = os.getenv("MONGODB_CONNSTRING")
 DB_NAME = "biomarkerdb_api"
+
+
+class CustomApi(Api):
+    def _register_specs(self, app_or_blueprint):
+        pass
+
+    @property
+    def __schema__(self):
+        # Override the __schema__ property if you need to modify the schema
+        schema = super().__schema__.copy()
+        schema["basePath"] = "/api"  # Set the basePath here
+        return schema
 
 
 def setup_logging() -> Logger:
@@ -78,17 +89,35 @@ def create_app():
     mongo_db = mongo_client[DB_NAME]
     app.mongo_db = mongo_db
 
+    @apidoc.apidoc.add_app_template_global
+    def swagger_static(filename):
+        return f"./api/swaggerui/{filename}"
+
     # setup the api using the flask_restx library
-    api = Api(
+    api = CustomApi(
         app,
         version="1.0",
         title="Biomarker APIs",
         description="Biomarker Knowledgebase API",
     )
 
+    @api.route("/swagger.json")
+    class SwaggerJson(Resource):
+        def get(self):
+            swagger_spec = api.__schema__.copy()
+            app.logger.info(f"swagger spec copy: {swagger_spec}")
+            swagger_spec["basePath"] = "/api"
+            app.logger.info(f"after swagger spec copy: {swagger_spec}")
+            return swagger_spec
+
+    @api.documentation
+    def custom_ui():
+        return render_template(
+            "swagger-ui.html", title=api.title, specs_url="./api/swagger.json"
+        )
+
     api.add_namespace(biomarker_api)
     api.add_namespace(auth_api)
-    api.add_namespace(swagger_api)
     api.add_namespace(log_api)
     api.add_namespace(pages_api)
 
