@@ -87,6 +87,7 @@ def create_app():
         version="1.0",
         title="Biomarker APIs",
         description="Biomarker Knowledgebase API",
+        add_specs=False
     )
 
     @api.route("/swagger.json")
