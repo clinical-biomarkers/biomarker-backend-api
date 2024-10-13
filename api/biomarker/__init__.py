@@ -21,6 +21,18 @@ MONGO_URI = os.getenv("MONGODB_CONNSTRING")
 DB_NAME = "biomarkerdb_api"
 
 
+class CustomApi(Api):
+    def _register_specs(self, app_or_blueprint):
+        pass
+
+    @property
+    def __schema__(self):
+        # Override the __schema__ property if you need to modify the schema
+        schema = super().__schema__.copy()
+        schema["basePath"] = "/api"  # Set the basePath here
+        return schema
+
+
 def setup_logging() -> Logger:
     handler = RotatingFileHandler("app.log", maxBytes=50000000, backupCount=2)
     handler.setLevel(logging.DEBUG)
@@ -82,12 +94,11 @@ def create_app():
         return f"./api/swaggerui/{filename}"
 
     # setup the api using the flask_restx library
-    api = Api(
+    api = CustomApi(
         app,
         version="1.0",
         title="Biomarker APIs",
         description="Biomarker Knowledgebase API",
-        add_specs=False
     )
 
     @api.route("/swagger.json")
