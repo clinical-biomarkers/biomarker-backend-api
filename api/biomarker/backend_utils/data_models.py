@@ -60,15 +60,18 @@ class SearchFullSchema(Schema):
     class Meta(Schema.Meta):
         unknown = EXCLUDE
 
-    specimen_name = fields.Str(required=False)
-    specimen_loinc_code = fields.Str(required=False)
-    biomarker_entity_type = fields.Str(required=False)
-    biomarker_entity_name = fields.Str(required=False)
     biomarker_id = fields.Str(required=False)
-    condition_name = fields.Str(required=False)
-    condition_id = fields.Str(required=False)
-    publication_id = fields.Str(required=False)
+    biomarker = fields.Str(required=False)
+    biomarker_entity_name = fields.Str(required=False)
+    biomarker_entity_id = fields.Str(required=False)
+    biomarker_entity_type = fields.Str(required=False)
+    specimen_name = fields.Str(required=False)
+    specimen_id = fields.Str(required=False)
+    specimen_loinc_code = fields.Str(required=False)
     best_biomarker_role = fields.Str(required=False)
+    condition_id = fields.Str(required=False)
+    condition_name = fields.Str(required=False)
+    publication_id = fields.Str(required=False)
     operation = fields.Str(required=False, missing="and")
 
 
