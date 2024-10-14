@@ -33,8 +33,8 @@ def main() -> None:
     parser, server_list = standard_parser()
     options = parser.parse_args()
     server = parse_server(parser=parser, server=options.server, server_list=server_list)
-    if server.lower() != "tst":
-        print("Can only run this script on the `tst` server.")
+    if server.lower() != "dev":
+        print("Can only run this script on the `dev` server.")
         sys.exit(1)
 
     start_message(logger=LOGGER, msg="Beginning ID assignment process.")
