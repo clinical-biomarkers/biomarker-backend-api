@@ -266,8 +266,9 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
     }
 
     # main facet steps
-    total_count_step = [{"$count": "count"}]
+    total_count_step = [{"$project": {"biomarker_id": 1}}, {"$count": "count"}]
     role_count_step = [
+        {"$project": {"best_biomarker_role": 1}},
         {"$unwind": "$best_biomarker_role"},
         {
             "$group": {
@@ -284,6 +285,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         {"$project": {"_id": 0}},
     ]
     entity_type_count_step = [
+        {"$project": {"biomarker_component": 1}},
         {"$unwind": "$biomarker_component"},
         {
             "$group": {
