@@ -28,7 +28,7 @@ def main() -> None:
         setup_index(
             collection=dbh["biomarker_collection"],
             index_field=path,
-            index_name=f"{path}_1",
+            index_name=f"{path}_-1",
             unique=False,
             order="descending",
         )
