@@ -34,7 +34,7 @@ def main() -> None:
     # if no python error, use below line
     # cmd_list.append('python3 setup.py bdist_wheel')
 
-    cmd_list.append(f"docker build -t {api_image} .")
+    cmd_list.append(f"docker build --no-cache -t {api_image} .")
 
     # create the command to delete the api container if it already exists
     container_id = (
