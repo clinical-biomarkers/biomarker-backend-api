@@ -178,7 +178,7 @@ def main() -> None:
     merged_ops = []
     total_merged_ops = 0
     for idx, file in enumerate(merged_data_files):
-        if idx + 1 % CHECKPOINT_VAL == 0:
+        if (idx + 1) % CHECKPOINT_VAL == 0:
             print(f"Hit merged data load checkpoint at index: {idx}")
         try:
             record = load_json_type_safe(filepath=file, return_type="dict")
@@ -214,7 +214,7 @@ def main() -> None:
     collision_ops = []
     total_collision_ops = 0
     for idx, file in enumerate(collision_data_files):
-        if idx + 1 % CHECKPOINT_VAL == 0:
+        if (idx + 1) % CHECKPOINT_VAL == 0:
             print(f"Hit collision load checkpoint at index: {idx}")
         record = load_json_type_safe(filepath=file, return_type="dict")
         collision_ops.append(create_load_record_command(record=record, all_text=False))
