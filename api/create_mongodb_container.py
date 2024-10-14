@@ -6,6 +6,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.parser import standard_parser, parse_server
 from tutils.config import get_config
 
+MONGO_MEM = 524288000  # in bytes
+
 
 def main() -> None:
 
@@ -49,7 +51,8 @@ def main() -> None:
     # create mongo container command
     # the external port is dynamically assigned using mongo_port, and the container's port of 27017 is used because that is the default port that MongoDB listens on inside the container
     mongo_cmd = f"docker create --name {mongo_container_name} --network {mongo_network_name} -p 127.0.0.1:{mongo_port}:27017"
-    mongo_cmd += f" -v {data_path}/api_db/{server}:/data/db {e_params} mongo"
+    mongo_cmd += f" -v {data_path}/api_db/{server}:/data/db {e_params} mongo "
+    mongo_cmd += f"mongod --setParameter internalQueryMaxBlockingSortMemoryUsageBytes={MONGO_MEM}"
     cmd_list.append(mongo_cmd)
 
     # run the commands
