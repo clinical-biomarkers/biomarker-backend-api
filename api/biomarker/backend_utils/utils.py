@@ -1,6 +1,7 @@
 """ General purpose utility functions.
 """
 
+from marshmallow import EXCLUDE
 from typing_extensions import deprecated
 from flask import Request
 from typing import Dict, Optional, Tuple, Any
@@ -76,7 +77,7 @@ def get_request_object(api_request: Request, endpoint: str) -> Tuple[Dict, int]:
 
     schema = SCHEMA_MAP[endpoint]()
     try:
-        validated_data = schema.load(request_object)
+        validated_data = schema.load(request_object, unknown=EXCLUDE)
     except ValidationError as e:
         marshmallow_errors = e.messages_dict
         error_obj = db_utils.log_error(
