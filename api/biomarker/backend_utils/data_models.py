@@ -114,6 +114,7 @@ class ContactSchema(Schema):
     email = fields.Str(required=True)
     subject = fields.Str(required=True)
     message = fields.Str(required=True)
+    page = fields.Str(required=False)
 
 
 ### Frontend Logging Schema
