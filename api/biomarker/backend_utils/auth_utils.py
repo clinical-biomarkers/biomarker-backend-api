@@ -50,6 +50,9 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
 
     detailed_message = f"From {request_arguments['fname']} {request_arguments['lname']}"
     detailed_message += f"\nEmail: {request_arguments['email']}, Subject: {request_arguments['subject']}"
+    page = request_arguments.get("page", None)
+    if page is not None:
+        detailed_message += f"\nPage: {page}"
     detailed_message += f"\nMessage: {request_arguments['message']}"
 
     msg = MIMEText(detailed_message)
