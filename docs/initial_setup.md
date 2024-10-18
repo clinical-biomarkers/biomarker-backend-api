@@ -53,7 +53,7 @@ python create_api_container.py $SER
 docker ps --all
 ```
 
-The first command will run the script. The `$SER` argument should be replaced with the server you are running on (tst, prd). The last command lists all docker containers. You should see the api container that the script created, in the format of `running_biomarker-api_api_$SER` where `$SER` is the specified server. Start the docker container with the `docker start` command or create a service file (recommended).
+The first command will run the script. The `$SER` argument should be replaced with the server you are running on. The last command lists all docker containers. You should see the api container that the script created, in the format of `running_biomarker-api_api_$SER` where `$SER` is the specified server. Start the docker container with the `docker start` command or create a service file (recommended).
 
 ## Managing the Docker Containers with a Service File
 
@@ -83,3 +83,6 @@ $ sudo systemctl start docker-biomarker-api-mongo-{SER}.service
 $ sudo systemctl stop docker-biomarker-api-mongo-{SER}.service
 ```
 
+## Loading an Existing Data Version
+
+To load an existing data version, go to https://data.biomarkerkb.org/ftp/ and select the desired data version directory. TODO
