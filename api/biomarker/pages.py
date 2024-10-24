@@ -14,4 +14,4 @@ class HomeInit(Resource):
     def get(self):
         return self.post()
 
-api.add_resource(HomeInit, "/detail/home_init")
+api.add_resource(HomeInit, "/home_init")

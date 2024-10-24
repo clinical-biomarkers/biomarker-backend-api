@@ -15,7 +15,7 @@ def home_init() -> Tuple[Dict, int]:
     tuple : (dict, int)
         The return JSON and HTTP code.
     """
-    stats, stats_http_code = db_utils.get_stats(mode="stats")
+    stats, stats_http_code = db_utils.get_stats(mode="both")
     if stats_http_code != 200:
         return stats, stats_http_code
 
