@@ -356,7 +356,7 @@ def get_ontology(
 
     try:
         ontology_json = dbh[ontology_collection].find_one({}, {"_id": 0})
-        return ontology_json, 200  # type: ignore
+        return ontology_json["data"], 200  # type: ignore
     except Exception as e:
         error_object = log_error(
             error_log=f"Unexpected error in querying for ontology json.\n{e}",
