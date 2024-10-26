@@ -30,10 +30,14 @@ class CustomApi(Api):
     def __schema__(self) -> Dict:
         # Override the __schema__ property if you need to modify the schema
         schema: Dict = super().__schema__.copy()
-        if "/auth/contact" in schema["paths"] and not schema["paths"]["/auth/contact"]:
-            del schema["paths"]["/auth/contact"]
-        if "/log/logging" in schema["paths"] and not schema["paths"]["/log/logging"]:
-            del schema["paths"]["/log/logging"]
+        for path in ["/auth/contact", "/log/logging"]:
+            if path in schema["paths"] and not schema["paths"][path]:
+                del schema["paths"][path]
+        del schema["paths"]["/swagger.json"]
+        ns_to_rm = ["auth", "log", "default"]
+        ns = schema["tags"]
+        ns = [x for x in ns if x not in ns_to_rm]
+        schema["tags"] = ns
         # schema["basePath"] = "/api"  # Set the basePath here
         return schema
 
