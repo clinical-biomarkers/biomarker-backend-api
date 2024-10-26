@@ -356,14 +356,7 @@ def get_ontology(
 
     try:
         ontology_json = dbh[ontology_collection].find_one({}, {"_id": 0})
-        if not isinstance(ontology_json, list):
-            error_object = log_error(
-                error_log=f"Expected ontology json of type list, got {type(ontology_json)}",
-                error_msg="internal-database-error",
-                origin="get_ontology",
-            )
-            return error_object, 500
-        return ontology_json, 200
+        return ontology_json, 200  # type: ignore
     except Exception as e:
         error_object = log_error(
             error_log=f"Unexpected error in querying for ontology json.\n{e}",
