@@ -23,8 +23,8 @@ DB_NAME = "biomarkerdb_api"
 
 
 class CustomApi(Api):
-    # def _register_specs(self, app_or_blueprint):
-        # pass
+    def _register_specs(self, app_or_blueprint):
+        pass
 
     @property
     def __schema__(self) -> Dict:
@@ -94,9 +94,9 @@ def create_app():
     mongo_db = mongo_client[DB_NAME]
     app.mongo_db = mongo_db
 
-    # @apidoc.apidoc.add_app_template_global
-    # def swagger_static(filename):
-    #     return f"./api/swaggerui/{filename}"
+    @apidoc.apidoc.add_app_template_global
+    def swagger_static(filename):
+        return f"./swaggerui/{filename}"
 
     # setup the api using the flask_restx library
     # api = Api(
@@ -119,11 +119,11 @@ def create_app():
             swagger_spec = api.__schema__.copy()
             return swagger_spec
 
-    # @api.documentation
-    # def custom_ui():
-    #     return render_template(
-    #         "swagger-ui.html", title=api.title, specs_url="./api/swagger.json"
-    #     )
+    @api.documentation
+    def custom_ui():
+        return render_template(
+            "swagger-ui.html", title=api.title, specs_url="./swagger.json"
+        )
 
     api.add_namespace(biomarker_api)
     api.add_namespace(auth_api)
