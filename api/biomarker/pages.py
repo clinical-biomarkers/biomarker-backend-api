@@ -15,3 +15,13 @@ class HomeInit(Resource):
         return self.post()
 
 api.add_resource(HomeInit, "/home_init")
+
+class Ontology(Resource):
+
+    @api.doc(False)
+    def post(self):
+        return pages_utils.ontology()
+    
+    @api.doc("ontology")
+    def get(self):
+        return self.post()

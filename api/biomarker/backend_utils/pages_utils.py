@@ -1,7 +1,7 @@
 """ Handles the backend logic for the pages endpoints.
 """
 
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
 
 from . import db as db_utils
 from . import utils as utils
@@ -22,3 +22,14 @@ def home_init() -> Tuple[Dict, int]:
     return_object = {"statistics": stats}
 
     return return_object, 200
+
+
+def ontology() -> Tuple[Dict | List, int]:
+    """Entry point for the backend logic of returning the ontology JSON.
+
+    Returns
+    -------
+    tuple : (dict, int)
+        The return JSON and HTTP code.
+    """
+    return db_utils.get_ontology()
