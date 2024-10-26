@@ -14,8 +14,6 @@ class HomeInit(Resource):
     def get(self):
         return self.post()
 
-api.add_resource(HomeInit, "/home_init")
-
 class Ontology(Resource):
 
     @api.doc(False)
@@ -25,3 +23,6 @@ class Ontology(Resource):
     @api.doc("ontology")
     def get(self):
         return self.post()
+
+api.add_resource(HomeInit, "/home_init")
+api.add_resource(Ontology, "/ontology")
