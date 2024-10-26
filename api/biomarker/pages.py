@@ -14,4 +14,15 @@ class HomeInit(Resource):
     def get(self):
         return self.post()
 
+class Ontology(Resource):
+
+    @api.doc(False)
+    def post(self):
+        return pages_utils.ontology()
+    
+    @api.doc("ontology")
+    def get(self):
+        return self.post()
+
 api.add_resource(HomeInit, "/home_init")
+api.add_resource(Ontology, "/ontology")

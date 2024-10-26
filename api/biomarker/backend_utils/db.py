@@ -8,6 +8,7 @@ from . import (
     DB_COLLECTION,
     SEARCH_CACHE_COLLECTION,
     STATS_COLLECTION,
+    ONTOLOGY_COLLECTION,
     REQ_LOG_COLLECTION,
     REQ_LOG_MAX_LEN,
     CustomFlask,
@@ -333,9 +334,34 @@ def get_stats(
         return error_object, 500
     except Exception as e:
         error_object = log_error(
-            error_log=f"Unexpected error in querying for existing cache list id.\n{e}",
+            error_log=f"Unexpected error in querying for database stats.\n{e}",
             error_msg="internal-database-error",
             origin="get_stats",
+        )
+        return error_object, 500
+
+
+def get_ontology(
+    ontology_collection: str = ONTOLOGY_COLLECTION,
+) -> Tuple[List | Dict, int]:
+    """Gets the ontology JSON.
+
+    Parameters
+    ----------
+    ontology_collection : str, optional
+        The ontology collection to retrieve from.
+    """
+    custom_app = cast_app(current_app)
+    dbh = custom_app.mongo_db
+
+    try:
+        ontology_json = dbh[ontology_collection].find_one({}, {"_id": 0})
+        return ontology_json["data"], 200  # type: ignore
+    except Exception as e:
+        error_object = log_error(
+            error_log=f"Unexpected error in querying for ontology json.\n{e}",
+            error_msg="internal-database-error",
+            origin="get_ontology",
         )
         return error_object, 500
 
