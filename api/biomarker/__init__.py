@@ -8,6 +8,7 @@ import logging
 import time
 from logging import Logger
 from logging.handlers import RotatingFileHandler
+from typing import Dict
 
 from .backend_utils import CustomFlask, logging_status
 from .backend_utils import logging_utils
@@ -21,16 +22,20 @@ MONGO_URI = os.getenv("MONGODB_CONNSTRING")
 DB_NAME = "biomarkerdb_api"
 
 
-# class CustomApi(Api):
-#     def _register_specs(self, app_or_blueprint):
-#         pass
-#
-#     @property
-#     def __schema__(self):
-#         # Override the __schema__ property if you need to modify the schema
-#         schema = super().__schema__.copy()
-#         schema["basePath"] = "/api"  # Set the basePath here
-#         return schema
+class CustomApi(Api):
+    def _register_specs(self, app_or_blueprint):
+        pass
+
+    @property
+    def __schema__(self) -> Dict:
+        # Override the __schema__ property if you need to modify the schema
+        schema: Dict = super().__schema__.copy()
+        if "/auth/contact" in schema["paths"] and not schema["paths"]["/auth/contact"]:
+            del schema["paths"]["/auth/contact"]
+        if "/log/logging" in schema["paths"] and not schema["paths"]["/log/logging"]:
+            del schema["paths"]["/log/logging"]
+        # schema["basePath"] = "/api"  # Set the basePath here
+        return schema
 
 
 def setup_logging() -> Logger:
@@ -94,22 +99,26 @@ def create_app():
     #     return f"./api/swaggerui/{filename}"
 
     # setup the api using the flask_restx library
-    api = Api(
+    # api = Api(
+    #     app,
+    #     version="1.0",
+    #     title="Biomarker APIs",
+    #     description="Biomarker Knowledgebase API",
+    # )
+
+    api = CustomApi(
         app,
         version="1.0",
         title="Biomarker APIs",
         description="Biomarker Knowledgebase API",
     )
 
-    # @api.route("/swagger.json")
-    # class SwaggerJson(Resource):
-    #     def get(self):
-    #         swagger_spec = api.__schema__.copy()
-    #         app.logger.info(f"swagger spec copy: {swagger_spec}")
-    #         swagger_spec["basePath"] = "/api"
-    #         app.logger.info(f"after swagger spec copy: {swagger_spec}")
-    #         return swagger_spec
-    #
+    @api.route("/swagger.json")
+    class SwaggerJson(Resource):
+        def get(self):
+            swagger_spec = api.__schema__.copy()
+            return swagger_spec
+
     # @api.documentation
     # def custom_ui():
     #     return render_template(
