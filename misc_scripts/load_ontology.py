@@ -14,7 +14,8 @@ def load_ontology(server: str) -> None:
     source_path = os.path.join(
         config_obj["data_path"], *config_obj["generated_path_segment"], "obci.json"
     )
-    ontology_collection = config_obj["ontology_collection"]
+    db_name = config_obj["dbinfo"]["dbname"]
+    ontology_collection = config_obj["dbinfo"][db_name]["ontology_collection"]
     ontology_json = load_json_type_safe(filepath=source_path, return_type="list")
     document = {"data": ontology_json}
 
