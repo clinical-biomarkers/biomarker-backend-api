@@ -23,8 +23,8 @@ DB_NAME = "biomarkerdb_api"
 
 
 class CustomApi(Api):
-    def _register_specs(self, app_or_blueprint):
-        pass
+    # def _register_specs(self, app_or_blueprint):
+        # pass
 
     @property
     def __schema__(self) -> Dict:
