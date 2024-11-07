@@ -32,7 +32,7 @@ def home_init() -> Tuple[Dict, int]:
     for split in stats.get("entity_type_splits", []):
         entity_type = split["entity_type"]
         entity_type = (
-            entity_type.title() if entity_type != "miRNA" else entity_type.title()
+            entity_type if entity_type == "miRNA" else entity_type.title()
         )
         entity_type_splits[entity_type] = split["count"]
     statistics.append(entity_type_splits)
