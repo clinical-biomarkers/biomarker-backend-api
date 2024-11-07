@@ -21,7 +21,7 @@ def home_init() -> Tuple[Dict, int]:
 
     statistics = []
     database_stats = {"title": "Database Statistics"}
-    database_stats_raw = {key.replace("_", " ").title(): val for key, val in stats.get("stats", {})}
+    database_stats_raw = {key.replace("_", " ").title(): val for key, val in stats.get("stats", {}).items()}
     database_stats.update(database_stats_raw)
     statistics.append(database_stats)
 
