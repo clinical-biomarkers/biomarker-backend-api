@@ -21,16 +21,28 @@ def home_init() -> Tuple[Dict, int]:
 
     statistics = []
     database_stats = {"title": "Database Statistics"}
-    database_stats_raw = {key.replace("_", " ").title(): val for key, val in stats.get("stats", {}).items()}
+    database_stats_raw = {
+        key.replace("_", " ").title(): val
+        for key, val in stats.get("stats", {}).items()
+    }
     database_stats.update(database_stats_raw)
     statistics.append(database_stats)
 
     entity_type_splits = {"title": "Entity Types"}
     for split in stats.get("entity_type_splits", []):
+        entity_type = split["entity_type"]
+        entity_type = (
+            entity_type.title() if entity_type != "miRNA" else entity_type.title()
+        )
         entity_type_splits[split["entity_type"]] = split["count"]
     statistics.append(entity_type_splits)
 
-    return_object = {"statistics": statistics, "statistics_new": {}, "events": [], "video": {}}
+    return_object = {
+        "statistics": statistics,
+        "statistics_new": {},
+        "events": [],
+        "video": {},
+    }
 
     return return_object, 200
 
