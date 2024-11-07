@@ -19,7 +19,17 @@ def home_init() -> Tuple[Dict, int]:
     if stats_http_code != 200:
         return stats, stats_http_code
 
-    return_object = {"statistics": stats}
+    statistics = []
+    database_stats = {"title": "Database Statistics"}
+    database_stats.update(stats.get("stats", {}))
+    statistics.append(database_stats)
+
+    entity_type_splits = {"title": "Entity Types"}
+    for split in stats.get("entity_type_splits", []):
+        split["entity_type"] = split["count"]
+    statistics.append(entity_type_splits)
+
+    return_object = {"statistics": statistics, "statistics_new": {}, "events": [], "video": {}}
 
     return return_object, 200
 
