@@ -317,10 +317,10 @@ def get_stats(
     try:
         data: Dict = {}
         if mode in ["stats", "both"]:
-            stats = dbh[stat_collection].find_one({"_id": "stats"})
+            stats = dbh[stat_collection].find_one({"_id": "stats"}, {"_id": 0})
             data["stats"] = stats if stats else {}
         if mode in ["split", "both"]:
-            splits = dbh[stat_collection].find_one({"_id": "entity_type_splits"})
+            splits = dbh[stat_collection].find_one({"_id": "entity_type_splits"}, {"_id": 0})
             data["entity_type_splits"] = splits["splits"] if splits else []
 
         return data, 200
