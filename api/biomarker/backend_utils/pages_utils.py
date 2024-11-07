@@ -34,7 +34,7 @@ def home_init() -> Tuple[Dict, int]:
         entity_type = (
             entity_type.title() if entity_type != "miRNA" else entity_type.title()
         )
-        entity_type_splits[split["entity_type"]] = split["count"]
+        entity_type_splits[entity_type] = split["count"]
     statistics.append(entity_type_splits)
 
     return_object = {
