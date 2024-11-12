@@ -61,6 +61,7 @@ class SearchFullSchema(Schema):
         unknown = EXCLUDE
 
     biomarker_id = fields.Str(required=False)
+    canonical_id = fields.Str(required=False)
     biomarker = fields.Str(required=False)
     biomarker_entity_name = fields.Str(required=False)
     biomarker_entity_id = fields.Str(required=False)
