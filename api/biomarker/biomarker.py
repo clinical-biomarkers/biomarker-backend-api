@@ -53,7 +53,8 @@ class SearchSimple(Resource):
 full_search_model = api.model(
     "Biomarker Search Query",
     {
-        "biomarker_id": fields.String(required=True, default="AA4686-1"),
+        "biomarker_id": fields.String(required=True, default="AN6278-5"),
+        "canonical_id": fields.String(required=True, default="AN6278"),
         "biomarker": fields.String(required=True, default="increased IL6 level"),
         "biomarker_entity_name": fields.String(required=True, default="Interleukin-6"),
         "biomarker_entity_id": fields.String(required=True, default="P05231-1"),
