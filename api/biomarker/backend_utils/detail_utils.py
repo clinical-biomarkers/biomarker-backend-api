@@ -2,12 +2,12 @@
 """
 
 from flask import Request
-from typing import Tuple, Dict
+from typing import Optional, Tuple, Dict
 
 from . import db as db_utils
 from . import utils as utils
 
-# available sort fields for detail endpoint
+# available sort fields for biomarker id detail endpoint
 SORT_FIELDS = {
     "biomarker_component": {
         "biomarker",
@@ -92,7 +92,7 @@ def _add_metadata(document: Dict) -> Dict:
 
 
 def _process_document(document: Dict, request_object: Dict) -> Dict:
-    """Sorts and paginates the biomarker record based
+    """Sorts and paginates a biomarker record based
     on paginated tables input from the user.
 
     Parameters
@@ -108,11 +108,10 @@ def _process_document(document: Dict, request_object: Dict) -> Dict:
     dict
         The processed MongoDB document.
     """
-
-    for paginated_config in request_object["paginated_tables"]:
+    for paginated_config in request_object.get("paginated_tables", []):
 
         paginated_config = utils.strip_object(paginated_config)
-        table_id = paginated_config["table_id"]  # type: ignore
+        table_id = paginated_config["table_id"]
 
         if table_id not in SORT_FIELDS or table_id not in document:
             continue
@@ -158,4 +157,6 @@ def _detail_query_builder(
     tuple : (dict[str, str], dict[str, int])
         The MongoDB query for the detail endpoint and the projection object.
     """
-    return {"biomarker_id": request_object["biomarker_id"]}, {"_id": 0, "all_text": 0}
+    projection_object = {"_id": 0, "all_text": 0}
+    mongo_query = {"biomarker_id": request_object["biomarker_id"]}
+    return mongo_query, projection_object
