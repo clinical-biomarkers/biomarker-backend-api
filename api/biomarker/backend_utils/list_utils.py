@@ -212,6 +212,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
     cleaned_offset = offset - 1 if not offset - 1 < 0 else 0
     sort_field = request_object["sort"]
     mapped_sort_field = sort_field_map.get(sort_field, "hit_score")
+    secondary_sort_field = "score" if mapped_sort_field != "score" else "biomarker_id"
     limit = request_object["limit"]
     order = request_object["order"]
     reverse_flag = -1 if order.lower().strip() == "desc" else 1
@@ -244,7 +245,7 @@ def _search_query_builder(query_object: Dict, request_object: Dict) -> List:
         combined_match_conditions = search_condition
 
     match_stage = {"$match": combined_match_conditions}
-    sort_stage = {"$sort": {mapped_sort_field: reverse_flag}}
+    sort_stage = {"$sort": {mapped_sort_field: reverse_flag, secondary_sort_field: 1}}
     skip_stage = {"$skip": cleaned_offset}
     limit_stage = {"$limit": limit}
     project_results_stage = {
