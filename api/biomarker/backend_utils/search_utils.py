@@ -136,6 +136,7 @@ def _search_query_builder(request_object: Dict, simple_search_flag: bool) -> Dic
     """
     field_map = {
         "biomarker_id": "biomarker_id",
+        "canonical_id": "biomarker_canonical_id",
         "biomarker": "biomarker_component.biomarker",
         "biomarker_entity_name": "biomarker_component.assessed_biomarker_entity.recommended_name",
         "biomarker_entity_id": "biomarker_component.assessed_biomarker_entity_id",

@@ -16,7 +16,7 @@ def main() -> None:
 
     dbh = get_standard_db_handle(server)
 
-    paths = ["score"]
+    paths = ["score", "biomarker_canonical_id"]
     for path in paths:
         setup_index(
             collection=dbh["biomarker_collection"],
