@@ -18,7 +18,7 @@ SEARCH_BATCH_SIZE = 3_000
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S %Z%z"
 TIMEZONE = "US/Eastern"
 CONTACT_SOURCE = "biomarkerpartnership"
-CONTACT_RECIPIENTS = ["daniallmasood@email.gwu.edu", "skim658@gwu.edu"]
+CONTACT_RECIPIENTS = ["daniallmasood@email.gwu.edu", "skim658@gwu.edu", "jeetvora@email.gwu.edu"]
 
 API_CALL_LOG_TABLE = "api_calls"
 FRONTEND_CALL_LOG_TABLE = "frontend_logs"
