@@ -4,7 +4,7 @@ usage: parser.py [-h] server table limit
 
 positional arguments:
   server      prd/beta/tst/dev
-  table       api_calls/frontend_logs
+  table       api/frontend
   limit
 
 options:
@@ -13,7 +13,6 @@ options:
 
 import sqlite3
 import sys
-import pickle
 import json
 import os
 
@@ -23,23 +22,18 @@ from tutils.parser import standard_parser, parse_server
 from tutils.config import get_config
 
 
-def deserialize_row(row):
-    return tuple(
-        pickle.loads(item) if isinstance(item, bytes) else item for item in row
-    )
-
-
 def main():
     parser, server_list = standard_parser()
-    parser.add_argument("table", help="api_calls/frontend_logs")
+    parser.add_argument("table", help="api/frontend")
     parser.add_argument("limit", type=int, default=5)
     options = parser.parse_args()
 
     server = parse_server(parser=parser, server=options.server, server_list=server_list)
     table = options.table.lower().strip()
     limit = options.limit
-    if table not in {"api_calls", "frontend_logs"}:
+    if table not in {"api", "frontend"}:
         print("Invalid table.")
+        parser.print_help()
         sys.exit(1)
 
     config_obj = get_config()
@@ -49,15 +43,26 @@ def main():
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
 
-    cursor.execute(f"SELECT * FROM {table} LIMIT {limit}")
+    cursor.execute(f"PRAGMA table_info({table})")
+    columns = [col[1] for col in cursor.fetchall()]
 
+    # get latest rows
+    cursor.execute(f"SELECT * FROM {table} ORDER BY id DESC LIMIT {limit}")
     rows = cursor.fetchall()
+
     for idx, row in enumerate(rows):
-        header = "-" * 40
-        header += f" Row: {idx} "
-        header = "-" * 40
-        deserialized_row = deserialize_row(row)
-        print(json.dumps(deserialized_row, indent=2, default=str))
+        print("-" * 40 + f" Row: {idx} " + "-" * 40)
+        row_dict = dict(zip(columns, row))
+
+        # Try to parse JSON fields if they exist
+        for field in ["request", "data"]:
+            if field in row_dict and row_dict[field]:
+                try:
+                    row_dict[field] = json.loads(row_dict[field])
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+        print(json.dumps(row_dict, indent=2, default=str))
 
     conn.close()
 
