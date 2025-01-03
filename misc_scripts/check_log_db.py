@@ -25,7 +25,7 @@ from tutils.config import get_config
 def main():
     parser, server_list = standard_parser()
     parser.add_argument("table", help="api/frontend")
-    parser.add_argument("limit", type=int, default=5)
+    parser.add_argument("-l", "--limit", type=int, default=5)
     options = parser.parse_args()
 
     server = parse_server(parser=parser, server=options.server, server_list=server_list)
@@ -49,6 +49,7 @@ def main():
     # get latest rows
     cursor.execute(f"SELECT * FROM {table} ORDER BY id DESC LIMIT {limit}")
     rows = cursor.fetchall()
+    rows = reversed(rows)
 
     for idx, row in enumerate(rows):
         print("-" * 40 + f" Row: {idx} " + "-" * 40)
