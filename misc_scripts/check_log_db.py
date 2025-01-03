@@ -60,7 +60,7 @@ def main():
     query = f"SELECT * FROM {table}"
     if ignore_endpoint:
         query += " WHERE endpoint != ?"
-    query = " ORDER BY id DESC LIMIT ?"
+    query += " ORDER BY id DESC LIMIT ?"
 
     if ignore_endpoint:
         cursor.execute(query, (ignore_endpoint, limit))
