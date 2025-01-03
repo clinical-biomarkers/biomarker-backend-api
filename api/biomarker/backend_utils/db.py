@@ -320,7 +320,9 @@ def get_stats(
             stats = dbh[stat_collection].find_one({"_id": "stats"}, {"_id": 0})
             data["stats"] = stats if stats else {}
         if mode in ["split", "both"]:
-            splits = dbh[stat_collection].find_one({"_id": "entity_type_splits"}, {"_id": 0})
+            splits = dbh[stat_collection].find_one(
+                {"_id": "entity_type_splits"}, {"_id": 0}
+            )
             data["entity_type_splits"] = splits["splits"] if splits else []
 
         return data, 200
@@ -342,7 +344,7 @@ def get_stats(
 
 
 def get_ontology(
-    ontology_collection: str = ONTOLOGY_COLLECTION,
+    ontology_collection: str = ONTOLOGY_COLLECTION, filter_nulls: bool = True
 ) -> Tuple[List | Dict, int]:
     """Gets the ontology JSON.
 
@@ -350,13 +352,21 @@ def get_ontology(
     ----------
     ontology_collection : str, optional
         The ontology collection to retrieve from.
+    filter_nulls : bool, optional
+        Whether to filter nodes with null id values.
     """
     custom_app = cast_app(current_app)
     dbh = custom_app.mongo_db
 
     try:
         ontology_json = dbh[ontology_collection].find_one({}, {"_id": 0})
-        return ontology_json["data"], 200  # type: ignore
+        if filter_nulls:
+            filtered_data = [
+                item for item in ontology_json["data"] if item["id"] is not None  # type: ignore
+            ]  # let this fall through if ontology_json is None
+        else:
+            filtered_data = ontology_json["data"], 200  # type: ignore
+        return filtered_data, 200  # type: ignore
     except Exception as e:
         error_object = log_error(
             error_log=f"Unexpected error in querying for ontology json.\n{e}",
