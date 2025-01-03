@@ -6,10 +6,13 @@ from user_agents import parse
 from . import FRONTEND_CALL_LOG_TABLE, utils as utils
 from . import LOG_DB_PATH, API_CALL_LOG_TABLE
 from .db import create_timestamp, cast_app
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict, Tuple, Literal
+from concurrent.futures import ThreadPoolExecutor
 import json
 import traceback
 import sqlite3
+
+LOG_EXECUTOR = ThreadPoolExecutor(max_workers=1)
 
 
 def get_api_log_db():
@@ -83,23 +86,7 @@ def api_log(
         "status_code": status_code,
     }
 
-    custom_app = cast_app(current_app)
-
-    try:
-        db = get_api_log_db()
-        cursor = db.cursor()
-
-        columns = ", ".join(log_entry.keys())
-        placeholders = ", ".join("?" * len(log_entry))
-
-        sql = f"INSERT INTO {API_CALL_LOG_TABLE} ({columns}) VALUES ({placeholders})"
-        cursor.execute(sql, list(log_entry.values()))
-        db.commit()
-
-    except Exception as e:
-        custom_app.api_logger.error(
-            f"Failed to log API call: {str(e)}\n{traceback.format_exc}"
-        )
+    LOG_EXECUTOR.submit(_async_log_db, log_entry, API_CALL_LOG_TABLE)
 
 
 def _log_frontend_action(request_object: Dict):
@@ -122,22 +109,24 @@ def _log_frontend_action(request_object: Dict):
         "message": request_object["message"],
     }
 
-    custom_app = cast_app(current_app)
+    LOG_EXECUTOR.submit(_async_log_db, log_entry, FRONTEND_CALL_LOG_TABLE)
 
+
+def _async_log_db(log_entry: Dict, table_name: str):
+    """Async function to write to the logging db."""
+    custom_app = cast_app(current_app)
     try:
-        db = get_api_log_db()
-        cursor = db.cursor()
+        conn = sqlite3.connect(LOG_DB_PATH)
+        cursor = conn.cursor()
 
         columns = ", ".join(log_entry.keys())
         placeholders = ", ".join("?" * len(log_entry))
 
-        sql = (
-            f"INSERT INTO {FRONTEND_CALL_LOG_TABLE} ({columns}) VALUES ({placeholders})"
-        )
+        sql = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
         cursor.execute(sql, list(log_entry.values()))
-        db.commit()
-
+        conn.commit()
+        conn.close()
     except Exception as e:
         custom_app.api_logger.error(
-            f"Failed to log frontend action: {str(e)}\n{traceback.format_exc}"
+            f"Failed to log entry in `{table_name}`\n{str(e)}\n{traceback.format_exc()}"
         )
