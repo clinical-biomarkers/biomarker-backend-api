@@ -81,10 +81,10 @@ def init_api_log_db() -> Tuple[bool, str]:
                 call_id TEXT,
                 timestamp TEXT NOT NULL,
                 date TEXT NOT NULL,
-                user: TEXT,
-                type: TEXT,
-                page: TEXT,
-                message: TEXT,
+                user TEXT,
+                type TEXT,
+                page TEXT,
+                message TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
             """
