@@ -4,13 +4,11 @@ from flask import request, g, render_template
 from pymongo import MongoClient
 import os
 import json
-import logging
+import sys
 import time
-from logging import Logger
-from logging.handlers import RotatingFileHandler
 from typing import Dict
 
-from .backend_utils import CustomFlask, logging_status
+from .backend_utils import CustomFlask, init_api_log_db, setup_logging
 from .backend_utils import logging_utils
 from .backend_utils.performance_logger import PerformanceLogger
 from .biomarker import api as biomarker_api
@@ -43,19 +41,6 @@ class CustomApi(Api):
         return schema
 
 
-def setup_logging() -> Logger:
-    handler = RotatingFileHandler("app.log", maxBytes=50000000, backupCount=2)
-    handler.setLevel(logging.DEBUG)
-    formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s: %(message)s", "%Y-%m-%d %H:%M:%S"
-    )
-    handler.setFormatter(formatter)
-    logger = logging.getLogger("biomarker_api_logger")
-    logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
-    return logger
-
-
 def create_app():
 
     # create flask instance
@@ -63,10 +48,13 @@ def create_app():
 
     app.api_logger = setup_logging()
     app.api_logger.info("API Started")
-    if logging_status is None:
-        app.api_logger.info("Sqlite DB initialization successful.")
+
+    api_log_db_status, api_log_db_msg = init_api_log_db()
+    if api_log_db_status:
+        app.api_logger.info(api_log_db_msg)
     else:
-        app.api_logger.error(f"Error initializing Sqlite DB: {str(logging_status)}")
+        app.api_logger.error(api_log_db_msg)
+        sys.exit(1)
 
     app.performance_logger = PerformanceLogger(logger=app.api_logger)
 
@@ -85,6 +73,12 @@ def create_app():
             status_code=response.status_code,
         )
         return response
+
+    @app.teardown_appcontext
+    def close_db(e=None):
+        log_db = g.pop("log_db", None)
+        if log_db is not None:
+            log_db.close()
 
     CORS(app)
 
