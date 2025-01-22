@@ -24,10 +24,10 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from tutils.db import get_standard_db_handle, get_collection_list
+from tutils.db import get_standard_db_handle, get_collections
 from tutils.parser import standard_parser, parse_server
 
-COLLECTION_LIST = get_collection_list()
+COLLECTION_LIST = list(get_collections().values())
 
 
 def main():
