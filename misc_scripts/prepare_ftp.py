@@ -49,7 +49,7 @@ def main() -> None:
         },
         "tsv": {
             "resolved_symlink": resolve_symlink(tsv_dir) or "UNABLE TO RESOLVE SYMLINK",
-            "src_glob_pattern": os.path.join(tsv_dir, "reviewed", "*"),
+            "src_glob_pattern": os.path.join(tsv_dir, "reviewed", "*.tsv"),
             "dest_path": os.path.join(ftp_path, ALL_BIOMARKER_TSV),
             "tarball": os.path.join(ftp_path, f"{ALL_BIOMARKER_TSV}{TAR_EXT}"),
         },
