@@ -33,7 +33,7 @@ def main() -> None:
     ftp_path = config_obj["ftp_dir_path"]
 
     existing_data_dir = os.path.join(
-        data_root_path, *generated_path_segment, *existing_data_segment, "current"
+        data_root_path, *generated_path_segment, *existing_data_segment
     )
     merged_data_dir = os.path.join(
         data_root_path, *generated_path_segment, *merged_data_segment
@@ -42,8 +42,7 @@ def main() -> None:
 
     data_config: dict[str, dict[str, str]] = {
         "json": {
-            "resolved_symlink": resolve_symlink(existing_data_dir)
-            or "UNABLE TO RESOLVE SYMLINK",
+            "resolved_symlink": "N/A",
             "src_glob_pattern": os.path.join(existing_data_dir, "*.json"),
             "dest_path": os.path.join(ftp_path, ALL_BIOMARKER_JSON),
             "tarball": os.path.join(ftp_path, f"{ALL_BIOMARKER_JSON}{TAR_EXT}"),
