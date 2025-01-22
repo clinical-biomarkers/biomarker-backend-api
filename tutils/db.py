@@ -54,7 +54,7 @@ def get_standard_db_handle(server: str) -> Database:
 def get_collections() -> dict[str, str]:
     """Gets a list of the collections."""
     config = get_config()
-    db_name = config["dbinfo"]["db_name"]
+    db_name = config["dbinfo"]["dbname"]
     return config["dbinfo"][db_name]["collections"]
 
 
