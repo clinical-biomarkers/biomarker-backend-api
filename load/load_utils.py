@@ -1,7 +1,6 @@
 from pymongo.database import Database
 from pymongo import InsertOne
 from typing import Optional, Literal
-import subprocess
 import sys
 import os
 
