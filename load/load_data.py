@@ -26,6 +26,12 @@ from tutils.db import (
 from tutils.config import get_config
 from tutils.general import load_json_type_safe, resolve_symlink, get_user_confirmation
 from tutils.parser import standard_parser
+from tutils.constants import (
+    biomarker_default,
+    stats_default,
+    canonical_id_default,
+    second_level_id_default,
+)
 from tutils.logging import setup_logging, log_msg, start_message
 from load.load_utils import (
     clear_collections,
@@ -55,14 +61,13 @@ def main() -> None:
     start_message(logger=LOGGER, msg=f"Loading data for server: {server}")
 
     config_obj = get_config()
-    db_name = config_obj["dbinfo"]["dbname"]
-    biomarker_collection = config_obj["dbinfo"][db_name]["collection"]
-    stats_collection = config_obj["dbinfo"][db_name]["stats_collection"]
+    biomarker_collection = biomarker_default()
+    stats_collection = stats_default()
     data_root_path_segment = config_obj["data_path"]
     generated_path_segment = config_obj["generated_path_segment"]
     merged_data_path_segment = config_obj["merged_data_segment"]
-    canonical_id_collection = config_obj["dbinfo"][db_name]["canonical_id_map"]
-    second_level_id_collection = config_obj["dbinfo"][db_name]["second_level_id_map"]
+    canonical_id_collection = canonical_id_default()
+    second_level_id_collection = second_level_id_default()
 
     merged_path_root = os.path.join(
         data_root_path_segment, *generated_path_segment, *merged_data_path_segment
