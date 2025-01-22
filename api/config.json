@@ -1,44 +1,57 @@
 {
-    "project":"biomarker-api",
-    "api_port":{
-        "prd":"8089",
-        "beta":"8889",
-        "tst":"8089",
-        "dev":"8089"
+    "project": "biomarker-api",
+    "api_port": {
+        "prd": "8089",
+        "beta": "8889",
+        "tst": "8089",
+        "dev": "8089"
     },
-    "data_path":"/data/shared/biomarkerdb/",
-    "generated_path_segment": ["generated", "datamodel"],
-    "new_data_segment": ["new_data", "current"],
-    "existing_data_segment": ["existing_data"],
-    "merged_data_segment": ["merged", "current"],
+    "data_path": "/data/shared/biomarkerdb/",
+    "generated_path_segment": [
+        "generated",
+        "datamodel"
+    ],
+    "new_data_segment": [
+        "new_data",
+        "current"
+    ],
+    "existing_data_segment": [
+        "existing_data"
+    ],
+    "merged_data_segment": [
+        "merged",
+        "current"
+    ],
     "ftp_dir_path": "/data/shared/biomarkerdb/releases/ftp/current",
-    "dbinfo":{
-        "dbname":"biomarkerdb_api",
-        "port":{ 
-            "prd":"7071",
-            "beta":"7071",
-            "tst":"7071",
-            "dev":"7071"
+    "dbinfo": {
+        "dbname": "biomarkerdb_api",
+        "port": {
+            "prd": "7071",
+            "beta": "7071",
+            "tst": "7071",
+            "dev": "7071"
         },
-        "bridge_network":"biomarker_api_backend_network",
-        "admin":{
-            "db":"admin",
-            "user":"superadmin",
-            "password":"superpass"
+        "bridge_network": "biomarker_api_backend_network",
+        "admin": {
+            "db": "admin",
+            "user": "superadmin",
+            "password": "superpass"
         },
-        "biomarkerdb_api":{
-            "db":"biomarkerdb_api",
-            "collection": "biomarker_collection",
-            "canonical_id_map": "canonical_id_map_collection",
-            "second_level_id_map": "second_id_map_collection",
-            "unreviewed_collection": "unreviewed_collection",
-            "req_log_collection": "request_log_collection",
-            "error_log_collection": "error_log_collection",
-            "cache_collection": "search_cache",
-            "stats_collection": "stats_collection",
-            "ontology_collection": "ontology_collection",
-            "user":"biomarkeradmin",
-            "password":"biomarkerpass"
+        "biomarkerdb_api": {
+            "db": "biomarkerdb_api",
+            "user": "biomarkeradmin",
+            "password": "biomarkerpass",
+            "collections": {
+                "data_model": "biomarker_collection",
+                "canonical_id_map": "canonical_id_map_collection",
+                "second_level_id_map": "second_id_map_collection",
+                "unreviewed": "unreviewed_collection",
+                "req_log": "request_log_collection",
+                "error_log": "error_log_collection",
+                "cache": "search_cache",
+                "stats": "stats_collection",
+                "ontology": "ontology_collection"
+            }
         }
     }
 }

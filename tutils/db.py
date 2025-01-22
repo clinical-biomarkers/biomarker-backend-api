@@ -51,20 +51,11 @@ def get_standard_db_handle(server: str) -> Database:
     )
 
 
-def get_collection_list() -> list[str]:
-    """Gets a list of the collections.
-
-    NOTE: Because of the format of the config file this is a hardcoded list.
-    """
-    return [
-        "biomarker_collection",
-        "canonical_id_map_collection",
-        "second_id_map_collection",
-        "unreviewed_collection",
-        "request_log_collection",
-        "error_log_collection",
-        "search_cache",
-    ]
+def get_collections() -> dict[str, str]:
+    """Gets a list of the collections."""
+    config = get_config()
+    db_name = config["dbinfo"]["dbname"]
+    return config["dbinfo"][db_name]["collections"]
 
 
 def setup_index(
