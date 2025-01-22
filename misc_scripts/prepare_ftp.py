@@ -33,7 +33,7 @@ def main() -> None:
     ftp_path = config_obj["ftp_dir_path"]
 
     existing_data_dir = os.path.join(
-        data_root_path, *generated_path_segment, *existing_data_segment
+        data_root_path, *generated_path_segment, *existing_data_segment, "current"
     )
     merged_data_dir = os.path.join(
         data_root_path, *generated_path_segment, *merged_data_segment
@@ -42,7 +42,8 @@ def main() -> None:
 
     data_config: dict[str, dict[str, str]] = {
         "json": {
-            "resolved_symlink": resolve_symlink(existing_data_dir) or "UNABLE TO RESOLVE SYMLINK",
+            "resolved_symlink": resolve_symlink(existing_data_dir)
+            or "UNABLE TO RESOLVE SYMLINK",
             "src_glob_pattern": os.path.join(existing_data_dir, "*.json"),
             "dest_path": os.path.join(ftp_path, ALL_BIOMARKER_JSON),
             "tarball": os.path.join(ftp_path, f"{ALL_BIOMARKER_JSON}{TAR_EXT}"),
@@ -54,7 +55,8 @@ def main() -> None:
             "tarball": os.path.join(ftp_path, f"{ALL_BIOMARKER_TSV}{TAR_EXT}"),
         },
         "merged": {
-            "resolved_symlink": resolve_symlink(merged_data_dir) or "UNABLE TO RESOLVE SYMLINK",
+            "resolved_symlink": resolve_symlink(merged_data_dir)
+            or "UNABLE TO RESOLVE SYMLINK",
             "src_glob_pattern": os.path.join(merged_data_dir, "merged_json", "*.json"),
             "dest_path": os.path.join(ftp_path, ALL_BIOMARKER_JSON_MERGED),
             "tarball": os.path.join(ftp_path, f"{ALL_BIOMARKER_JSON_MERGED}{TAR_EXT}"),
@@ -77,10 +79,12 @@ def main() -> None:
         files_to_copy = glob.glob(metadata["src_glob_pattern"])
         for fp in files_to_copy:
             copy_file(src=fp, dest=metadata["dest_path"])
-        subprocess.run(f"{TAR_CMD} {metadata['tarball']} {metadata['dest_path']}", shell=True)
+        subprocess.run(
+            f"{TAR_CMD} {metadata['tarball']} {metadata['dest_path']}", shell=True
+        )
         if data_type == "merged":
             subprocess.run(f"rm -r {metadata['dest_path']}", shell=True)
-    
+
 
 if __name__ == "__main__":
     main()
