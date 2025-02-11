@@ -6,6 +6,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.db import get_standard_db_handle, setup_index
 from tutils.parser import standard_parser, parse_server
+from tutils.constants import biomarker_default
 
 
 def main() -> None:
@@ -15,18 +16,19 @@ def main() -> None:
     server = parse_server(parser=parser, server=options.server, server_list=server_list)
 
     dbh = get_standard_db_handle(server)
+    biomarker_collection = biomarker_default()
 
     paths = ["score", "biomarker_canonical_id"]
     for path in paths:
         setup_index(
-            collection=dbh["biomarker_collection"],
+            collection=dbh[biomarker_collection],
             index_field=path,
             index_name=f"{path}_1",
             unique=False,
             order="ascending",
         )
         setup_index(
-            collection=dbh["biomarker_collection"],
+            collection=dbh[biomarker_collection],
             index_field=path,
             index_name=f"{path}_-1",
             unique=False,

@@ -5,6 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.parser import standard_parser, parse_server
 from tutils.config import get_config
 from tutils.db import get_connection_string, load_id_collection
+from tutils.constants import canonical_id_default, second_level_id_default
 
 
 def main() -> None:
@@ -16,9 +17,8 @@ def main() -> None:
     config_obj = get_config()
     data_root_path = config_obj["data_path"]
     generated_path_segment = config_obj["generated_path_segment"]
-    db_name = config_obj["dbinfo"]["dbname"]
-    canonical_id_collection = config_obj["dbinfo"][db_name]["canonical_id_map"]
-    second_level_id_collection = config_obj["dbinfo"][db_name]["second_level_id_map"]
+    canonical_id_collection = canonical_id_default()
+    second_level_id_collection = second_level_id_default()
 
     id_collections = {
         "canonical": {
