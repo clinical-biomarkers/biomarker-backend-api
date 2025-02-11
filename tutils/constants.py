@@ -39,3 +39,8 @@ def log_default() -> str:
 def error_default() -> str:
     collections = get_collections()
     return collections["error_log"]
+
+
+def ontology_default() -> str:
+    collections = get_collections()
+    return collections["ontology"]
