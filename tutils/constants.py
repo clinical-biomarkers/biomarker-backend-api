@@ -24,3 +24,23 @@ def unreviewed_default() -> str:
 def stats_default() -> str:
     collections = get_collections()
     return collections["stats"]
+
+
+def cache_default() -> str:
+    collections = get_collections()
+    return collections["cache"]
+
+
+def log_default() -> str:
+    collections = get_collections()
+    return collections["req_log"]
+
+
+def error_default() -> str:
+    collections = get_collections()
+    return collections["error_log"]
+
+
+def ontology_default() -> str:
+    collections = get_collections()
+    return collections["ontology"]

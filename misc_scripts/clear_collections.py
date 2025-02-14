@@ -12,14 +12,15 @@ options:
   -l, --log    Store false argument for clearing the log collection.
   -e, --error  Store false argument for clearing the error log collection.
 """
+
 import os
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.db import get_standard_db_handle
-from tutils.config import get_config
 from tutils.parser import standard_parser, parse_server
 from tutils.general import get_user_confirmation
+from tutils.constants import cache_default, log_default, error_default
 
 
 def main():
@@ -58,11 +59,9 @@ def main():
     get_user_confirmation()
 
     dbh = get_standard_db_handle(server)
-    config_obj = get_config()
-    db_name = config_obj["dbinfo"]["dbname"]
-    cache_collection = config_obj["dbinfo"][db_name]["cache_collection"]
-    log_collection = config_obj["dbinfo"][db_name]["req_log_collection"]
-    error_collection = config_obj["dbinfo"][db_name]["error_log_collection"]
+    cache_collection = cache_default()
+    log_collection = log_default()
+    error_collection = error_default()
 
     if options.cache:
         try:
