@@ -72,6 +72,9 @@ def process_file_data(
                 to_stdout=True,
             )
 
+        if "collision" in document:
+            del document["collision"]
+
         canonical_id, second_level_id, second_level_collision, _, _ = _id_assign(
             document=document,
             dbh=dbh,
