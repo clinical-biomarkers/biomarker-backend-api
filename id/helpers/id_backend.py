@@ -65,7 +65,7 @@ def process_file_data(
     updated_data: list[dict] = []
 
     for idx, document in enumerate(data):
-        if (idx + 1) % LOG_CHECKPOINT:
+        if (idx + 1) % LOG_CHECKPOINT == 0:
             log_msg(
                 logger=logger,
                 msg=f"Hit log checkpoint on index: {idx + 1}",
