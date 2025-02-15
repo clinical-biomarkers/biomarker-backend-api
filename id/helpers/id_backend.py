@@ -64,6 +64,8 @@ def process_file_data(
 
     updated_data: list[dict] = []
 
+    collisions = 0
+    new_biomarkers = 0
     for idx, document in enumerate(data):
         if (idx + 1) % LOG_CHECKPOINT == 0:
             log_msg(
@@ -87,12 +89,19 @@ def process_file_data(
 
         if second_level_collision:
             document["collision"] = 1
+            collisions += 1
         else:
             document["collision"] = 0
+            new_biomarkers += 1
 
         updated_data.append(document)
 
-    log_msg(logger=logger, msg=f"Finished assigning IDs for {filepath}", to_stdout=True)
+    msg = (
+        f"Finished assigning IDs for {filepath}\n"
+        f"\tCollisions: {collisions}\n"
+        f"\tNew biomarkers: {new_biomarkers}"
+    )
+    log_msg(logger=logger, msg=msg, to_stdout=True)
     return updated_data
 
 
