@@ -79,7 +79,7 @@ def main() -> None:
         for fp in files_to_copy:
             copy_file(src=fp, dest=metadata["dest_path"])
         subprocess.run(
-            f"{TAR_CMD} {metadata['tarball']} {metadata['dest_path']}", shell=True
+            f"{TAR_CMD} {metadata['tarball']} -C {metadata['dest_path']}", shell=True
         )
         if data_type == "merged":
             subprocess.run(f"rm -r {metadata['dest_path']}", shell=True)
