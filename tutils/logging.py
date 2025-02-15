@@ -58,7 +58,7 @@ def log_msg(
         print(msg)
 
 
-def start_message(logger: Logger, msg: str) -> None:
+def start_message(logger: Logger, msg: str, to_stdout: bool = True) -> None:
     """Logs a standardized start message."""
     start_message = f"############### {msg} ###############"
-    log_msg(logger=logger, msg=start_message)
+    log_msg(logger=logger, msg=start_message, to_stdout=to_stdout)
