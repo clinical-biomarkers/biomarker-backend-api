@@ -21,10 +21,8 @@ from tutils.general import (
 )
 from tutils.logging import setup_logging, log_msg, start_message
 from tutils.constants import (
-    biomarker_default,
     canonical_id_default,
     second_level_id_default,
-    unreviewed_default,
 )
 
 LOGGER = setup_logging("id_assign.log")
