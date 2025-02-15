@@ -8,8 +8,9 @@ import os
 import sys
 from . import canonical_helpers as canonical
 from . import second_level_helpers as second
+from . import LOGGER
 import re
-from logging import Logger
+from time import time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from tutils.logging import log_msg
@@ -19,17 +20,16 @@ CANONICAL_DEFAULT = canonical.CANONICAL_DEFAULT
 SECOND_DEFAULT = second.SECOND_DEFAULT
 DATA_DEFAULT = biomarker_default()
 UNREVIEWED_DEFAULT = unreviewed_default()
-LOG_CHECKPOINT = 1_000
+LOG_CHECKPOINT = 5_000
 
 
 def process_file_data(
     data: list,
     dbh: Database,
     filepath: str,
-    logger: Logger,
     can_id_coll: str = CANONICAL_DEFAULT,
     second_id_coll: str = SECOND_DEFAULT,
-) -> list:
+) -> list[dict]:
     """Processes the data for ID assignments.
 
     Parameters
@@ -40,22 +40,20 @@ def process_file_data(
         The database handle.
     filepath: str
         The filepath of the current file being processed.
-    logger: Logger
-        The logger to use.
-    can_id_coll: str
+    can_id_coll: str, optional
         The canonical ID map collection.
-    second_id_coll: str
+    second_id_coll: str, optional
         The second level ID map collection.
 
     Returns
     -------
-    list
+    list[dict]
         Returns the updated data list with the ID values assigned.
     """
-    log_msg(logger=logger, msg=f"Assigning IDs for `{filepath}`...", to_stdout=True)
+    log_msg(logger=LOGGER, msg=f"Assigning IDs for `{filepath}`...", to_stdout=True)
     if not data:
         log_msg(
-            logger=logger,
+            logger=LOGGER,
             msg=f"No data found for `{filepath}`.",
             level="error",
             to_stdout=True,
@@ -64,12 +62,13 @@ def process_file_data(
 
     updated_data: list[dict] = []
 
+    start_time = time()
     collisions = 0
     new_biomarkers = 0
     for idx, document in enumerate(data):
         if (idx + 1) % LOG_CHECKPOINT == 0:
             log_msg(
-                logger=logger,
+                logger=LOGGER,
                 msg=f"Hit log checkpoint on index: {idx + 1}",
                 to_stdout=True,
             )
@@ -80,7 +79,6 @@ def process_file_data(
         canonical_id, second_level_id, second_level_collision, _, _ = _id_assign(
             document=document,
             dbh=dbh,
-            logger=logger,
             canonical_id_coll=can_id_coll,
             second_id_coll=second_id_coll,
         )
@@ -96,19 +94,19 @@ def process_file_data(
 
         updated_data.append(document)
 
+    elapsed_time = time() - start_time
     msg = (
-        f"Finished assigning IDs for {filepath}\n"
+        f"Finished assigning IDs ({elapsed_time} seconds) for {filepath}\n"
         f"\tCollisions: {collisions}\n"
         f"\tNew biomarkers: {new_biomarkers}"
     )
-    log_msg(logger=logger, msg=msg, to_stdout=True)
+    log_msg(logger=LOGGER, msg=msg, to_stdout=True)
     return updated_data
 
 
 def _id_assign(
     document: dict,
     dbh: Database,
-    logger: Logger,
     canonical_id_coll: str = CANONICAL_DEFAULT,
     second_id_coll: str = SECOND_DEFAULT,
 ) -> tuple[str, str, bool, str, str]:
@@ -120,22 +118,20 @@ def _id_assign(
         The document to assign the ID for.
     dbh: Database
         The database handle.
-    logger: Logger
-        The logger to use.
     can_id_coll: str (default: CANONICAL_DEFAULT)
         The name of the collection to check for hash collisions.
     second_id_coll: str (default: SECOND_DEFAULT)
-        The name of the collection to check for second level collisions. 
+        The name of the collection to check for second level collisions.
 
     Returns
     -------
     tuple: (str, str, bool, str, str)
-        The assigned canonical biomarker ID, second level ID, collision boolean, hash value, 
+        The assigned canonical biomarker ID, second level ID, collision boolean, hash value,
         and core values string.
     """
     canonical_id, hash_value, core_values_str, canonical_collision = (
         canonical.get_ordinal_id(
-            document=document, dbh=dbh, logger=logger, id_collection=canonical_id_coll
+            document=document, dbh=dbh, id_collection=canonical_id_coll
         )
     )
     second_level_id, second_level_collision = second.get_second_level_id(
@@ -143,7 +139,6 @@ def _id_assign(
         canonical_collision=canonical_collision,
         document=document,
         dbh=dbh,
-        logger=logger,
         id_collection=second_id_coll,
     )
     return (

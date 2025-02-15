@@ -2,7 +2,9 @@ import argparse
 import sys
 import glob
 import os
+from time import time
 from helpers import id_backend as id_backend
+from helpers import LOGGER
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.db import (
@@ -19,13 +21,11 @@ from tutils.general import (
     resolve_symlink,
     write_json,
 )
-from tutils.logging import setup_logging, log_msg, start_message
+from tutils.logging import log_msg, start_message
 from tutils.constants import (
     canonical_id_default,
     second_level_id_default,
 )
-
-LOGGER = setup_logging("id_assign.log")
 
 
 def main() -> None:
@@ -80,13 +80,13 @@ def main() -> None:
     files = glob.glob(data_release_glob_pattern)
     files.sort()
 
+    start_time = time()
     for fp in files:
         data = load_json_type_safe(filepath=fp, return_type="list")
         updated_data = id_backend.process_file_data(
             data=data,
             dbh=dbh,
             filepath=fp,
-            logger=LOGGER,
             can_id_coll=canonical_id_collection,
             second_id_coll=second_level_id_collection,
         )
@@ -141,7 +141,12 @@ def main() -> None:
             to_stdout=True,
         )
 
-    log_msg(logger=LOGGER, msg="Finished ID assignment process ---------------------")
+    elapsed_time = time() - start_time
+    log_msg(
+        logger=LOGGER,
+        msg=f"Finished ID assignment process ({elapsed_time} seconds) ---------------------",
+        to_stdout=True,
+    )
 
 
 if __name__ == "__main__":
