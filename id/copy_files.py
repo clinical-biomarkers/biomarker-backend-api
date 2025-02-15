@@ -1,6 +1,7 @@
 import sys
 import glob
 import os
+import subprocess
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.config import get_config
@@ -13,8 +14,8 @@ def main() -> None:
     parser, server_list = standard_parser()
     options = parser.parse_args()
     server = parse_server(parser=parser, server=options.server, server_list=server_list)
-    if server != "tst":
-        print("Can only run this script on the `tst` server.")
+    if server != "dev":
+        print("Can only run this script on the `dev` server.")
         sys.exit(1)
 
     config_obj = get_config()
@@ -35,11 +36,21 @@ def main() -> None:
     for file in files_to_copy:
         confirmation_str += f"\n\t{file}"
     confirmation_str += f"To {existing_data_path}"
+
+    rm_command = f"rm -r {existing_data_path}/*"
+    confirmation_str += (
+        f"\nWill clear out the existing data directory first with: {rm_command}"
+    )
+    print(confirmation_str)
     get_user_confirmation()
 
+    print("Cleaning existing data directory...")
+    subprocess.run(rm_command, shell=True)
+    print("Finished cleaning existing data directory")
+
+    print("Copying files...")
     for fp in files_to_copy:
-        if "load_map.json" in fp:
-            continue
+        print(f"Copying: `{fp}`...")
         copy_file(src=fp, dest=existing_data_path)
 
 

@@ -43,7 +43,6 @@ def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
         - Each file is streamed using the ijson library.
         - If the collision value is 0, that specific record will be saved in a file in the merged directory with the filename {biomarker_id}.json.
         - If the collision value is 1, that record will be saved in a file in the collision_dir with the filename {biomarker_id}-{counter}.json.
-        - If the collision value is 2, that record will be skipped.
 
     Parameters
     ----------
@@ -109,8 +108,6 @@ def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
                 collision_count += 1
                 output_path = get_next_available_filename(biomarker_id, collision_dir)
                 write_json(filepath=output_path, data=record, include_default=True)
-            elif collision == 2:
-                continue
             else:
                 raise ValueError(
                     f"Found invalid collision value: `{collision}` (idx: {record_idx})"
@@ -174,6 +171,7 @@ def second_pass(merged_dir: str, collision_dir: str) -> float:
                 to_stdout=True,
             )
             write_json(filepath=merge_record_path, data=collision_record)
+            os.remove(file)
             continue
         merge_record = load_json_type_safe(
             filepath=merge_record_path,

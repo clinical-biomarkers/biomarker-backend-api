@@ -257,6 +257,7 @@ def _get_existing_entries(
     return record["values"]["existing_entries"]
 
 
+# TODO : this should be combined with _get_existing_entries
 def _get_canonical_map(
     canonical_id: str, dbh: Database, id_collection: str = SECOND_DEFAULT
 ) -> Optional[dict]:

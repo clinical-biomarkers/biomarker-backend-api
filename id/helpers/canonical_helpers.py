@@ -38,8 +38,9 @@ def get_ordinal_id(
 
     Returns
     -------
-    tuple: (str, str, str)
-        The assigned canonical biomarker ID, the hash value, and the core values string.
+    tuple: (str, str, str, bool)
+        The assigned canonical biomarker ID, the hash value, the core values
+        string, and a boolean indicating if there was a canonical ID collision.
     """
     hash_value, core_values_str = _generate_hash(document)
     collision_status = _check_collision(hash_value, dbh, id_collection)
@@ -54,7 +55,7 @@ def get_ordinal_id(
     return canonical_id, hash_value, core_values_str, collision_status
 
 
-def _generate_hash(document: dict) -> tuple:
+def _generate_hash(document: dict) -> tuple[str, str]:
     """Generates the core values string and resulting hash value.
 
     Parameters
@@ -189,7 +190,8 @@ def _new_ordinal(
     logger: Logger,
     id_collection: str = CANONICAL_DEFAULT,
 ) -> str:
-    """Creates a new entry in the ID collection map with an incremented ordinal ID. Will exit if the ID space is full.
+    """Creates a new entry in the ID collection map with an incremented ordinal 
+    ID. Will exit if the ID space is full.
 
     Parameters
     ----------

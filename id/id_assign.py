@@ -20,6 +20,12 @@ from tutils.general import (
     write_json,
 )
 from tutils.logging import setup_logging, log_msg, start_message
+from tutils.constants import (
+    biomarker_default,
+    canonical_id_default,
+    second_level_id_default,
+    unreviewed_default,
+)
 
 LOGGER = setup_logging("id_assign.log")
 
@@ -40,16 +46,14 @@ def main() -> None:
     start_message(logger=LOGGER, msg="Beginning ID assignment process.")
 
     config_obj = get_config()
-    db_name = config_obj["dbinfo"]["dbname"]
 
     data_root_path = config_obj["data_path"]
     generated_path_segment = config_obj["generated_path_segment"]
     new_data_segment = config_obj["new_data_segment"]
 
-    canonical_id_collection = config_obj["dbinfo"][db_name]["canonical_id_map"]
-    second_level_id_collection = config_obj["dbinfo"][db_name]["second_level_id_map"]
-    data_collection = config_obj["dbinfo"][db_name]["collection"]
-    unreviewed_collection = config_obj["dbinfo"][db_name]["unreviewed_collection"]
+    canonical_id_collection = canonical_id_default()
+    second_level_id_collection = second_level_id_default()
+    data_collection = biomarker_default()
 
     dbh = get_standard_db_handle(server=server)
 
@@ -80,17 +84,12 @@ def main() -> None:
     files.sort()
 
     for fp in files:
-        if "load_map.json" in fp:
-            log_msg(logger=LOGGER, msg=f"Skipping file: {fp}", level="warning")
-            continue
         data = load_json_type_safe(filepath=fp, return_type="list")
         updated_data = id_backend.process_file_data(
             data=data,
             dbh=dbh,
             filepath=fp,
             logger=LOGGER,
-            data_coll=data_collection,
-            unreviewed_coll=unreviewed_collection,
             can_id_coll=canonical_id_collection,
             second_id_coll=second_level_id_collection,
         )
