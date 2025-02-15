@@ -103,7 +103,7 @@ def setup_index(
     else:
         status_message = f"{order.title()} index `{index_name}` on collection `{collection.name}` already exists."
         if logger is not None:
-            log_msg(logger=logger, msg=status_message)
+            log_msg(logger=logger, msg=status_message, to_stdout=True)
         print(status_message)
 
 

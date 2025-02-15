@@ -53,7 +53,6 @@ def main() -> None:
 
     canonical_id_collection = canonical_id_default()
     second_level_id_collection = second_level_id_default()
-    data_collection = biomarker_default()
 
     dbh = get_standard_db_handle(server=server)
 
@@ -65,7 +64,7 @@ def main() -> None:
         index_name="hash_value_1",
     )
     setup_index(
-        collection=dbh[data_collection],
+        collection=dbh[second_level_id_collection],
         index_field="biomarker_canonical_id",
         unique=True,
         index_name="canonical_1",
