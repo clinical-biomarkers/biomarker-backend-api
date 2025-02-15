@@ -76,6 +76,10 @@ def main() -> None:
     print(f"Resolved symlink for {new_data_dir_path} point to:\n\t{resolved_symlink}")
     get_user_confirmation()
 
+    print(
+        "Confirmation prompts over, can safely send to background execution if needed."
+    )
+
     data_release_glob_pattern = os.path.join(new_data_dir_path, "*.json")
     files = glob.glob(data_release_glob_pattern)
     files.sort()
@@ -95,6 +99,7 @@ def main() -> None:
                 logger=LOGGER,
                 msg=f"Error reading data from file `{fp}`. Updated data returned empty: {updated_data}, skipping...",
                 level="warning",
+                to_stdout=True,
             )
             continue
         write_json(fp, updated_data)

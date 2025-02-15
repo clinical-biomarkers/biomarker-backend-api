@@ -1,5 +1,4 @@
-""" Public facing entry point for ID backend processing/generating/assignment.
-
+"""Public facing entry point for ID backend processing/generating/assignment.
 """
 
 from typing import Optional
