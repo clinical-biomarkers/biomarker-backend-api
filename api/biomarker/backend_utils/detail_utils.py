@@ -62,7 +62,7 @@ def detail(api_request: Request, biomarker_id: str) -> Tuple[Dict, int]:
 
 
 def _add_metadata(document: Dict) -> Dict:
-    """Adds the section_stats and crossref metadata.
+    """Adds the section_stats metadata.
 
     Parameters
     ----------
@@ -87,7 +87,7 @@ def _add_metadata(document: Dict) -> Dict:
         "sort_fields": list(SORT_FIELDS["citation"]),
     }
     document["section_stats"] = [biomarker_component_stats, citation_stats]
-    document["crossref"] = []
+    # document["crossref"] = []
     return document
 
 
