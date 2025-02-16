@@ -35,7 +35,6 @@ def main() -> None:
     confirmation_str = f"Going to copy the following files to {existing_data_path}:"
     for file in files_to_copy:
         confirmation_str += f"\n\t{file}"
-    confirmation_str += f"To {existing_data_path}"
 
     rm_command = f"rm -r {existing_data_path}/*"
     confirmation_str += (
