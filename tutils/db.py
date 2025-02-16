@@ -20,6 +20,7 @@ def get_database_handle(
     auth_source: Optional[str] = None,
     auth_mechanism: str = "SCRAM-SHA-1",
     timeout: int = 1_000,
+    logger: Optional[Logger] = None,
 ) -> Database | NoReturn:
     """Returns a database handle."""
     try:
@@ -35,7 +36,11 @@ def get_database_handle(
         dbh = client[db_name]
         return dbh
     except Exception as e:
-        print(e)
+        msg = f"Failed to grab database handle: {str(e)}"
+        if logger:
+            log_msg(logger=logger, msg=msg, level="error")
+        else:
+            print(msg)
         sys.exit(1)
 
 
@@ -85,26 +90,38 @@ def setup_index(
     """
     if index_name is None:
         index_name = f"{index_field}_{order}"
-    if index_name not in collection.index_information():
-        if order == "ascending":
-            collection.create_index(
-                [(index_field, pymongo.ASCENDING)], name=index_name, unique=unique
-            )
-        elif order == "descending":
-            collection.create_index(
-                [(index_field, pymongo.DESCENDING)], name=index_name, unique=unique
-            )
-        status_message = (
-            f"Created `{order}` index `{index_name}` on collection `{collection.name}`."
+    try:
+        if index_name not in collection.index_information():
+            if order == "ascending":
+                collection.create_index(
+                    [(index_field, pymongo.ASCENDING)], name=index_name, unique=unique
+                )
+            elif order == "descending":
+                collection.create_index(
+                    [(index_field, pymongo.DESCENDING)], name=index_name, unique=unique
+                )
+            status_message = f"Created `{order}` index `{index_name}` on collection `{collection.name}`."
+            if logger is not None:
+                log_msg(logger=logger, msg=status_message)
+            print(status_message)
+        else:
+            status_message = f"{order.title()} index `{index_name}` on collection `{collection.name}` already exists."
+            if logger is not None:
+                log_msg(logger=logger, msg=status_message)
+            print(status_message)
+    except Exception as e:
+        msg = (
+            "Error while setting up index:\n"
+            f"\tCollection: {collection}\n"
+            f"\tIndex field: {index_field}\n"
+            f"\tUnique: {unique}\n"
+            f"\tOrder: {order}\n"
+            f"\tIndex name: {index_name}\n"
+            f"Error: {e}"
         )
-        if logger is not None:
-            log_msg(logger=logger, msg=status_message)
-        print(status_message)
-    else:
-        status_message = f"{order.title()} index `{index_name}` on collection `{collection.name}` already exists."
-        if logger is not None:
-            log_msg(logger=logger, msg=status_message, to_stdout=True)
-        print(status_message)
+        if logger:
+            log_msg(logger=logger, msg=msg, level="error")
+        print(msg)
 
 
 def create_text_index(collection: Collection, logger: Optional[Logger] = None) -> None:
@@ -133,7 +150,12 @@ def get_connection_string(
     return uri
 
 
-def dump_id_collection(connection_string: str, save_path: str, collection: str) -> bool:
+def dump_id_collection(
+    connection_string: str,
+    save_path: str,
+    collection: str,
+    logger: Optional[Logger] = None,
+) -> bool:
     """Dumps the ID collections to disk to be used later for replication in the
     production database. Can only be run on the tst server.
 
@@ -163,16 +185,26 @@ def dump_id_collection(connection_string: str, save_path: str, collection: str) 
     try:
         subprocess.run(command, check=True)
     except subprocess.CalledProcessError as e:
-        print("Args passed:")
-        print(f"Connection string: {connection_string}")
-        print(f"Save path: {save_path}")
-        print(f"Collection: {collection}")
-        print(e)
+        msg = (
+            "Args passed:\n"
+            f"\tConnection string: {connection_string}\n"
+            f"\tSave path: {save_path}\n"
+            f"\tCollection: {collection}\n"
+            f"Error: {e}"
+        )
+        if logger:
+            log_msg(logger=logger, msg=msg, level="error")
+        print(msg)
         return False
     return True
 
 
-def load_id_collection(connection_string: str, load_path: str, collection: str) -> bool:
+def load_id_collection(
+    connection_string: str,
+    load_path: str,
+    collection: str,
+    logger: Optional[Logger] = None,
+) -> bool:
     """Loads the local ID collections into the prod database.
 
     Parameters
@@ -204,10 +236,15 @@ def load_id_collection(connection_string: str, load_path: str, collection: str) 
     try:
         subprocess.run(command, check=True)
     except subprocess.CalledProcessError as e:
-        print("Args passed:")
-        print(f"Connection string: {connection_string}")
-        print(f"Load path: {load_path}")
-        print(f"Collection: {collection}")
-        print(e)
+        msg = (
+            "Args passed:\n"
+            f"\tConnection string: {connection_string}\n"
+            f"\tLoad path: {load_path}\n"
+            f"\tCollection: {collection}\n"
+            f"Error: {e}"
+        )
+        if logger:
+            log_msg(logger=logger, msg=msg, level="error")
+        print(msg)
         return False
     return True

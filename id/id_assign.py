@@ -5,6 +5,7 @@ import os
 from time import time
 from helpers import id_backend as id_backend
 from helpers import LOGGER
+from traceback import format_exc
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.db import (
@@ -61,12 +62,14 @@ def main() -> None:
         index_field="hash_value",
         unique=True,
         index_name="hash_value_1",
+        logger=LOGGER,
     )
     setup_index(
         collection=dbh[second_level_id_collection],
         index_field="biomarker_canonical_id",
         unique=True,
         index_name="canonical_1",
+        logger=LOGGER,
     )
 
     ### initiate id assignment logic
@@ -117,6 +120,7 @@ def main() -> None:
         connection_string=connection_string,
         save_path=canonical_id_collection_local_path,
         collection=canonical_id_collection,
+        logger=LOGGER,
     ):
         log_msg(logger=LOGGER, msg="Successfully dumped canonical ID map.")
     else:
@@ -129,6 +133,7 @@ def main() -> None:
         connection_string,
         second_level_id_collection_local_path,
         second_level_id_collection,
+        logger=LOGGER,
     ):
         log_msg(
             logger=LOGGER,
@@ -149,4 +154,12 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        log_msg(
+            logger=LOGGER,
+            msg=f"id_assign failed: {e}\n{format_exc()}",
+            level="error",
+            to_stdout=True,
+        )
