@@ -122,3 +122,9 @@ def resolve_symlink(path: str) -> Optional[str]:
 def copy_file(src: str, dest: str) -> None:
     """Copies a file from src to dest."""
     subprocess.run(["cp", src, dest], check=True)
+
+
+def confirmation_message_complete() -> None:
+    print(
+        "Confirmation prompts over, can safely send to background execution if needed."
+    )

@@ -20,6 +20,7 @@ from tutils.general import (
     get_user_confirmation,
     resolve_symlink,
     write_json,
+    confirmation_message_complete,
 )
 from tutils.logging import log_msg, start_message
 from tutils.constants import (
@@ -76,9 +77,7 @@ def main() -> None:
     print(f"Resolved symlink for {new_data_dir_path} point to:\n\t{resolved_symlink}")
     get_user_confirmation()
 
-    print(
-        "Confirmation prompts over, can safely send to background execution if needed."
-    )
+    confirmation_message_complete()
 
     data_release_glob_pattern = os.path.join(new_data_dir_path, "*.json")
     files = glob.glob(data_release_glob_pattern)

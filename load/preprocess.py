@@ -2,7 +2,7 @@
 
 For now this is the implementation that I created on the fly. However, its slow, incurring significant runtime complexity.
 As the project gets more and more data this approach will be very slow. This is a heavily IO bound workflow. In an ideal
-world, you could complete this logic in memory and avoid excessive IO calls. However, with the amount of data we currently 
+world, you could complete this logic in memory and avoid excessive IO calls. However, with the amount of data we currently
 have that is not feasible.
 
 usage: parser.py [-h] server
@@ -27,6 +27,7 @@ from tutils.general import (
     load_json_type_safe,
     resolve_symlink,
     write_json,
+    confirmation_message_complete,
 )
 from tutils.config import get_config
 from tutils.logging import setup_logging, log_msg, start_message
@@ -74,13 +75,11 @@ def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
     log_msg(
         logger=LOGGER,
         msg="==================== Starting First Pass ====================",
-        to_stdout=True,
     )
     for file_idx, file_path in enumerate(files):
         log_msg(
             logger=LOGGER,
             msg=f"------------- Processing file {file_idx + 1} of {len(files)}: {os.path.basename(file_path)}",
-            to_stdout=True,
         )
         file = open(file_path, "r")
         file_start_time = time.time()
@@ -149,7 +148,6 @@ def second_pass(merged_dir: str, collision_dir: str) -> float:
     log_msg(
         logger=LOGGER,
         msg="==================== Starting Second Pass ====================",
-        to_stdout=True,
     )
     all_collision_files = glob.glob(os.path.join(collision_dir, "*.json"))
     total_collision_files = len(all_collision_files)
@@ -165,11 +163,6 @@ def second_pass(merged_dir: str, collision_dir: str) -> float:
         biomarker_id = collision_record["biomarker_id"]
         merge_record_path = os.path.join(merged_dir, f"{biomarker_id}.json")
         if not os.path.isfile(merge_record_path):
-            log_msg(
-                logger=LOGGER,
-                msg=f"Did not find corresponding source record for collision biomarker id {biomarker_id}, file: {file}.",
-                to_stdout=True,
-            )
             write_json(filepath=merge_record_path, data=collision_record)
             os.remove(file)
             continue
@@ -229,7 +222,7 @@ def main() -> None:
     # grab all the files in the existing data directory (latest version of each JSON datamodel formatted data)
     all_data_files = glob.glob(existing_data_pattern)
     all_data_log_msg = "Found existing files:\n" + "\n\t".join(all_data_files)
-    log_msg(logger=LOGGER, msg=all_data_log_msg, to_stdout=True)
+    log_msg(logger=LOGGER, msg=all_data_log_msg)
     get_user_confirmation()
 
     # create the path to the merged data directory
@@ -251,7 +244,10 @@ def main() -> None:
         rm_time = time.time()
         subprocess.run(rm_command, shell=True)
         rm_elapsed = round(time.time() - rm_time, 2)
-        log_msg(logger=LOGGER, msg=f"Finished removing directory, took {rm_elapsed} seconds.", to_stdout=True)
+        log_msg(
+            logger=LOGGER,
+            msg=f"Finished removing directory, took {rm_elapsed} seconds.",
+        )
     os.mkdir(merged_target_path_merged)
     # create the path to the collision directory or clear them out if they exist
     # this is where the collision value != 0 records will go
@@ -267,8 +263,13 @@ def main() -> None:
         rm_time = time.time()
         subprocess.run(rm_command, shell=True)
         rm_elapsed = round(time.time() - rm_time, 2)
-        log_msg(logger=LOGGER, msg=f"Finished removing directory, took {rm_elapsed} seconds.", to_stdout=True)
+        log_msg(
+            logger=LOGGER,
+            msg=f"Finished removing directory, took {rm_elapsed} seconds.",
+        )
     os.mkdir(merged_target_path_collision)
+
+    confirmation_message_complete()
 
     first_pass_time = first_pass(
         files=all_data_files,
