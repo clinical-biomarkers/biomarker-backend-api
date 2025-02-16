@@ -236,7 +236,7 @@ def main() -> None:
     all_files_sort_start = time.time()
     all_data_files.sort()
     all_file_sort_elapsed = time.time() - all_files_sort_start
-    all_data_log_msg = "Found existing files:\n" + "\n\t".join(all_data_files)
+    all_data_log_msg = "Found existing files:\n\t" + "\n\t".join(all_data_files)
     all_data_log_msg += f"\nAll files sort took  {all_file_sort_elapsed} seconds"
     log_msg(logger=LOGGER, msg=all_data_log_msg, to_stdout=True)
     get_user_confirmation()
