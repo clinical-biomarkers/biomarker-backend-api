@@ -32,14 +32,14 @@ def main() -> None:
     )
 
     files_to_copy = glob.glob(new_data_glob_pattern)
-    confirmation_str = "Going to copy files:"
+    confirmation_str = f"Going to copy the following files to {existing_data_path}:"
     for file in files_to_copy:
         confirmation_str += f"\n\t{file}"
     confirmation_str += f"To {existing_data_path}"
 
     rm_command = f"rm -r {existing_data_path}/*"
     confirmation_str += (
-        f"\nWill clear out the existing data directory first with: {rm_command}"
+        f"\n\nWill clear out the existing data directory first with command: {rm_command}"
     )
     print(confirmation_str)
     get_user_confirmation()
