@@ -1,4 +1,5 @@
 import sys
+import os
 import subprocess
 from pymongo import MongoClient
 import pymongo
@@ -9,6 +10,7 @@ from typing import Optional, NoReturn, Literal
 from urllib.parse import quote_plus
 from tutils.config import get_config
 from tutils.logging import log_msg
+from . import ROOT_DIR
 
 
 def get_database_handle(
@@ -168,15 +170,10 @@ def dump_id_collection(
     collection: str
         The collection to dump.
     """
-    command = [
-        "mongoexport",
-        "--uri",
-        connection_string,
-        "--collection",
-        collection,
-        "--out",
-        save_path,
-    ]
+    export_log = os.path.join(ROOT_DIR, "logs", f"mongoexport_{collection}.log")
+    mongoexport_cmd = f"mongoexport --uri '{connection_string}' --collection {collection} --out {save_path}"
+    command = f"nohup {mongoexport_cmd} > {export_log} 2>&1 &"
+
     msg = f"Dumping {collection} collection with command {command}"
     if logger:
         log_msg(logger=logger, msg=msg)
@@ -184,7 +181,7 @@ def dump_id_collection(
         print(msg)
 
     try:
-        subprocess.run(command, check=True)
+        subprocess.run(command, shell=True, check=True)
     except subprocess.CalledProcessError as e:
         msg = (
             "Failed dumping ID map\n"
@@ -196,12 +193,6 @@ def dump_id_collection(
         )
         if logger:
             log_msg(logger=logger, msg=msg, level="error")
-        print(msg)
-
-    msg = f"Successfully dumped {collection} map"
-    if logger:
-        log_msg(logger=logger, msg=msg)
-    else:
         print(msg)
 
 
