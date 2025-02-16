@@ -155,7 +155,7 @@ def dump_id_collection(
     save_path: str,
     collection: str,
     logger: Optional[Logger] = None,
-) -> bool:
+) -> None:
     """Dumps the ID collections to disk to be used later for replication in the
     production database. Can only be run on the tst server.
 
@@ -167,11 +167,6 @@ def dump_id_collection(
         The filepath to the local ID map.
     collection: str
         The collection to dump.
-
-    Returns
-    -------
-    bool
-        Indication if the collection was dumped successfully.
     """
     command = [
         "mongoexport",
@@ -182,25 +177,32 @@ def dump_id_collection(
         "--out",
         save_path,
     ]
+    msg = f"Dumping {collection} collection with command {command}"
     if logger:
-        log_msg(
-            logger=logger, msg=f"Dumping {collection} collection with command {command}"
-        )
+        log_msg(logger=logger, msg=msg)
+    else:
+        print(msg)
+
     try:
         subprocess.run(command, check=True)
     except subprocess.CalledProcessError as e:
         msg = (
-            "Args passed:\n"
-            f"\tConnection string: {connection_string}\n"
-            f"\tSave path: {save_path}\n"
-            f"\tCollection: {collection}\n"
+            "Failed dumping ID map\n"
+            "\tArgs passed:\n"
+            f"\t\tConnection string: {connection_string}\n"
+            f"\t\tSave path: {save_path}\n"
+            f"\t\tCollection: {collection}\n"
             f"Error: {e}"
         )
         if logger:
             log_msg(logger=logger, msg=msg, level="error")
         print(msg)
-        return False
-    return True
+
+    msg = f"Successfully dumped {collection} map"
+    if logger:
+        log_msg(logger=logger, msg=msg)
+    else:
+        print(msg)
 
 
 def load_id_collection(

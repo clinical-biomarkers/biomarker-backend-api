@@ -116,35 +116,18 @@ def main() -> None:
     )
 
     connection_string = get_connection_string(server=server)
-    if dump_id_collection(
+    dump_id_collection(
         connection_string=connection_string,
         save_path=canonical_id_collection_local_path,
         collection=canonical_id_collection,
         logger=LOGGER,
-    ):
-        log_msg(logger=LOGGER, msg="Successfully dumped canonical ID map.")
-    else:
-        log_msg(
-            logger=LOGGER,
-            msg="Failed dumping canonical ID map. You will have to update manually.",
-            level="error",
-        )
-    if dump_id_collection(
+    )
+    dump_id_collection(
         connection_string=connection_string,
         save_path=second_level_id_collection_local_path,
         collection=second_level_id_collection,
         logger=LOGGER,
-    ):
-        log_msg(
-            logger=LOGGER,
-            msg="Successfully dumped second level ID map.",
-        )
-    else:
-        log_msg(
-            logger=LOGGER,
-            msg="Failed dumping second level ID map. You will have to update manually.",
-            level="error",
-        )
+    )
 
     elapsed_time = time() - start_time
     log_msg(

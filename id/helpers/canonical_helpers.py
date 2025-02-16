@@ -1,5 +1,4 @@
-""" Handles all the logic for assigning/generating the canonical biomarker ID.
-"""
+"""Handles all the logic for assigning/generating the canonical biomarker ID."""
 
 import re
 import hashlib
@@ -9,6 +8,7 @@ import os
 import pymongo
 from pymongo.database import Database
 from . import LOGGER
+from pprint import pformat
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from tutils.logging import log_msg
@@ -217,13 +217,14 @@ def _new_ordinal(
         )
         sys.exit(1)
 
-    dbh[id_collection].insert_one(
-        {
-            "hash_value": hash_value,
-            "biomarker_canonical_id": new_ordinal_id,
-            "core_values_str": core_values_str,
-        }
-    )
+    record = {
+        "hash_value": hash_value,
+        "biomarker_canonical_id": new_ordinal_id,
+        "core_values_str": core_values_str,
+    }
+    result = dbh[id_collection].insert_one(record)
+    msg = f"Canonical insert one result: {str(result)}\nInserted: {pformat(record)}"
+    log_msg(logger=LOGGER, msg=msg)
 
     return new_ordinal_id
 

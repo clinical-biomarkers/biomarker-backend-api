@@ -1,10 +1,10 @@
-""" Handles all the logic for assigning/generating the second level ID.
-"""
+"""Handles all the logic for assigning/generating the second level ID."""
 
 import sys
 import os
 from pymongo.database import Database
 from typing import NoReturn, Optional
+from pprint import pformat
 from . import LOGGER
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
@@ -172,17 +172,30 @@ def _new_ordinal(
             "biomarker_canonical_id": canonical_id,
             "values": {"curr_index": 1, "existing_entries": [{key: second_level_id}]},
         }
-        dbh[id_collection].insert_one(new_entry)
+        insert_result = dbh[id_collection].insert_one(new_entry)
+        msg = (
+            f"Second level ID insert one result: {str(insert_result)}\n"
+            f"Inserted: {pformat(new_entry)}"
+        )
+        log_msg(logger=LOGGER, msg=msg)
     else:
         new_index = record_to_update["values"]["curr_index"] + 1
         second_level_id = f"{canonical_id}-{new_index}"
-        dbh[id_collection].update_one(
-            {"biomarker_canonical_id": canonical_id},
-            {
-                "$set": {"values.curr_index": new_index},
-                "$push": {"values.existing_entries": {key: second_level_id}},
-            },
+        update_key = {"biomarker_canonical_id": canonical_id}
+        update_object = {
+            "$set": {"values.curr_index": new_index},
+            "$push": {"values.existing_entries": {key: second_level_id}},
+        }
+        update_result = dbh[id_collection].update_one(
+            update_key,
+            update_object,
         )
+        msg = (
+            f"Second level ID update result: {str(update_result)}\n"
+            f"Update key: {update_key}\n"
+            f"Update object: {update_object}\n"
+        )
+        log_msg(logger=LOGGER, msg=msg)
     return second_level_id
 
 
