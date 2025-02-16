@@ -130,9 +130,9 @@ def main() -> None:
             level="error",
         )
     if dump_id_collection(
-        connection_string,
-        second_level_id_collection_local_path,
-        second_level_id_collection,
+        connection_string=connection_string,
+        save_path=second_level_id_collection_local_path,
+        collection=second_level_id_collection,
         logger=LOGGER,
     ):
         log_msg(

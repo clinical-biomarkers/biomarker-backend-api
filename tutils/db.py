@@ -182,6 +182,10 @@ def dump_id_collection(
         "--out",
         save_path,
     ]
+    if logger:
+        log_msg(
+            logger=logger, msg=f"Dumping {collection} collection with command {command}"
+        )
     try:
         subprocess.run(command, check=True)
     except subprocess.CalledProcessError as e:
