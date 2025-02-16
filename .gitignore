@@ -13,6 +13,7 @@ build/
 test.py
 misc_documentation.md
 *.log 
+logs/
 collision_reports/
 .vscode/
 mypy.ini
