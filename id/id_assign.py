@@ -86,7 +86,7 @@ def main() -> None:
     files = glob.glob(data_release_glob_pattern)
     files.sort()
 
-    os.makedirs(id_backend.NEW_BIOMARKER_ID_LIST_DIR)
+    os.makedirs(name=id_backend.NEW_BIOMARKER_ID_LIST_DIR, exist_ok=True)
 
     start_time = time()
     for fp in files:
