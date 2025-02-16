@@ -20,6 +20,7 @@ import subprocess
 import glob
 import os
 import sys
+from traceback import format_exc
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.general import (
@@ -86,8 +87,10 @@ def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
         record_counter = 0
         for record_idx, record in enumerate(ijson.items(file, "item")):
             total_record_count += 1
-            if record_idx + 1 % CHECKPOINT_VAL == 0:
-                print(f"Hit checkpoint at record index: {record_idx}.")
+            if (record_idx + 1) % CHECKPOINT_VAL == 0:
+                log_msg(
+                    logger=LOGGER, msg=f"Hit checkpoint at record index: {record_idx}"
+                )
 
             collision = record.pop("collision")
             biomarker_id = record["biomarker_id"]
@@ -113,8 +116,11 @@ def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
                 )
             record_counter += 1
         file.close()
-        print(f"Elapsed time: {round(time.time() - file_start_time, 2)} seconds")
-        print(f"Records processed: {record_counter}")
+        msg = (
+            f"Elapsed time: {round(time.time() - file_start_time, 2)} seconds\n"
+            f"Records processed: {record_counter}"
+        )
+        log_msg(logger=LOGGER, msg=msg)
     elapsed_time = round(time.time() - start_time)
     log_msg(
         logger=LOGGER,
@@ -150,14 +156,21 @@ def second_pass(merged_dir: str, collision_dir: str) -> float:
         msg="==================== Starting Second Pass ====================",
     )
     all_collision_files = glob.glob(os.path.join(collision_dir, "*.json"))
+    collision_file_sort_start = time.time()
+    all_collision_files.sort()
+    collision_file_sort_elapsed = time.time() - collision_file_sort_start
+    log_msg(
+        logger=LOGGER,
+        msg=f"Collision file sort took {collision_file_sort_elapsed} seconds",
+    )
     total_collision_files = len(all_collision_files)
     merged_count = 0
 
     start_time = time.time()
     for file_idx, file in enumerate(all_collision_files):
 
-        if file_idx + 1 % CHECKPOINT_VAL == 0:
-            print(f"Hit checkpoint at file index: {file_idx}.")
+        if (file_idx + 1) % CHECKPOINT_VAL == 0:
+            log_msg(logger=LOGGER, msg=f"Hit checkpoint at file index: {file_idx}")
 
         collision_record = load_json_type_safe(filepath=file, return_type="dict")
         biomarker_id = collision_record["biomarker_id"]
@@ -196,14 +209,13 @@ def main() -> None:
         sys.exit(1)
     server = options.server.lower().strip()
     # only allow running this script on the dev server
-    target_server = "dev"
-    if server != target_server:
-        print(f"This script can only be run on the {target_server} server.")
+    if server != "dev":
+        print("This script can only be run on the dev server.")
         sys.exit(1)
 
     start_message(logger=LOGGER, msg=f"Preprocessing data for server: {server}")
 
-    config_obj = get_config()
+    config_obj = get_config(logger=LOGGER)
     # the root path to the biomarkerdb data
     data_root_path_segment = config_obj["data_path"]
     # the path elements to the generated datamodel data from the root path segment
@@ -221,7 +233,11 @@ def main() -> None:
     )
     # grab all the files in the existing data directory (latest version of each JSON datamodel formatted data)
     all_data_files = glob.glob(existing_data_pattern)
+    all_files_sort_start = time.time()
+    all_data_files.sort()
+    all_file_sort_elapsed = time.time() - all_files_sort_start
     all_data_log_msg = "Found existing files:\n" + "\n\t".join(all_data_files)
+    all_data_log_msg += f"\nAll files sort took  {all_file_sort_elapsed} seconds"
     log_msg(logger=LOGGER, msg=all_data_log_msg)
     get_user_confirmation()
 
@@ -287,4 +303,12 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        log_msg(
+            logger=LOGGER,
+            msg=f"preprocess failed: {e}\n{format_exc()}",
+            level="error",
+            to_stdout=True,
+        )
