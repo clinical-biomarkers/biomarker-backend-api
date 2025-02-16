@@ -132,7 +132,7 @@ def _get_ordinal_id(
         log_str = f"Some error occurred in looking up existing ordinal second level ID in `{id_collection}` for:"
         log_str += f"\n\tcanonical ID: `{canonical_id}`"
         log_str += f"\n\tkey: `{key}`"
-        log_msg(logger=LOGGER, msg=log_str, level="error", to_stdout=True)
+        log_msg(logger=LOGGER, msg=log_str, level="error")
         sys.exit(1)
     for entry in existing_entries:
         if key in entry.keys():
@@ -141,7 +141,7 @@ def _get_ordinal_id(
     log_str += f"\n\tcanonical ID: `{canonical_id}`"
     log_str += f"\n\tkey: `{key}`"
     log_str += f"\n\texisting entries: `{existing_entries}`"
-    log_msg(logger=LOGGER, msg=log_str, level="error", to_stdout=True)
+    log_msg(logger=LOGGER, msg=log_str, level="error")
     sys.exit(1)
 
 
@@ -214,7 +214,7 @@ def _check_collision(
         log_str = "Unexpected error when querying for existing biomarker canonical ID existing entries:"
         log_str += "\n\tcanonical ID: `{canonical_id}`"
         log_str += "\n\tID collection: `{id_collection}`"
-        log_msg(logger=LOGGER, msg=log_str, level="error", to_stdout=True)
+        log_msg(logger=LOGGER, msg=log_str, level="error")
         sys.exit(1)
     existing_keys = [
         existing_key for entry in existing_entries for existing_key in entry.keys()
@@ -291,6 +291,5 @@ def _get_key(document: dict) -> str:
             logger=LOGGER,
             msg=f"Error when parsing document for second level ID key.\nDocument: {document}",
             level="error",
-            to_stdout=True,
         )
         sys.exit(1)

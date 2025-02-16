@@ -5,13 +5,16 @@ from typing import Optional
 from pymongo.database import Database
 import os
 import sys
+from datetime import datetime
 from . import canonical_helpers as canonical
 from . import second_level_helpers as second
 from . import LOGGER
 import re
 from time import time
+from pathlib import Path
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+from tutils import ROOT_DIR
 from tutils.logging import log_msg
 from tutils.constants import biomarker_default, unreviewed_default
 
@@ -20,6 +23,7 @@ SECOND_DEFAULT = second.SECOND_DEFAULT
 DATA_DEFAULT = biomarker_default()
 UNREVIEWED_DEFAULT = unreviewed_default()
 LOG_CHECKPOINT = 5_000
+NEW_BIOMARKER_ID_LIST_DIR = os.path.join(ROOT_DIR, "logs", "new_biomarkers")
 
 
 def process_file_data(
@@ -49,13 +53,12 @@ def process_file_data(
     list[dict]
         Returns the updated data list with the ID values assigned.
     """
-    log_msg(logger=LOGGER, msg=f"Assigning IDs for `{filepath}`...", to_stdout=True)
+    log_msg(logger=LOGGER, msg=f"Assigning IDs for `{filepath}`...")
     if not data:
         log_msg(
             logger=LOGGER,
             msg=f"No data found for `{filepath}`.",
             level="error",
-            to_stdout=True,
         )
         return []
 
@@ -64,12 +67,12 @@ def process_file_data(
     start_time = time()
     collisions = 0
     new_biomarkers = 0
+    new_biomarker_id_list = []
     for idx, document in enumerate(data):
         if (idx + 1) % LOG_CHECKPOINT == 0:
             log_msg(
                 logger=LOGGER,
                 msg=f"Hit log checkpoint on index: {idx + 1}",
-                to_stdout=True,
             )
 
         if "collision" in document:
@@ -90,16 +93,23 @@ def process_file_data(
         else:
             document["collision"] = 0
             new_biomarkers += 1
+            new_biomarker_id_list.append(second_level_id)
 
         updated_data.append(document)
 
     elapsed_time = time() - start_time
+    new_biomarker_file = os.path.join(
+        NEW_BIOMARKER_ID_LIST_DIR, f"{Path(filepath).stem}.txt"
+    )
+    with open(new_biomarker_file, "w") as out_f:
+        out_f.write(f"{datetime.now()}")
+        out_f.write(", ".join(new_biomarker_id_list))
     msg = (
         f"Finished assigning IDs ({elapsed_time} seconds) for {filepath}\n"
         f"\tCollisions: {collisions}\n"
         f"\tNew biomarkers: {new_biomarkers}"
     )
-    log_msg(logger=LOGGER, msg=msg, to_stdout=True)
+    log_msg(logger=LOGGER, msg=msg)
     return updated_data
 
 

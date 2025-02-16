@@ -167,7 +167,7 @@ def _get_ordinal_id(
         log_str = f"Some error occurred in looking up existing ordinal canonical ID in `{id_collection}` for:"
         log_str += f"\n\thash value: `{hash_value}`"
         log_str += f"\n\tID collection: `{id_collection}`"
-        log_msg(logger=LOGGER, msg="", level="error", to_stdout=True)
+        log_msg(logger=LOGGER, msg="", level="error")
         sys.exit(1)
     return target_record["biomarker_canonical_id"]
 
@@ -214,7 +214,6 @@ def _new_ordinal(
             logger=LOGGER,
             msg=f"ValueError: {e}\n{traceback.format_exc()}",
             level="error",
-            to_stdout=True,
         )
         sys.exit(1)
 

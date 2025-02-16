@@ -84,6 +84,8 @@ def main() -> None:
     files = glob.glob(data_release_glob_pattern)
     files.sort()
 
+    os.makedirs(id_backend.NEW_BIOMARKER_ID_LIST_DIR)
+
     start_time = time()
     for fp in files:
         data = load_json_type_safe(filepath=fp, return_type="list")
@@ -99,7 +101,6 @@ def main() -> None:
                 logger=LOGGER,
                 msg=f"Error reading data from file `{fp}`. Updated data returned empty: {updated_data}, skipping...",
                 level="warning",
-                to_stdout=True,
             )
             continue
         write_json(fp, updated_data)
@@ -118,15 +119,12 @@ def main() -> None:
         save_path=canonical_id_collection_local_path,
         collection=canonical_id_collection,
     ):
-        log_msg(
-            logger=LOGGER, msg="Successfully dumped canonical ID map.", to_stdout=True
-        )
+        log_msg(logger=LOGGER, msg="Successfully dumped canonical ID map.")
     else:
         log_msg(
             logger=LOGGER,
             msg="Failed dumping canonical ID map. You will have to update manually.",
             level="error",
-            to_stdout=True,
         )
     if dump_id_collection(
         connection_string,
@@ -136,21 +134,18 @@ def main() -> None:
         log_msg(
             logger=LOGGER,
             msg="Successfully dumped second level ID map.",
-            to_stdout=True,
         )
     else:
         log_msg(
             logger=LOGGER,
             msg="Failed dumping second level ID map. You will have to update manually.",
             level="error",
-            to_stdout=True,
         )
 
     elapsed_time = time() - start_time
     log_msg(
         logger=LOGGER,
         msg=f"Finished ID assignment process ({elapsed_time} seconds) ---------------------",
-        to_stdout=True,
     )
 
 
