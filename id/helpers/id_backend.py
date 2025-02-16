@@ -102,7 +102,8 @@ def process_file_data(
         NEW_BIOMARKER_ID_LIST_DIR, f"{Path(filepath).stem}.txt"
     )
     with open(new_biomarker_file, "w") as out_f:
-        out_f.write(f"{datetime.now()}")
+        out_f.write(f"{datetime.now()}\n")
+        out_f.write("New biomarker IDs:\n")
         out_f.write(", ".join(new_biomarker_id_list))
     msg = (
         f"Finished assigning IDs ({elapsed_time} seconds) for {filepath}\n"
