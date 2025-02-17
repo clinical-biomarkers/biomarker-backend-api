@@ -32,7 +32,7 @@ from tutils.constants import (
     canonical_id_default,
     second_level_id_default,
 )
-from tutils.logging import setup_logging, log_msg, start_message
+from tutils.logging import setup_logging, log_msg, start_message, elapsed_time_formatter
 from load.load_utils import (
     clear_collections,
     create_load_record_command,
@@ -170,7 +170,7 @@ def main() -> None:
     clear_collection_elapsed_time = round(time.time() - clear_collection_start_time, 2)
     log_msg(
         logger=LOGGER,
-        msg=f"Finished clearing collections in {clear_collection_elapsed_time} seconds, ready to load.",
+        msg=f"Finished clearing collections in {elapsed_time_formatter(clear_collection_elapsed_time)}, ready to load.",
         to_stdout=True,
     )
 
@@ -206,7 +206,7 @@ def main() -> None:
     merged_elapsed_time = round(time.time() - merged_start_time, 2)
     log_msg(
         logger=LOGGER,
-        msg=f"Finished loading merged data in {merged_elapsed_time} seconds, completed {total_merged_ops} writes.",
+        msg=f"Finished loading merged data in {elapsed_time_formatter(merged_elapsed_time)}, completed {total_merged_ops} writes.",
         to_stdout=True,
     )
 
@@ -236,7 +236,7 @@ def main() -> None:
     collision_elapsed_time = round(time.time() - collision_start_time, 2)
     log_msg(
         logger=LOGGER,
-        msg=f"Finished loading collision data in {collision_elapsed_time} seconds, completed {total_collision_ops} writes.",
+        msg=f"Finished loading collision data in {elapsed_time_formatter(collision_elapsed_time)}, completed {total_collision_ops} writes.",
         to_stdout=True,
     )
 
@@ -248,16 +248,20 @@ def main() -> None:
     stats_elapsed_time = round(time.time() - stats_start_time, 2)
     log_msg(
         logger=LOGGER,
-        msg=f"Finished calculating stats in {stats_elapsed_time} seconds.",
+        msg=f"Finished calculating stats in {elapsed_time_formatter(stats_elapsed_time)}.",
         to_stdout=True,
     )
 
     finish_str = "Finished loading data and calculating new metadata stats."
-    finish_str += f"\n\tClearing old data took {clear_collection_elapsed_time} seconds."
-    finish_str += f"\n\tLoading merged data took {merged_elapsed_time} seconds."
-    finish_str += f"\n\tLoading collision data took {collision_elapsed_time} seconds."
-    finish_str += f"\n\tCalculating stats took {stats_elapsed_time} seconds."
-    finish_str += f"\n\tTotal time: {clear_collection_elapsed_time + merged_elapsed_time + collision_elapsed_time + stats_elapsed_time} seconds."
+    finish_str += f"\n\tClearing old data took {elapsed_time_formatter(clear_collection_elapsed_time)}."
+    finish_str += (
+        f"\n\tLoading merged data took {elapsed_time_formatter(merged_elapsed_time)}."
+    )
+    finish_str += f"\n\tLoading collision data took {elapsed_time_formatter(collision_elapsed_time)}."
+    finish_str += (
+        f"\n\tCalculating stats took {elapsed_time_formatter(stats_elapsed_time)}."
+    )
+    finish_str += f"\n\tTotal time: {elapsed_time_formatter(clear_collection_elapsed_time + merged_elapsed_time + collision_elapsed_time + stats_elapsed_time)}."
     log_msg(logger=LOGGER, msg=finish_str, to_stdout=True)
 
 

@@ -23,7 +23,7 @@ from tutils.general import (
     write_json,
     confirmation_message_complete,
 )
-from tutils.logging import log_msg, start_message
+from tutils.logging import log_msg, start_message, elapsed_time_formatter
 from tutils.constants import (
     canonical_id_default,
     second_level_id_default,
@@ -130,9 +130,13 @@ def main() -> None:
     )
 
     elapsed_time = time() - start_time
+    msg = (
+        f"Elapsed time: {elapsed_time_formatter(elapsed_time)}\n"
+        "Finished ID assignment process" + ("-" * 30)
+    )
     log_msg(
         logger=LOGGER,
-        msg=f"Finished ID assignment process ({elapsed_time} seconds) ---------------------",
+        msg=msg,
     )
 
 

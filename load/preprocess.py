@@ -31,7 +31,7 @@ from tutils.general import (
     confirmation_message_complete,
 )
 from tutils.config import get_config
-from tutils.logging import setup_logging, log_msg, start_message
+from tutils.logging import setup_logging, log_msg, start_message, elapsed_time_formatter
 from load.preprocess_utils import attempt_merge
 from tutils.parser import standard_parser
 
@@ -117,14 +117,14 @@ def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
             record_counter += 1
         file.close()
         msg = (
-            f"Elapsed time: {round(time.time() - file_start_time, 2)} seconds\n"
+            f"Elapsed time: {elapsed_time_formatter(time.time() - file_start_time)}\n"
             f"Records processed: {record_counter}"
         )
         log_msg(logger=LOGGER, msg=msg)
     elapsed_time = round(time.time() - start_time)
     log_msg(
         logger=LOGGER,
-        msg=f"Finished first pass, processed {total_record_count} records with {collision_count} collisions in {elapsed_time} seconds.",
+        msg=f"Finished first pass, processed {total_record_count} records with {collision_count} collisions, elapsed time: {elapsed_time_formatter(elapsed_time)}",
     )
     return elapsed_time
 
@@ -161,7 +161,7 @@ def second_pass(merged_dir: str, collision_dir: str) -> float:
     collision_file_sort_elapsed = time.time() - collision_file_sort_start
     log_msg(
         logger=LOGGER,
-        msg=f"Collision file sort took {collision_file_sort_elapsed} seconds",
+        msg=f"Collision file sort took {elapsed_time_formatter(collision_file_sort_elapsed)}",
     )
     total_collision_files = len(all_collision_files)
     merged_count = 0
@@ -200,7 +200,7 @@ def second_pass(merged_dir: str, collision_dir: str) -> float:
 
     elapsed_time = round(time.time() - start_time, 2)
     msg = (
-        f"Finished second pass, was able to merge {merged_count} records out of {total_collision_files} in {elapsed_time} seconds.\n"
+        f"Finished second pass, was able to merge {merged_count} records out of {total_collision_files} in {elapsed_time_formatter(elapsed_time)}.\n"
         "Merged record IDs: " + ", ".join(merged_record_ids)
     )
     log_msg(
@@ -247,7 +247,7 @@ def main() -> None:
     all_data_files.sort()
     all_file_sort_elapsed = time.time() - all_files_sort_start
     all_data_log_msg = "Found existing files:\n\t" + "\n\t".join(all_data_files)
-    all_data_log_msg += f"\nAll files sort took  {all_file_sort_elapsed} seconds"
+    all_data_log_msg += f"\nAll files sort took  {elapsed_time_formatter(all_file_sort_elapsed)}"
     log_msg(logger=LOGGER, msg=all_data_log_msg, to_stdout=True)
     get_user_confirmation()
 
@@ -272,7 +272,7 @@ def main() -> None:
         rm_elapsed = round(time.time() - rm_time, 2)
         log_msg(
             logger=LOGGER,
-            msg=f"Finished removing directory, took {rm_elapsed} seconds.",
+            msg=f"Finished removing directory, took {elapsed_time_formatter(rm_elapsed)}.",
         )
     os.mkdir(merged_target_path_merged)
     # create the path to the collision directory or clear them out if they exist
@@ -291,7 +291,7 @@ def main() -> None:
         rm_elapsed = round(time.time() - rm_time, 2)
         log_msg(
             logger=LOGGER,
-            msg=f"Finished removing directory, took {rm_elapsed} seconds.",
+            msg=f"Finished removing directory, took {elapsed_time_formatter(rm_elapsed)}.",
         )
     os.mkdir(merged_target_path_collision)
 
@@ -306,9 +306,9 @@ def main() -> None:
         merged_dir=merged_target_path_merged, collision_dir=merged_target_path_collision
     )
     finish_str = "Finished preprocessing data."
-    finish_str += f"\n\tFirst pass took {first_pass_time} seconds."
-    finish_str += f"\n\tSecond pass took {second_pass_time} seconds."
-    finish_str += f"\n\tTotal time: {first_pass_time + second_pass_time} seconds."
+    finish_str += f"\n\tFirst pass took {elapsed_time_formatter(first_pass_time)}."
+    finish_str += f"\n\tSecond pass took {elapsed_time_formatter(second_pass_time)}."
+    finish_str += f"\n\tTotal time: {elapsed_time_formatter(first_pass_time + second_pass_time)}."
     log_msg(logger=LOGGER, msg=finish_str, to_stdout=True)
 
 
