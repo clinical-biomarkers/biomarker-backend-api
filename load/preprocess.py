@@ -165,6 +165,7 @@ def second_pass(merged_dir: str, collision_dir: str) -> float:
     )
     total_collision_files = len(all_collision_files)
     merged_count = 0
+    merged_record_ids = []
 
     start_time = time.time()
     for file_idx, file in enumerate(all_collision_files):
@@ -187,15 +188,24 @@ def second_pass(merged_dir: str, collision_dir: str) -> float:
             merge_record=merge_record, collision_record=collision_record
         )
         if merge_result is None:
+            log_msg(
+                logger=LOGGER,
+                msg=f"Unable to merge:\n\t- {file}\n\t- {merge_record_path}\nContinuing...",
+            )
             continue
         write_json(filepath=merge_record_path, data=merge_result)
         os.remove(file)
         merged_count += 1
+        merged_record_ids.append(merge_result["biomarker_id"])
 
     elapsed_time = round(time.time() - start_time, 2)
+    msg = (
+        f"Finished second pass, was able to merge {merged_count} records out of {total_collision_files} in {elapsed_time} seconds.\n"
+        "Merged record IDs: " + ", ".join(merged_record_ids)
+    )
     log_msg(
         logger=LOGGER,
-        msg=f"Finished second pass, was able to merge {merged_count} records out of {total_collision_files} in {elapsed_time} seconds.",
+        msg=msg,
     )
     return elapsed_time
 
