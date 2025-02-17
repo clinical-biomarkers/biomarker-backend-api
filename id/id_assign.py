@@ -148,5 +148,4 @@ if __name__ == "__main__":
             logger=LOGGER,
             msg=f"id_assign failed: {e}\n{format_exc()}",
             level="error",
-            to_stdout=True,
         )
