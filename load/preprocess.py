@@ -247,10 +247,13 @@ def main() -> None:
     all_data_files.sort()
     all_file_sort_elapsed = time.time() - all_files_sort_start
     all_data_log_msg = "Found existing files:\n\t" + "\n\t".join(all_data_files)
-    all_data_log_msg += f"\nAll files sort took  {elapsed_time_formatter(all_file_sort_elapsed)}"
+    all_data_log_msg += (
+        f"\nAll files sort took  {elapsed_time_formatter(all_file_sort_elapsed)}"
+    )
     log_msg(logger=LOGGER, msg=all_data_log_msg, to_stdout=True)
     get_user_confirmation()
 
+    clear_cmds = []
     # create the path to the merged data directory
     merged_target_path = os.path.join(
         data_root_path_segment, *generated_path_segment, *merged_data_path_segment
@@ -263,18 +266,12 @@ def main() -> None:
     merged_target_path_merged = os.path.join(merged_target_path, "merged_json")
     if os.path.isdir(merged_target_path_merged):
         rm_command = f"rm -r {merged_target_path_merged}"
+        clear_cmds.append(rm_command)
         confirmation_str = f"Found existing directory at {merged_target_path_merged}, going to remove with the following command:"
         confirmation_str += f"\n\t{rm_command}"
         print(confirmation_str)
         get_user_confirmation()
-        rm_time = time.time()
-        subprocess.run(rm_command, shell=True)
-        rm_elapsed = round(time.time() - rm_time, 2)
-        log_msg(
-            logger=LOGGER,
-            msg=f"Finished removing directory, took {elapsed_time_formatter(rm_elapsed)}.",
-        )
-    os.mkdir(merged_target_path_merged)
+
     # create the path to the collision directory or clear them out if they exist
     # this is where the collision value != 0 records will go
     # after the first pass to dump the collision records here, each record will be attempted to be merged with the non-collision record
@@ -282,20 +279,24 @@ def main() -> None:
     merged_target_path_collision = os.path.join(merged_target_path, "collision_json")
     if os.path.isdir(merged_target_path_collision):
         rm_command = f"rm -r {merged_target_path_collision}"
+        clear_cmds.append(rm_command)
         confirmation_str = f"Found existing directory at {merged_target_path_collision}, going to clear with the following command:"
         confirmation_str += f"\n\t{rm_command}"
         print(confirmation_str)
         get_user_confirmation()
-        rm_time = time.time()
-        subprocess.run(rm_command, shell=True)
-        rm_elapsed = round(time.time() - rm_time, 2)
-        log_msg(
-            logger=LOGGER,
-            msg=f"Finished removing directory, took {elapsed_time_formatter(rm_elapsed)}.",
-        )
-    os.mkdir(merged_target_path_collision)
 
     confirmation_message_complete()
+
+    for cmd in clear_cmds:
+        rm_time = time.time()
+        subprocess.run(cmd, shell=True)
+        rm_elapsed = time.time() - rm_time
+        log_msg(
+            logger=LOGGER,
+            msg=f"Command: {cmd} took {elapsed_time_formatter(rm_elapsed)}.",
+        )
+    os.mkdir(merged_target_path_merged)
+    os.mkdir(merged_target_path_collision)
 
     first_pass_time = first_pass(
         files=all_data_files,
@@ -308,7 +309,9 @@ def main() -> None:
     finish_str = "Finished preprocessing data."
     finish_str += f"\n\tFirst pass took {elapsed_time_formatter(first_pass_time)}."
     finish_str += f"\n\tSecond pass took {elapsed_time_formatter(second_pass_time)}."
-    finish_str += f"\n\tTotal time: {elapsed_time_formatter(first_pass_time + second_pass_time)}."
+    finish_str += (
+        f"\n\tTotal time: {elapsed_time_formatter(first_pass_time + second_pass_time)}."
+    )
     log_msg(logger=LOGGER, msg=finish_str, to_stdout=True)
 
 
