@@ -288,6 +288,7 @@ def main() -> None:
     confirmation_message_complete()
 
     for cmd in clear_cmds:
+        log_msg(logger=LOGGER, msg=f"Running command: {cmd}...")
         rm_time = time.time()
         subprocess.run(cmd, shell=True)
         rm_elapsed = time.time() - rm_time
