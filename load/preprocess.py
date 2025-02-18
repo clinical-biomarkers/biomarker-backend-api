@@ -312,7 +312,7 @@ def main() -> None:
     finish_str += (
         f"\n\tTotal time: {elapsed_time_formatter(first_pass_time + second_pass_time)}."
     )
-    log_msg(logger=LOGGER, msg=finish_str, to_stdout=True)
+    log_msg(logger=LOGGER, msg=finish_str)
 
 
 if __name__ == "__main__":
