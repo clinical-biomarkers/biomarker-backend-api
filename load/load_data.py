@@ -114,6 +114,7 @@ def main() -> None:
             index_name=f"{path}_1",
             unique=False,
             order="ascending",
+            logger=LOGGER,
         )
         setup_index(
             collection=dbh[biomarker_collection],
@@ -121,6 +122,7 @@ def main() -> None:
             index_name=f"{path}_-1",
             unique=False,
             order="descending",
+            logger=LOGGER,
         )
     create_text_index(collection=dbh[biomarker_collection], logger=LOGGER)
 
@@ -170,7 +172,7 @@ def main() -> None:
     log_msg(logger=LOGGER, msg="Clearing collections...")
     clear_collection_start_time = time.time()
     clear_collections(dbh=dbh)
-    clear_collection_elapsed_time = round(time.time() - clear_collection_start_time, 2)
+    clear_collection_elapsed_time = time.time() - clear_collection_start_time
     log_msg(
         logger=LOGGER,
         msg=f"Finished clearing collections in {elapsed_time_formatter(clear_collection_elapsed_time)}, ready to load.",

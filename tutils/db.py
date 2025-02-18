@@ -106,9 +106,11 @@ def setup_index(
             if logger is not None:
                 log_msg(logger=logger, msg=status_message)
         else:
-            status_message = f"{order.title()} index `{index_name}` on collection `{collection.name}` already exists."
             if logger is not None:
-                log_msg(logger=logger, msg=status_message)
+                log_msg(
+                    logger=logger,
+                    msg=f"{order.title()} index `{index_name}` on collection `{collection.name}` already exists.",
+                )
     except Exception as e:
         msg = (
             "Error while setting up index:\n"
@@ -126,6 +128,13 @@ def setup_index(
 
 def create_text_index(collection: Collection, logger: Optional[Logger] = None) -> None:
     """Creates a text index on the `all_text` field."""
+    index_name = "all_text_text"
+    if index_name in collection.index_information():
+        if logger:
+            log_msg(
+                logger=logger,
+                msg=f"Text index `{index_name}` already exists on collection `{collection.name}`",
+            )
     try:
         collection.create_index([("all_text", "text")])
     except Exception as e:
@@ -136,7 +145,9 @@ def create_text_index(collection: Collection, logger: Optional[Logger] = None) -
                 level="error",
             )
         sys.exit(1)
-    status_message = f"Created `all_text` text index on collection `{collection.name}`."
+    status_message = (
+        f"Created `{index_name}` text index on collection `{collection.name}`."
+    )
     if logger is not None:
         log_msg(logger=logger, msg=status_message)
 
