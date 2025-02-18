@@ -24,7 +24,12 @@ from tutils.db import (
     load_id_collection,
 )
 from tutils.config import get_config
-from tutils.general import load_json_type_safe, resolve_symlink, get_user_confirmation
+from tutils.general import (
+    load_json_type_safe,
+    resolve_symlink,
+    get_user_confirmation,
+    confirmation_message_complete,
+)
 from tutils.parser import standard_parser
 from tutils.constants import (
     biomarker_default,
@@ -75,6 +80,8 @@ def main() -> None:
     resolved_symlink = resolve_symlink(merged_path_root)
     print(f"Resolved symlink for {merged_path_root} points to:\n\t{resolved_symlink}")
     get_user_confirmation()
+
+    confirmation_message_complete()
 
     merged_data_pattern = os.path.join(merged_path_root, "merged_json", "*.json")
     collision_data_pattern = os.path.join(merged_path_root, "collision_json", "*.json")
@@ -137,14 +144,12 @@ def main() -> None:
             log_msg(
                 logger=LOGGER,
                 msg="Successfully loaded canonical ID map.",
-                to_stdout=True,
             )
         else:
             log_msg(
                 logger=LOGGER,
                 msg="Failed loading canonical ID map. You will have to update manually.",
                 level="error",
-                to_stdout=True,
             )
         if load_id_collection(
             connection_string=connection_string,
@@ -154,14 +159,12 @@ def main() -> None:
             log_msg(
                 logger=LOGGER,
                 msg="Successfully loaded second level ID map.",
-                to_stdout=True,
             )
         else:
             log_msg(
                 logger=LOGGER,
                 msg="Failed loading second level ID map. You will have to update manually.",
                 level="error",
-                to_stdout=True,
             )
 
     log_msg(logger=LOGGER, msg="Clearing collections...")
@@ -171,26 +174,25 @@ def main() -> None:
     log_msg(
         logger=LOGGER,
         msg=f"Finished clearing collections in {elapsed_time_formatter(clear_collection_elapsed_time)}, ready to load.",
-        to_stdout=True,
     )
 
     log_msg(
         logger=LOGGER,
         msg="------------- Starting merged data load -------------",
-        to_stdout=True,
     )
     merged_start_time = time.time()
     merged_ops = []
     total_merged_ops = 0
     for idx, file in enumerate(merged_data_files):
         if (idx + 1) % CHECKPOINT_VAL == 0:
-            print(f"Hit merged data load checkpoint at index: {idx}")
+            log_msg(
+                logger=LOGGER, msg=f"Hit merged data load checkpoint at index: {idx}"
+            )
         try:
             record = load_json_type_safe(filepath=file, return_type="dict")
         except Exception as e:
-            print(f"{e}")
-            traceback.print_exc()
-            print(f"file: {file}")
+            msg = f"Error loading merged data on file: {file}\n{e}\n{traceback.format_exc()}"
+            log_msg(logger=LOGGER, msg=msg, level="error")
             sys.exit(1)
         merged_ops.append(create_load_record_command(record=record, all_text=True))
         if len(merged_ops) == WRITE_BATCH:
@@ -207,20 +209,18 @@ def main() -> None:
     log_msg(
         logger=LOGGER,
         msg=f"Finished loading merged data in {elapsed_time_formatter(merged_elapsed_time)}, completed {total_merged_ops} writes.",
-        to_stdout=True,
     )
 
     log_msg(
         logger=LOGGER,
         msg="------------- Starting collision data load -------------",
-        to_stdout=True,
     )
     collision_start_time = time.time()
     collision_ops = []
     total_collision_ops = 0
     for idx, file in enumerate(collision_data_files):
         if (idx + 1) % CHECKPOINT_VAL == 0:
-            print(f"Hit collision load checkpoint at index: {idx}")
+            log_msg(logger=LOGGER, msg=f"Hit collision load checkpoint at index: {idx}")
         record = load_json_type_safe(filepath=file, return_type="dict")
         collision_ops.append(create_load_record_command(record=record, all_text=False))
         if len(collision_ops) == WRITE_BATCH:
@@ -237,10 +237,9 @@ def main() -> None:
     log_msg(
         logger=LOGGER,
         msg=f"Finished loading collision data in {elapsed_time_formatter(collision_elapsed_time)}, completed {total_collision_ops} writes.",
-        to_stdout=True,
     )
 
-    log_msg(logger=LOGGER, msg="Calculating metadata stats...", to_stdout=True)
+    log_msg(logger=LOGGER, msg="Calculating metadata stats...")
     stats_start_time = time.time()
     process_stats(
         dbh=dbh, data_collection=biomarker_collection, stat_collection=stats_collection
@@ -249,7 +248,6 @@ def main() -> None:
     log_msg(
         logger=LOGGER,
         msg=f"Finished calculating stats in {elapsed_time_formatter(stats_elapsed_time)}.",
-        to_stdout=True,
     )
 
     finish_str = "Finished loading data and calculating new metadata stats."
@@ -262,7 +260,7 @@ def main() -> None:
         f"\n\tCalculating stats took {elapsed_time_formatter(stats_elapsed_time)}."
     )
     finish_str += f"\n\tTotal time: {elapsed_time_formatter(clear_collection_elapsed_time + merged_elapsed_time + collision_elapsed_time + stats_elapsed_time)}."
-    log_msg(logger=LOGGER, msg=finish_str, to_stdout=True)
+    log_msg(logger=LOGGER, msg=finish_str)
 
 
 if __name__ == "__main__":
