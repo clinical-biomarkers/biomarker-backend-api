@@ -136,6 +136,7 @@ def create_text_index(collection: Collection, logger: Optional[Logger] = None) -
                 logger=logger,
                 msg=f"Text index `{index_name}` already exists on collection `{collection.name}`",
             )
+        return
     try:
         collection.create_index([("all_text", "text")])
     except Exception as e:
