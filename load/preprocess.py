@@ -321,6 +321,6 @@ if __name__ == "__main__":
     except Exception as e:
         log_msg(
             logger=LOGGER,
-            msg=f"preprocess failed: {e}\n{format_exc()}",
+            msg=f"Preprocess failed: {e}\n{format_exc()}",
             level="error",
         )

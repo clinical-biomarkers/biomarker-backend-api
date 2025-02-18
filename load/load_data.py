@@ -13,7 +13,7 @@ import glob
 import sys
 import time
 import os
-import traceback
+from traceback import format_exc
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.db import (
@@ -126,6 +126,9 @@ def main() -> None:
         )
     create_text_index(collection=dbh[biomarker_collection], logger=LOGGER)
 
+    loading_coll_log = ""
+    canonical_id_load_time = 0.0
+    second_id_load_time = 0.0
     if server != "dev":
         canonical_id_collection_local_path = os.path.join(
             data_root_path_segment,
@@ -138,36 +141,24 @@ def main() -> None:
             "second_level_id_collection.json",
         )
         connection_string = get_connection_string(server=server)
-        if load_id_collection(
+        canonical_id_load_time = load_id_collection(
             connection_string=connection_string,
             load_path=canonical_id_collection_local_path,
             collection=canonical_id_collection,
-        ):
-            log_msg(
-                logger=LOGGER,
-                msg="Successfully loaded canonical ID map.",
-            )
-        else:
-            log_msg(
-                logger=LOGGER,
-                msg="Failed loading canonical ID map. You will have to update manually.",
-                level="error",
-            )
-        if load_id_collection(
+            logger=LOGGER,
+        )
+        second_id_load_time = load_id_collection(
             connection_string=connection_string,
             load_path=second_level_id_collection_local_path,
             collection=second_level_id_collection,
-        ):
-            log_msg(
-                logger=LOGGER,
-                msg="Successfully loaded second level ID map.",
-            )
-        else:
-            log_msg(
-                logger=LOGGER,
-                msg="Failed loading second level ID map. You will have to update manually.",
-                level="error",
-            )
+            logger=LOGGER,
+        )
+        loading_coll_log = (
+            f"\tLoading ID collections took:\n"
+            f"\t\tCanonical: {elapsed_time_formatter(canonical_id_load_time)}\n"
+            f"\t\tSecond Level: {elapsed_time_formatter(second_id_load_time)}\n"
+            f"\t\tTotal: {elapsed_time_formatter(canonical_id_load_time + second_id_load_time)}\n"
+        )
 
     log_msg(logger=LOGGER, msg="Clearing collections...")
     clear_collection_start_time = time.time()
@@ -193,7 +184,7 @@ def main() -> None:
         try:
             record = load_json_type_safe(filepath=file, return_type="dict")
         except Exception as e:
-            msg = f"Error loading merged data on file: {file}\n{e}\n{traceback.format_exc()}"
+            msg = f"Error loading merged data on file: {file}\n{e}\n{format_exc()}"
             log_msg(logger=LOGGER, msg=msg, level="error")
             sys.exit(1)
         merged_ops.append(create_load_record_command(record=record, all_text=True))
@@ -252,18 +243,29 @@ def main() -> None:
         msg=f"Finished calculating stats in {elapsed_time_formatter(stats_elapsed_time)}.",
     )
 
-    finish_str = "Finished loading data and calculating new metadata stats."
-    finish_str += f"\n\tClearing old data took {elapsed_time_formatter(clear_collection_elapsed_time)}."
-    finish_str += (
-        f"\n\tLoading merged data took {elapsed_time_formatter(merged_elapsed_time)}."
+    total_time = (
+        canonical_id_load_time
+        + second_id_load_time
+        + clear_collection_elapsed_time
+        + merged_elapsed_time
+        + collision_elapsed_time
+        + stats_elapsed_time
     )
-    finish_str += f"\n\tLoading collision data took {elapsed_time_formatter(collision_elapsed_time)}."
-    finish_str += (
-        f"\n\tCalculating stats took {elapsed_time_formatter(stats_elapsed_time)}."
+    finish_str = (
+        "Finished loading data and calculating new metadata stats\n"
+        f"{loading_coll_log}"
+        f"\tClearing old data took {elapsed_time_formatter(clear_collection_elapsed_time)}\n"
+        f"\tLoading merged data took {elapsed_time_formatter(merged_elapsed_time)}\n"
+        f"\tLoading collision data took {elapsed_time_formatter(collision_elapsed_time)}\n"
+        f"\tCalculating stats took {elapsed_time_formatter(stats_elapsed_time)}\n"
+        f"\tCalculating stats took {elapsed_time_formatter(stats_elapsed_time)}\n"
+        f"\tTotal time: {elapsed_time_formatter(total_time)}"
     )
-    finish_str += f"\n\tTotal time: {elapsed_time_formatter(clear_collection_elapsed_time + merged_elapsed_time + collision_elapsed_time + stats_elapsed_time)}."
     log_msg(logger=LOGGER, msg=finish_str)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        log_msg(logger=LOGGER, msg=f"Loading failed: {e}.{format_exc()}", level="error")

@@ -7,9 +7,10 @@ from pymongo.database import Database
 from pymongo.collection import Collection
 from logging import Logger
 from typing import Optional, NoReturn, Literal
+from time import time
 from urllib.parse import quote_plus
 from tutils.config import get_config
-from tutils.logging import log_msg
+from tutils.logging import log_msg, elapsed_time_formatter
 from . import ROOT_DIR
 
 
@@ -191,7 +192,7 @@ def dump_id_collection(
     mongoexport_cmd = f"mongoexport --uri '{connection_string}' --collection {collection} --out {save_path}"
     command = f"nohup {mongoexport_cmd} > {export_log} 2>&1 &"
 
-    msg = f"Dumping {collection} collection with command {command}"
+    msg = f"Dumping {collection} collection with command `{command}`"
     if logger:
         log_msg(logger=logger, msg=msg)
     else:
@@ -217,8 +218,8 @@ def load_id_collection(
     connection_string: str,
     load_path: str,
     collection: str,
-    logger: Optional[Logger] = None,
-) -> bool:
+    logger: Logger,
+) -> float | NoReturn:
     """Loads the local ID collections into the prod database.
 
     Parameters
@@ -232,8 +233,8 @@ def load_id_collection(
 
     Returns
     -------
-    bool
-        Indication if the collection was loaded successfully.
+    float
+        Elapsed time in seconds.
     """
     command = [
         "mongoimport",
@@ -247,8 +248,16 @@ def load_id_collection(
         "upsert",
     ]
 
+    msg = f"Loading {collection} collection with command: `" + " ".join(command) + "`"
+    log_msg(logger=logger, msg=msg)
+
     try:
+        start_time = time()
         subprocess.run(command, check=True)
+        elapsed_time = time() - start_time
+        msg = f"Finished loading {collection} collection, took {elapsed_time_formatter(elapsed_time)}"
+        log_msg(logger=logger, msg=msg)
+        return elapsed_time
     except subprocess.CalledProcessError as e:
         msg = (
             "Args passed:\n"
@@ -257,8 +266,5 @@ def load_id_collection(
             f"\tCollection: {collection}\n"
             f"Error: {e}"
         )
-        if logger:
-            log_msg(logger=logger, msg=msg, level="error")
-        print(msg)
-        return False
-    return True
+        log_msg(logger=logger, msg=msg, level="error")
+        sys.exit(1)
