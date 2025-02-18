@@ -37,16 +37,16 @@ from tutils.constants import (
     canonical_id_default,
     second_level_id_default,
 )
-from tutils.logging import setup_logging, log_msg, start_message, elapsed_time_formatter
+from tutils.logging import log_msg, start_message, elapsed_time_formatter
 from load.load_utils import (
     clear_collections,
     create_load_record_command,
     bulk_load,
     process_stats,
+    LOGGER
 )
 from load.preprocess import CHECKPOINT_VAL
 
-LOGGER = setup_logging("load_data.log")
 WRITE_BATCH = 1_000
 
 

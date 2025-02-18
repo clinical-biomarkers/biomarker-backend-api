@@ -3,10 +3,13 @@ from pymongo import InsertOne
 from typing import Optional, Literal
 import sys
 import os
+from time import sleep
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils.logging import setup_logging, log_msg
 from tutils.constants import biomarker_default, unreviewed_default, stats_default
 
+LOGGER = setup_logging("load_data.log")
 TARGET_COLLECTIONS = {
     "biomarker": biomarker_default(),
     "collision": unreviewed_default(),
@@ -39,13 +42,30 @@ ENTITY_TYPE_SPLITS: list[dict] = [
 ]
 
 
-def clear_collections(dbh: Database) -> None:
+def clear_collections(dbh: Database, max_retries: int = 3, delay: float = 1.0) -> None:
     """Clears the biomarker and unreviewed collections."""
     for collection_name in list(TARGET_COLLECTIONS.values()):
         if collection_name == "stats":
             continue
+
         collection = dbh[collection_name]
-        collection.delete_many({})
+        for attempt in range(max_retries):
+            try:
+                collection.delete_many({})
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    log_msg(
+                        logger=LOGGER,
+                        msg=f"Failed to clear {collection_name}: {e}",
+                        level="error",
+                    )
+                    raise
+                log_msg(
+                    logger=LOGGER,
+                    msg=f"Failed to clear {collection_name} on attempt {attempt + 1}, sleeping for {delay} seconds...",
+                    level="error",
+                )
+                sleep(delay)
 
 
 def create_load_record_command(record: dict, all_text: bool = True) -> InsertOne:
