@@ -64,8 +64,8 @@ def start_message(logger: Logger, msg: str, to_stdout: bool = True) -> None:
     log_msg(logger=logger, msg=start_message, to_stdout=to_stdout)
 
 
-def elapsed_time_formatter(seconds: float) -> str:
-    seconds = round(seconds, 2)
-    minutes = seconds / 60
-    hours = minutes / 60
+def elapsed_time_formatter(seconds: float, round_digits: int = 2) -> str:
+    seconds = round(seconds, round_digits)
+    minutes = round(seconds / 60, round_digits)
+    hours = round(minutes / 60, round_digits)
     return f"{hours} hours ({minutes} minutes/{seconds} seconds)"
