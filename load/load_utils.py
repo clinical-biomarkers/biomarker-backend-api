@@ -84,6 +84,9 @@ def bulk_load(
     max_retries: int = 3,
 ) -> None:
     """Performs a bulk write."""
+    if batch_size < 1:
+        raise ValueError("batch_size must be at least 1")
+
     collection = dbh[TARGET_COLLECTIONS[destination]]
 
     # First try writing all ops at once
@@ -121,7 +124,7 @@ def bulk_load(
                 sleep(sleep_time)
 
 
-def _concatenate_fields(document: dict) -> str:
+def _concatenate_fields(document: dict, max_size: int = 10_000_000) -> str:
     """Concatenates the relevant string fields in the data model into one string for the text index field.
 
     Parameters
@@ -134,14 +137,32 @@ def _concatenate_fields(document: dict) -> str:
     str
         The concatenated string.
     """
+    filtered_cache: dict[str, str] = {}
+    current_size = 0
+
+    def filter_words(text: str) -> str:
+        if text in filtered_cache:
+            return filtered_cache[text]
+        words = text.lower().strip().split()
+        filtered = " ".join(w for w in words if w not in EN_STOP_WORDS)
+        filtered_cache[text] = filtered
+        return filtered
 
     def add_val(value: Optional[str]):
+        nonlocal current_size
         if value is not None:
-            words = value.lower().strip().split()
-            filtered_words = [word for word in words if word not in EN_STOP_WORDS]
-            value = " ".join(filtered_words)
-            if value not in result_str:
-                result_str.append(value)
+            filtered = filter_words(value)
+            if filtered and filtered not in result_str:
+                new_size = current_size + len(filtered)
+                if new_size <= max_size:
+                    result_str.append(filtered)
+                    current_size = new_size
+                else:
+                    log_msg(
+                        logger=LOGGER,
+                        msg=f"Skipping addition of text for {document['biomarker_id']}: would exceed max size of {max_size} bytes",
+                        level="warning",
+                    )
 
     result_str: list[str] = []
     add_val(document["biomarker_id"])
