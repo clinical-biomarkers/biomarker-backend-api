@@ -4,6 +4,7 @@ from typing import Optional, Literal
 import sys
 import os
 from time import sleep
+from stop_words import EN_STOP_WORDS
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.logging import setup_logging, log_msg
@@ -99,7 +100,9 @@ def _concatenate_fields(document: dict) -> str:
 
     def add_val(value: Optional[str]):
         if value is not None:
-            value = f"{value.lower().strip()}"
+            words = value.lower().strip().split()
+            filtered_words = [word for word in words if word not in EN_STOP_WORDS]
+            value = " ".join(filtered_words)
             if value not in result_str:
                 result_str.append(value)
 
