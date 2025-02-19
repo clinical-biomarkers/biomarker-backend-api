@@ -1,4 +1,6 @@
+from logging import log
 from pymongo.database import Database
+from pymongo.errors import BulkWriteError
 from pymongo import InsertOne
 from typing import Optional, Literal
 import sys
@@ -93,16 +95,37 @@ def bulk_load(
     try:
         collection.bulk_write(ops)
         return
+    except BulkWriteError as e:
+        msg = "Bulk write error on entire batch write attempt\n"
+        level: Literal["warning", "error"] = "warning"
+
+        if hasattr(e, "details"):
+            successful_ops = e.details.get("nInserted", 0)
+            msg += f"\tSuccessfully grabbed `nInserted` from BulkWriteError exception: {successful_ops}\n"
+        else:
+            successful_ops = 0
+            msg += f"\tCould not grab `nInserted` from BulkWriteError exception\n"
+            level = "error"
+
+        msg += f"Falling back to smaller batched writes\n{e}"
+        log_msg(logger=LOGGER, msg=msg, level=level)
     except Exception as e:
+        msg = (
+            "Bulk write failed on non-BulkWriteError, continuing but will likely "
+            f"fail with a duplicate key error in subsequent smaller batch writes:\n{e}"
+        )
         log_msg(
             logger=LOGGER,
-            msg=f"Bulk write failed, falling back to smaller batched writes: {e}",
-            level="warning",
+            msg=msg,
+            level="error",
         )
+        successful_ops = 0
+
+    remaining_ops = ops[successful_ops:]
 
     # If entire bulk write fails, try smaller batches with retries
-    for i in range(0, len(ops), batch_size):
-        batch = ops[i : i + batch_size]
+    for i in range(0, len(remaining_ops), batch_size):
+        batch = remaining_ops[i : i + batch_size]
         for attempt in range(max_retries):
             try:
                 collection.bulk_write(batch)
