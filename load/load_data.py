@@ -47,7 +47,7 @@ from load.load_utils import (
 )
 from load.preprocess import CHECKPOINT_VAL
 
-WRITE_BATCH = 1_000
+WRITE_BATCH = 500
 
 
 def main() -> None:
@@ -179,7 +179,7 @@ def main() -> None:
     for idx, file in enumerate(merged_data_files):
         if (idx + 1) % CHECKPOINT_VAL == 0:
             log_msg(
-                logger=LOGGER, msg=f"Hit merged data load checkpoint at index: {idx}"
+                logger=LOGGER, msg=f"Hit merged data load checkpoint at index: {idx + 1}"
             )
         try:
             record = load_json_type_safe(filepath=file, return_type="dict")
@@ -257,7 +257,6 @@ def main() -> None:
         f"\tClearing old data took {elapsed_time_formatter(clear_collection_elapsed_time)}\n"
         f"\tLoading merged data took {elapsed_time_formatter(merged_elapsed_time)}\n"
         f"\tLoading collision data took {elapsed_time_formatter(collision_elapsed_time)}\n"
-        f"\tCalculating stats took {elapsed_time_formatter(stats_elapsed_time)}\n"
         f"\tCalculating stats took {elapsed_time_formatter(stats_elapsed_time)}\n"
         f"\tTotal time: {elapsed_time_formatter(total_time)}"
     )
