@@ -112,7 +112,7 @@ def bulk_load(
     except Exception as e:
         msg = (
             "Bulk write failed on non-BulkWriteError, continuing but will likely "
-            f"fail with a duplicate key error in subsequent smaller batch writes:\n{e}"
+            f"fail with a duplicate key error in subsequent smaller batch writes:\n{e}\n"
         )
         log_msg(
             logger=LOGGER,
@@ -122,6 +122,7 @@ def bulk_load(
         successful_ops = 0
 
     remaining_ops = ops[successful_ops:]
+    log_msg(logger=LOGGER, msg=f"{len(remaining_ops)} remaining operations")
 
     # If entire bulk write fails, try smaller batches with retries
     for i in range(0, len(remaining_ops), batch_size):
@@ -129,6 +130,10 @@ def bulk_load(
         for attempt in range(max_retries):
             try:
                 collection.bulk_write(batch)
+                log_msg(
+                    logger=LOGGER,
+                    msg=f"Successfully wrote remaining operations on batch {i + 1}",
+                )
                 break
             except Exception as e:
                 if attempt == max_retries - 1:
