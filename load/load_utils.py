@@ -77,11 +77,48 @@ def create_load_record_command(record: dict, all_text: bool = True) -> InsertOne
 
 
 def bulk_load(
-    dbh: Database, ops: list[InsertOne], destination: Literal["biomarker", "collision"]
+    dbh: Database,
+    ops: list[InsertOne],
+    destination: Literal["biomarker", "collision"],
+    batch_size: int = 100,
+    max_retries: int = 3,
 ) -> None:
     """Performs a bulk write."""
     collection = dbh[TARGET_COLLECTIONS[destination]]
-    collection.bulk_write(ops)
+
+    # First try writing all ops at once
+    try:
+        collection.bulk_write(ops)
+        return
+    except Exception as e:
+        log_msg(
+            logger=LOGGER,
+            msg=f"Bulk write failed, falling back to smaller batched writes: {e}",
+            level="warning",
+        )
+
+    # If entire bulk write fails, try smaller batches with retries
+    for i in range(0, len(ops), batch_size):
+        batch = ops[i : i + batch_size]
+        for attempt in range(max_retries):
+            try:
+                collection.bulk_write(batch)
+                break
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    log_msg(
+                        logger=LOGGER,
+                        msg=f"Failed all {max_retries} attempts for batch starting at index {i}: {e}",
+                        level="error",
+                    )
+                    raise
+                sleep_time = 2**attempt
+                log_msg(
+                    logger=LOGGER,
+                    msg=f"Batch at index {i}: Attempt {attempt + 1} of {max_retries} failed, retrying in {sleep_time} seconds: {e}",
+                    level="warning",
+                )
+                sleep(sleep_time)
 
 
 def _concatenate_fields(document: dict) -> str:
