@@ -26,7 +26,7 @@ def _should_cache_search(cache_info: Dict) -> bool:
     if cache_info.get("search_type") != "simple":
         return False
 
-    api_request = cache_info.get("api_request", {})
+    api_request = cache_info.get("query", {})
     term_category = api_request.get("term_category", "").lower().strip()
     should_cache = term_category in {"biomarker", "condition"}
 
