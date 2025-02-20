@@ -2,7 +2,7 @@
 """
 
 from flask import Request
-from typing import Optional, Tuple, Dict
+from typing import Tuple, Dict
 
 from . import db as db_utils
 from . import utils as utils
@@ -90,7 +90,7 @@ def _add_metadata(document: Dict) -> Dict:
     # Remove categories key from crossref is empty list
     for cf in document.get("crossref", []):
         if not cf.get("categories", None):
-            del document["crossref"]["categories"] 
+            del cf["categories"] 
     return document
 
 
