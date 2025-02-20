@@ -43,7 +43,8 @@ from load.load_utils import (
     create_load_record_command,
     bulk_load,
     process_stats,
-    LOGGER
+    LOGGER,
+    load_checkpoint,
 )
 from load.preprocess import CHECKPOINT_VAL
 
@@ -53,6 +54,13 @@ WRITE_BATCH = 500
 def main() -> None:
 
     parser, server_list = standard_parser()
+    parser.add_argument(
+        "-c",
+        "--continue",
+        dest="continue_load",
+        action="store_true",
+        help="Continue from last successful index",
+    )
     options = parser.parse_args()
     if not options.server:
         parser.print_help()
@@ -81,13 +89,29 @@ def main() -> None:
     print(f"Resolved symlink for {merged_path_root} points to:\n\t{resolved_symlink}")
     get_user_confirmation()
 
-    confirmation_message_complete()
-
     merged_data_pattern = os.path.join(merged_path_root, "merged_json", "*.json")
     collision_data_pattern = os.path.join(merged_path_root, "collision_json", "*.json")
 
-    merged_data_files = glob.glob(merged_data_pattern)
-    collision_data_files = glob.glob(collision_data_pattern)
+    merged_data_files = sorted(glob.glob(merged_data_pattern))
+    collision_data_files = sorted(glob.glob(collision_data_pattern))
+    log_msg(
+        logger=LOGGER,
+        msg=f"Found:\n\t{len(merged_data_files)} merged files\n\t{len(collision_data_files)} collision files",
+    )
+
+    start_index = -1
+    if options.continue_load:
+        start_index = load_checkpoint()
+        if start_index >= 0:
+            msg = f"Continuing from index {start_index + 1}"
+            log_msg(logger=LOGGER, msg=msg)
+            print(msg)
+            get_user_confirmation()
+        else:
+            print("Fall back to full load?")
+            get_user_confirmation()
+
+    confirmation_message_complete()
 
     dbh = get_standard_db_handle(server)
 
@@ -160,14 +184,16 @@ def main() -> None:
             f"\t\tTotal: {elapsed_time_formatter(canonical_id_load_time + second_id_load_time)}\n"
         )
 
-    log_msg(logger=LOGGER, msg="Clearing collections...")
-    clear_collection_start_time = time.time()
-    clear_collections(dbh=dbh)
-    clear_collection_elapsed_time = time.time() - clear_collection_start_time
-    log_msg(
-        logger=LOGGER,
-        msg=f"Finished clearing collections in {elapsed_time_formatter(clear_collection_elapsed_time)}, ready to load.",
-    )
+    clear_collection_elapsed_time: float | str = "N/A"
+    if start_index < 0:
+        log_msg(logger=LOGGER, msg="Clearing collections...")
+        clear_collection_start_time = time.time()
+        clear_collections(dbh=dbh)
+        clear_collection_elapsed_time = time.time() - clear_collection_start_time
+        log_msg(
+            logger=LOGGER,
+            msg=f"Finished clearing collections in {elapsed_time_formatter(clear_collection_elapsed_time)}, ready to load.",
+        )
 
     log_msg(
         logger=LOGGER,
@@ -176,10 +202,18 @@ def main() -> None:
     merged_start_time = time.time()
     merged_ops = []
     total_merged_ops = 0
+    last_index = start_index
+
     for idx, file in enumerate(merged_data_files):
+        if idx <= start_index:
+            continue
+
+        last_index = idx
+
         if (idx + 1) % CHECKPOINT_VAL == 0:
             log_msg(
-                logger=LOGGER, msg=f"Hit merged data load checkpoint at index: {idx + 1}"
+                logger=LOGGER,
+                msg=f"Hit merged data load checkpoint at index: {idx + 1}",
             )
         try:
             record = load_json_type_safe(filepath=file, return_type="dict")
@@ -187,15 +221,23 @@ def main() -> None:
             msg = f"Error loading merged data on file: {file}\n{e}\n{format_exc()}"
             log_msg(logger=LOGGER, msg=msg, level="error")
             sys.exit(1)
+
         merged_ops.append(create_load_record_command(record=record, all_text=True))
         if len(merged_ops) == WRITE_BATCH:
             log_msg(logger=LOGGER, msg=f"Bulk writing at index: {idx + 1}.")
-            bulk_load(dbh=dbh, ops=merged_ops, destination="biomarker")
+            bulk_load(
+                dbh=dbh,
+                ops=merged_ops,
+                destination="biomarker",
+                current_index=last_index,
+            )
             total_merged_ops += len(merged_ops)
             merged_ops = []
     if merged_ops:
         log_msg(logger=LOGGER, msg="Writing leftover records...")
-        bulk_load(dbh=dbh, ops=merged_ops, destination="biomarker")
+        bulk_load(
+            dbh=dbh, ops=merged_ops, destination="biomarker", current_index=last_index
+        )
         total_merged_ops += len(merged_ops)
         merged_ops = []
     merged_elapsed_time = round(time.time() - merged_start_time, 2)
@@ -243,6 +285,11 @@ def main() -> None:
         msg=f"Finished calculating stats in {elapsed_time_formatter(stats_elapsed_time)}.",
     )
 
+    clear_collection_elapsed_time = (
+        clear_collection_elapsed_time
+        if isinstance(clear_collection_elapsed_time, float)
+        else 0.0
+    )
     total_time = (
         canonical_id_load_time
         + second_id_load_time
