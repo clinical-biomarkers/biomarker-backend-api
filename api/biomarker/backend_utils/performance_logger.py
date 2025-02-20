@@ -100,7 +100,7 @@ class PerformanceLogger:
         log_str = "\n=======================================\n"
         log_str += "KWARGS:\n"
         for key, value in kwargs.items():
-            log_str += f"\t{key}: {pformat(value)}\n"
+            log_str += f"{key}: {pformat(value)}\n"
 
         log_str += "ONE TIME PROCESSES:\n"
         for process, time_val in self.one_time_timings.items():
