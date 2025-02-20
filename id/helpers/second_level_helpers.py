@@ -1,11 +1,11 @@
-""" Handles all the logic for assigning/generating the second level ID.
-"""
+"""Handles all the logic for assigning/generating the second level ID."""
 
 import sys
 import os
-from logging import Logger
 from pymongo.database import Database
 from typing import NoReturn, Optional
+from pprint import pformat
+from . import LOGGER
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from tutils.logging import log_msg
@@ -19,7 +19,6 @@ def get_second_level_id(
     canonical_collision: bool,
     document: dict,
     dbh: Database,
-    logger: Logger,
     id_collection: str = SECOND_DEFAULT,
 ) -> tuple[str, bool]:
     """Assigns the second level ID to the document.
@@ -34,8 +33,6 @@ def get_second_level_id(
         The document to assign the second level ID for.
     dbh: Database
         The database handle.
-    logger: Logger
-        The logger to use.
     id_collection: str (default: SECOND_DEFAULT)
         The second level ID map collection.
 
@@ -44,14 +41,13 @@ def get_second_level_id(
     tuple: (str, bool)
         The assigned second level ID and a collision flag.
     """
-    second_level_key = _get_key(document=document, logger=logger)
+    second_level_key = _get_key(document=document)
     collision_status = False
     if canonical_collision:
         collision_status = _check_collision(
             canonical_id=canonical_id,
             key=second_level_key,
             dbh=dbh,
-            logger=logger,
             id_collection=id_collection,
         )
     second_level_id = _assign_ordinal(
@@ -59,7 +55,6 @@ def get_second_level_id(
         collision=collision_status,
         key=second_level_key,
         dbh=dbh,
-        logger=logger,
         id_collection=id_collection,
     )
     return second_level_id, collision_status
@@ -70,7 +65,6 @@ def _assign_ordinal(
     collision: bool,
     key: str,
     dbh: Database,
-    logger: Logger,
     id_collection: str = SECOND_DEFAULT,
 ) -> str:
     """Assigns the ordinal second level ID.
@@ -85,8 +79,6 @@ def _assign_ordinal(
         The condition_id or exposure_agent_id to use for the existing entry key.
     dbh: Database
         The database handle.
-    logger: Logger
-        The logger to use.
     id_collection: str (default: SECOND_DEFAULT)
         The ID collection map.
 
@@ -100,7 +92,6 @@ def _assign_ordinal(
             canonical_id=canonical_id,
             key=key,
             dbh=dbh,
-            logger=logger,
             id_collection=id_collection,
         )
         return second_level_id
@@ -114,7 +105,6 @@ def _get_ordinal_id(
     canonical_id: str,
     key: str,
     dbh: Database,
-    logger: Logger,
     id_collection: str = SECOND_DEFAULT,
 ) -> str | NoReturn:
     """Gets the existing corresponding second level ID for the key.
@@ -127,8 +117,6 @@ def _get_ordinal_id(
         The key to query the existing entries on.
     dbh: Database
         The database handle.
-    logger: Logger
-        The logger to use.
     id_collection: str
         The ID collection map.
 
@@ -144,7 +132,7 @@ def _get_ordinal_id(
         log_str = f"Some error occurred in looking up existing ordinal second level ID in `{id_collection}` for:"
         log_str += f"\n\tcanonical ID: `{canonical_id}`"
         log_str += f"\n\tkey: `{key}`"
-        log_msg(logger=logger, msg=log_str, level="error", to_stdout=True)
+        log_msg(logger=LOGGER, msg=log_str, level="error")
         sys.exit(1)
     for entry in existing_entries:
         if key in entry.keys():
@@ -153,7 +141,7 @@ def _get_ordinal_id(
     log_str += f"\n\tcanonical ID: `{canonical_id}`"
     log_str += f"\n\tkey: `{key}`"
     log_str += f"\n\texisting entries: `{existing_entries}`"
-    log_msg(logger=logger, msg=log_str, level="error", to_stdout=True)
+    log_msg(logger=LOGGER, msg=log_str, level="error")
     sys.exit(1)
 
 
@@ -184,17 +172,30 @@ def _new_ordinal(
             "biomarker_canonical_id": canonical_id,
             "values": {"curr_index": 1, "existing_entries": [{key: second_level_id}]},
         }
-        dbh[id_collection].insert_one(new_entry)
+        insert_result = dbh[id_collection].insert_one(new_entry)
+        msg = (
+            f"Second level ID insert one result: {str(insert_result)}\n"
+            f"Inserted: {pformat(new_entry)}"
+        )
+        log_msg(logger=LOGGER, msg=msg)
     else:
         new_index = record_to_update["values"]["curr_index"] + 1
         second_level_id = f"{canonical_id}-{new_index}"
-        dbh[id_collection].update_one(
-            {"biomarker_canonical_id": canonical_id},
-            {
-                "$set": {"values.curr_index": new_index},
-                "$push": {"values.existing_entries": {key: second_level_id}},
-            },
+        update_key = {"biomarker_canonical_id": canonical_id}
+        update_object = {
+            "$set": {"values.curr_index": new_index},
+            "$push": {"values.existing_entries": {key: second_level_id}},
+        }
+        update_result = dbh[id_collection].update_one(
+            update_key,
+            update_object,
         )
+        msg = (
+            f"Second level ID update result: {str(update_result)}\n"
+            f"Update key: {update_key}\n"
+            f"Update object: {update_object}\n"
+        )
+        log_msg(logger=LOGGER, msg=msg)
     return second_level_id
 
 
@@ -202,7 +203,6 @@ def _check_collision(
     canonical_id: str,
     key: str,
     dbh: Database,
-    logger: Logger,
     id_collection: str = SECOND_DEFAULT,
 ) -> bool:
     """Checks for a second level collision.
@@ -215,8 +215,6 @@ def _check_collision(
         The condition_id or exposure_agent_id values to compare on.
     dbh: Database
         The database handle.
-    logger: Logger
-        The logger to use.
     id_collection: str (default: SECOND_DEFAULT)
 
     Returns
@@ -229,7 +227,7 @@ def _check_collision(
         log_str = "Unexpected error when querying for existing biomarker canonical ID existing entries:"
         log_str += "\n\tcanonical ID: `{canonical_id}`"
         log_str += "\n\tID collection: `{id_collection}`"
-        log_msg(logger=logger, msg=log_str, level="error", to_stdout=True)
+        log_msg(logger=LOGGER, msg=log_str, level="error")
         sys.exit(1)
     existing_keys = [
         existing_key for entry in existing_entries for existing_key in entry.keys()
@@ -257,6 +255,7 @@ def _get_existing_entries(
     return record["values"]["existing_entries"]
 
 
+# TODO : this should be combined with _get_existing_entries
 def _get_canonical_map(
     canonical_id: str, dbh: Database, id_collection: str = SECOND_DEFAULT
 ) -> Optional[dict]:
@@ -279,15 +278,13 @@ def _get_canonical_map(
     return dbh[id_collection].find_one({"biomarker_canonical_id": canonical_id})
 
 
-def _get_key(document: dict, logger: Logger) -> str:
+def _get_key(document: dict) -> str:
     """Gets the key to compare against for second level ID generation.
 
     Parameters
     ----------
     document: dict
         The document to extract the key from.
-    logger: Logger
-        The logger to use.
 
     Returns
     -------
@@ -304,9 +301,8 @@ def _get_key(document: dict, logger: Logger) -> str:
         return document[key2]["id"]
     else:
         log_msg(
-            logger=logger,
+            logger=LOGGER,
             msg=f"Error when parsing document for second level ID key.\nDocument: {document}",
             level="error",
-            to_stdout=True,
         )
         sys.exit(1)

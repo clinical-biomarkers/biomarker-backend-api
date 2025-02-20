@@ -2,7 +2,7 @@
 """
 
 from flask import Request
-from typing import Optional, Tuple, Dict
+from typing import Tuple, Dict
 
 from . import db as db_utils
 from . import utils as utils
@@ -62,7 +62,7 @@ def detail(api_request: Request, biomarker_id: str) -> Tuple[Dict, int]:
 
 
 def _add_metadata(document: Dict) -> Dict:
-    """Adds the section_stats and crossref metadata.
+    """Adds the section_stats metadata.
 
     Parameters
     ----------
@@ -87,7 +87,10 @@ def _add_metadata(document: Dict) -> Dict:
         "sort_fields": list(SORT_FIELDS["citation"]),
     }
     document["section_stats"] = [biomarker_component_stats, citation_stats]
-    document["crossref"] = []
+    # Remove categories key from crossref is empty list
+    for cf in document.get("crossref", []):
+        if not cf.get("categories", None):
+            del cf["categories"] 
     return document
 
 

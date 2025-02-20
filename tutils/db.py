@@ -1,4 +1,5 @@
 import sys
+import os
 import subprocess
 from pymongo import MongoClient
 import pymongo
@@ -6,9 +7,11 @@ from pymongo.database import Database
 from pymongo.collection import Collection
 from logging import Logger
 from typing import Optional, NoReturn, Literal
+from time import time
 from urllib.parse import quote_plus
 from tutils.config import get_config
-from tutils.logging import log_msg
+from tutils.logging import log_msg, elapsed_time_formatter
+from . import ROOT_DIR
 
 
 def get_database_handle(
@@ -20,6 +23,7 @@ def get_database_handle(
     auth_source: Optional[str] = None,
     auth_mechanism: str = "SCRAM-SHA-1",
     timeout: int = 1_000,
+    logger: Optional[Logger] = None,
 ) -> Database | NoReturn:
     """Returns a database handle."""
     try:
@@ -35,7 +39,11 @@ def get_database_handle(
         dbh = client[db_name]
         return dbh
     except Exception as e:
-        print(e)
+        msg = f"Failed to grab database handle: {str(e)}"
+        if logger:
+            log_msg(logger=logger, msg=msg, level="error")
+        else:
+            print(msg)
         sys.exit(1)
 
 
@@ -85,35 +93,65 @@ def setup_index(
     """
     if index_name is None:
         index_name = f"{index_field}_{order}"
-    if index_name not in collection.index_information():
-        if order == "ascending":
-            collection.create_index(
-                [(index_field, pymongo.ASCENDING)], name=index_name, unique=unique
-            )
-        elif order == "descending":
-            collection.create_index(
-                [(index_field, pymongo.DESCENDING)], name=index_name, unique=unique
-            )
-        status_message = (
-            f"Created `{order}` index `{index_name}` on collection `{collection.name}`."
+    try:
+        if index_name not in collection.index_information():
+            if order == "ascending":
+                collection.create_index(
+                    [(index_field, pymongo.ASCENDING)], name=index_name, unique=unique
+                )
+            elif order == "descending":
+                collection.create_index(
+                    [(index_field, pymongo.DESCENDING)], name=index_name, unique=unique
+                )
+            status_message = f"Created `{order}` index `{index_name}` on collection `{collection.name}`."
+            if logger is not None:
+                log_msg(logger=logger, msg=status_message)
+        else:
+            if logger is not None:
+                log_msg(
+                    logger=logger,
+                    msg=f"{order.title()} index `{index_name}` on collection `{collection.name}` already exists.",
+                )
+    except Exception as e:
+        msg = (
+            "Error while setting up index:\n"
+            f"\tCollection: {collection}\n"
+            f"\tIndex field: {index_field}\n"
+            f"\tUnique: {unique}\n"
+            f"\tOrder: {order}\n"
+            f"\tIndex name: {index_name}\n"
+            f"Error: {e}"
         )
-        if logger is not None:
-            log_msg(logger=logger, msg=status_message)
-        print(status_message)
-    else:
-        status_message = f"{order.title()} index `{index_name}` on collection `{collection.name}` already exists."
-        if logger is not None:
-            log_msg(logger=logger, msg=status_message)
-        print(status_message)
+        if logger:
+            log_msg(logger=logger, msg=msg, level="error")
+            sys.exit(1)
 
 
 def create_text_index(collection: Collection, logger: Optional[Logger] = None) -> None:
     """Creates a text index on the `all_text` field."""
-    collection.create_index([("all_text", "text")])
-    status_message = f"Created `all_text` text index on collection `{collection.name}`."
+    index_name = "all_text_text"
+    if index_name in collection.index_information():
+        if logger:
+            log_msg(
+                logger=logger,
+                msg=f"Text index `{index_name}` already exists on collection `{collection.name}`",
+            )
+        return
+    try:
+        collection.create_index([("all_text", "text")])
+    except Exception as e:
+        if logger:
+            log_msg(
+                logger=logger,
+                msg=f"Failed creating text index on collection: {collection}\n{e}",
+                level="error",
+            )
+        sys.exit(1)
+    status_message = (
+        f"Created `{index_name}` text index on collection `{collection.name}`."
+    )
     if logger is not None:
         log_msg(logger=logger, msg=status_message)
-    print(status_message)
 
 
 def get_connection_string(
@@ -133,7 +171,12 @@ def get_connection_string(
     return uri
 
 
-def dump_id_collection(connection_string: str, save_path: str, collection: str) -> bool:
+def dump_id_collection(
+    connection_string: str,
+    save_path: str,
+    collection: str,
+    logger: Optional[Logger] = None,
+) -> None:
     """Dumps the ID collections to disk to be used later for replication in the
     production database. Can only be run on the tst server.
 
@@ -145,34 +188,39 @@ def dump_id_collection(connection_string: str, save_path: str, collection: str) 
         The filepath to the local ID map.
     collection: str
         The collection to dump.
-
-    Returns
-    -------
-    bool
-        Indication if the collection was dumped successfully.
     """
-    command = [
-        "mongoexport",
-        "--uri",
-        connection_string,
-        "--collection",
-        collection,
-        "--out",
-        save_path,
-    ]
+    export_log = os.path.join(ROOT_DIR, "logs", f"mongoexport_{collection}.log")
+    mongoexport_cmd = f"mongoexport --uri '{connection_string}' --collection {collection} --out {save_path}"
+    command = f"nohup {mongoexport_cmd} > {export_log} 2>&1 &"
+
+    msg = f"Dumping {collection} collection with command `{command}`"
+    if logger:
+        log_msg(logger=logger, msg=msg)
+    else:
+        print(msg)
+
     try:
-        subprocess.run(command, check=True)
+        subprocess.run(command, shell=True, check=True)
     except subprocess.CalledProcessError as e:
-        print("Args passed:")
-        print(f"Connection string: {connection_string}")
-        print(f"Save path: {save_path}")
-        print(f"Collection: {collection}")
-        print(e)
-        return False
-    return True
+        msg = (
+            "Failed dumping ID map\n"
+            "\tArgs passed:\n"
+            f"\t\tConnection string: {connection_string}\n"
+            f"\t\tSave path: {save_path}\n"
+            f"\t\tCollection: {collection}\n"
+            f"Error: {e}"
+        )
+        if logger:
+            log_msg(logger=logger, msg=msg, level="error")
+        print(msg)
 
 
-def load_id_collection(connection_string: str, load_path: str, collection: str) -> bool:
+def load_id_collection(
+    connection_string: str,
+    load_path: str,
+    collection: str,
+    logger: Logger,
+) -> float | NoReturn:
     """Loads the local ID collections into the prod database.
 
     Parameters
@@ -186,8 +234,8 @@ def load_id_collection(connection_string: str, load_path: str, collection: str) 
 
     Returns
     -------
-    bool
-        Indication if the collection was loaded successfully.
+    float
+        Elapsed time in seconds.
     """
     command = [
         "mongoimport",
@@ -201,13 +249,23 @@ def load_id_collection(connection_string: str, load_path: str, collection: str) 
         "upsert",
     ]
 
+    msg = f"Loading {collection} collection with command: `" + " ".join(command) + "`"
+    log_msg(logger=logger, msg=msg)
+
     try:
+        start_time = time()
         subprocess.run(command, check=True)
+        elapsed_time = time() - start_time
+        msg = f"Finished loading {collection} collection, took {elapsed_time_formatter(elapsed_time)}"
+        log_msg(logger=logger, msg=msg)
+        return elapsed_time
     except subprocess.CalledProcessError as e:
-        print("Args passed:")
-        print(f"Connection string: {connection_string}")
-        print(f"Load path: {load_path}")
-        print(f"Collection: {collection}")
-        print(e)
-        return False
-    return True
+        msg = (
+            "Args passed:\n"
+            f"\tConnection string: {connection_string}\n"
+            f"\tLoad path: {load_path}\n"
+            f"\tCollection: {collection}\n"
+            f"Error: {e}"
+        )
+        log_msg(logger=logger, msg=msg, level="error")
+        sys.exit(1)

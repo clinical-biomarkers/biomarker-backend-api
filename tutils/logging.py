@@ -21,7 +21,7 @@ def setup_logging(logger_name: str) -> Logger:
     log_dir_path = os.path.join(ROOT_DIR, "logs")
     if not os.path.isdir(log_dir_path):
         os.mkdir(log_dir_path)
-    handler = logging.FileHandler(os.path.join(ROOT_DIR, "logs", logger_name))
+    handler = logging.FileHandler(filename=os.path.join(ROOT_DIR, "logs", logger_name))
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
@@ -58,7 +58,14 @@ def log_msg(
         print(msg)
 
 
-def start_message(logger: Logger, msg: str) -> None:
+def start_message(logger: Logger, msg: str, to_stdout: bool = True) -> None:
     """Logs a standardized start message."""
     start_message = f"############### {msg} ###############"
-    log_msg(logger=logger, msg=start_message)
+    log_msg(logger=logger, msg=start_message, to_stdout=to_stdout)
+
+
+def elapsed_time_formatter(seconds: float, round_digits: int = 2) -> str:
+    seconds = round(seconds, round_digits)
+    minutes = round(seconds / 60, round_digits)
+    hours = round(minutes / 60, round_digits)
+    return f"{hours} hours ({minutes} minutes/{seconds} seconds)"
