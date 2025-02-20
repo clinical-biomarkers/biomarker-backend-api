@@ -9,9 +9,12 @@
 from cachetools import TTLCache
 from typing import Any, Dict, Optional
 import json
+from flask import current_app
 
-# Cache pipeline results with max 300 entries and a max time to live of 604,800 
-# seconds, or two weeks. We are only caching simple search "Biomarker" and 
+from .db import cast_app
+
+# Cache pipeline results with max 300 entries and a max time to live of 604,800
+# seconds, or two weeks. We are only caching simple search "Biomarker" and
 # "Condition" category results.
 PIPELINE_CACHE = TTLCache(maxsize=300, ttl=604_800)
 
@@ -25,8 +28,15 @@ def _should_cache_search(cache_info: Dict) -> bool:
 
     api_request = cache_info.get("api_request", {})
     term_category = api_request.get("term_category", "").lower().strip()
+    should_cache = term_category in {"biomarker", "condition"}
 
-    return term_category in {"biomarker", "condition"}
+    custom_app = cast_app(current_app)
+    if should_cache:
+        custom_app.api_logger.info(f"Search eligible for caching: {term_category}")
+    else:
+        custom_app.api_logger.info(f"Search not eligible for caching: {term_category}")
+
+    return should_cache
 
 
 def generate_pipeline_cache_key(list_id: str, request_args: Dict[str, Any]) -> str:
@@ -40,11 +50,20 @@ def generate_pipeline_cache_key(list_id: str, request_args: Dict[str, Any]) -> s
 
 def get_cached_pipeline_results(
     list_id: str, request_args: Dict[str, Any], cache_info: Dict
-) -> Optional[Dict[str, Any]]:
+) -> Optional[Dict]:
     if not _should_cache_search(cache_info=cache_info):
         return None
+
     cache_key = generate_pipeline_cache_key(list_id=list_id, request_args=request_args)
-    return PIPELINE_CACHE.get(cache_key)
+    result = PIPELINE_CACHE.get(cache_key)
+
+    custom_app = cast_app(current_app)
+    if result is not None:
+        custom_app.api_logger.info(f"Cache HIT for key: {cache_key}")
+    else:
+        custom_app.api_logger.info(f"Cache MISS for key: {cache_key}")
+
+    return result
 
 
 def cache_pipeline_results(
@@ -55,5 +74,10 @@ def cache_pipeline_results(
 ) -> None:
     if not _should_cache_search(cache_info=cache_info):
         return
+
     cache_key = generate_pipeline_cache_key(list_id=list_id, request_args=request_args)
     PIPELINE_CACHE[cache_key] = results
+
+    custom_app = cast_app(current_app)
+    custom_app.api_logger.info(f"Cached results for key: {cache_key}")
+    custom_app.api_logger.info(f"Current cache size: {len(PIPELINE_CACHE)}")
