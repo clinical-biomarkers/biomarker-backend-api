@@ -87,7 +87,10 @@ def _add_metadata(document: Dict) -> Dict:
         "sort_fields": list(SORT_FIELDS["citation"]),
     }
     document["section_stats"] = [biomarker_component_stats, citation_stats]
-    # document["crossref"] = []
+    # Remove categories key from crossref is empty list
+    for cf in document.get("crossref", []):
+        if not cf.get("categories", None):
+            del document["crossref"]["categories"] 
     return document
 
 
