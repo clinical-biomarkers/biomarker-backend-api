@@ -101,7 +101,7 @@ def main() -> None:
 
     start_index = -1
     if options.continue_load:
-        start_index = load_checkpoint()
+        start_index = load_checkpoint(server=server)
         if start_index >= 0:
             msg = f"Continuing from index {start_index + 1}"
             log_msg(logger=LOGGER, msg=msg)
@@ -229,6 +229,7 @@ def main() -> None:
                 dbh=dbh,
                 ops=merged_ops,
                 destination="biomarker",
+                server=server,
                 current_index=last_index,
             )
             total_merged_ops += len(merged_ops)
@@ -236,7 +237,11 @@ def main() -> None:
     if merged_ops:
         log_msg(logger=LOGGER, msg="Writing leftover records...")
         bulk_load(
-            dbh=dbh, ops=merged_ops, destination="biomarker", current_index=last_index
+            dbh=dbh,
+            ops=merged_ops,
+            destination="biomarker",
+            server=server,
+            current_index=last_index,
         )
         total_merged_ops += len(merged_ops)
         merged_ops = []
@@ -260,12 +265,14 @@ def main() -> None:
         collision_ops.append(create_load_record_command(record=record, all_text=False))
         if len(collision_ops) == WRITE_BATCH:
             log_msg(logger=LOGGER, msg=f"Bulk writing at index: {idx + 1}.")
-            bulk_load(dbh=dbh, ops=collision_ops, destination="collision")
+            bulk_load(
+                dbh=dbh, ops=collision_ops, destination="collision", server=server
+            )
             total_collision_ops += len(collision_ops)
             collision_ops = []
     if collision_ops:
         log_msg(logger=LOGGER, msg="Writing leftover records...")
-        bulk_load(dbh=dbh, ops=collision_ops, destination="collision")
+        bulk_load(dbh=dbh, ops=collision_ops, destination="collision", server=server)
         total_collision_ops += len(collision_ops)
         collision_ops = []
     collision_elapsed_time = round(time.time() - collision_start_time, 2)
