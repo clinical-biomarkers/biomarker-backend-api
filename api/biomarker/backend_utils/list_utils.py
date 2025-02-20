@@ -1,11 +1,11 @@
-""" Handles the backend logic for the biomarker list endpoint.
-"""
+"""Handles the backend logic for the biomarker list endpoint."""
 
 from flask import Request, current_app
 from typing import Tuple, Dict, List
 
 from . import utils as utils
 from . import db as db_utils
+from . import cache_utils
 from . import SEARCH_CACHE_COLLECTION
 from .performance_logger import PerformanceLogger
 
@@ -32,14 +32,14 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     custom_app = db_utils.cast_app(current_app)
     perf_logger = PerformanceLogger(custom_app.api_logger)
 
-    perf_logger.start_timer(process_name="get_cached_objects")
+    perf_logger.start_timer(process_name="get_mongodb_query")
     cache_object, query_http_code = db_utils.get_cached_objects(
         request_object=request_arguments,
         query_object=mongo_query,
         projection_object=projection_object,
         cache_collection=SEARCH_CACHE_COLLECTION,
     )
-    perf_logger.end_timer(process_name="get_cached_objects")
+    perf_logger.end_timer(process_name="get_mongodb_query")
 
     if query_http_code != 200:
         return cache_object, query_http_code
@@ -55,11 +55,49 @@ def list(api_request: Request) -> Tuple[Dict, int]:
 
     search_pipeline = _search_query_builder(search_query, request_arguments)
 
+    # Try to ge tcached pipeline results
+    list_id = request_arguments["id"]
+    cached_results = cache_utils.get_cached_pipeline_results(
+        list_id=list_id, request_args=request_arguments, cache_info=cache_info
+    )
+
+    if cached_results is not None:
+        perf_logger.log_times(
+            request_arguments=request_arguments,
+            search_query=search_query,
+            lru_cache_hit=True,
+        )
+        return {
+            "cache_info": cache_info,
+            "filters": _format_filter_data(
+                applied_filters=request_arguments.get("filters", []),
+                pipeline_result=cached_results,
+            ),
+            "results": _unroll_results(cached_results.get("results", [])),
+            "pagination": {
+                "offset": request_arguments["offset"],
+                "limit": request_arguments["limit"],
+                "total_length": cached_results.get("total_count", 0),
+                "sort": request_arguments["sort"],
+                "order": request_arguments["order"],
+            },
+        }, 200
+
+    # If not cached, execute pipeline and cache results
     perf_logger.start_timer(process_name="execute_pipeline")
     pipeline_result, pipeline_http_code = db_utils.execute_pipeline(search_pipeline)
     perf_logger.end_timer(process_name="execute_pipeline")
+
     if pipeline_http_code != 200:
         return pipeline_result, pipeline_http_code
+
+    # Cache pipeline results
+    cache_utils.cache_pipeline_results(
+        list_id=list_id,
+        request_args=request_arguments,
+        results=pipeline_result,
+        cache_info=cache_info,
+    )
 
     filter_object = _format_filter_data(
         request_arguments.get("filters", []), pipeline_result
