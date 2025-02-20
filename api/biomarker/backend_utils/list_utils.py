@@ -55,13 +55,15 @@ def list(api_request: Request) -> Tuple[Dict, int]:
 
     search_pipeline = _search_query_builder(search_query, request_arguments)
 
-    # Try to ge tcached pipeline results
+    # Try to get cached pipeline results
+    perf_logger.start_timer(process_name="atttempt_ttl_cache_retrieval")
     list_id = request_arguments["id"]
     cached_results = cache_utils.get_cached_pipeline_results(
         list_id=list_id, request_args=request_arguments, cache_info=cache_info
     )
 
     if cached_results is not None:
+        perf_logger.end_timer(process_name="atttempt_ttl_cache_retrieval")
         perf_logger.log_times(
             request_arguments=request_arguments,
             search_query=search_query,
@@ -82,6 +84,8 @@ def list(api_request: Request) -> Tuple[Dict, int]:
                 "order": request_arguments["order"],
             },
         }, 200
+
+    perf_logger.end_timer(process_name="atttempt_ttl_cache_retrieval")
 
     # If not cached, execute pipeline and cache results
     perf_logger.start_timer(process_name="execute_pipeline")
