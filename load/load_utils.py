@@ -71,6 +71,7 @@ def clear_collections(dbh: Database, max_retries: int = 3, delay: float = 1.0) -
                     msg=f"Failed to clear {collection_name} on attempt {attempt + 1}, sleeping for {delay} seconds...",
                     level="error",
                 )
+                log_msg(logger=LOGGER, msg=f"{e}\n", level="error")
                 sleep(delay)
 
 
