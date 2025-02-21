@@ -17,3 +17,4 @@ logs/
 collision_reports/
 .vscode/
 mypy.ini
+scratch/
