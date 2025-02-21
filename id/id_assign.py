@@ -5,7 +5,6 @@ from time import time
 from helpers import id_backend as id_backend
 from helpers import LOGGER
 from traceback import format_exc
-from argparse import ArgumentParser
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.db import (
@@ -14,7 +13,7 @@ from tutils.db import (
     get_connection_string,
     dump_id_collection,
 )
-from tutils.parser import standard_parser, parse_server
+from tutils.parser import standard_parser, parse_server, notify_parser
 from tutils.config import get_config
 from tutils.general import (
     load_json_type_safe,
@@ -29,19 +28,6 @@ from tutils.constants import (
     second_level_id_default,
 )
 from tutils.notify import send_notification
-
-
-def build_parser() -> tuple[ArgumentParser, list[str]]:
-    parser, server_list = standard_parser()
-    parser.add_argument(
-        "--notify",
-        action="store_true",
-        help="Whether to send a notification email when execution finishes",
-    )
-    parser.add_argument(
-        "--email", action="append", required=False, help="Email receipients to notify"
-    )
-    return parser, server_list
 
 
 def main(server: str) -> str:
@@ -146,7 +132,8 @@ def main(server: str) -> str:
 
 
 if __name__ == "__main__":
-    parser, server_list = build_parser()
+    parser, server_list = standard_parser()
+    parser = notify_parser(parser=parser)
     options = parser.parse_args()
     server = parse_server(parser=parser, server=options.server, server_list=server_list)
 

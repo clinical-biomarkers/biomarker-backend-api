@@ -5,7 +5,6 @@ import glob
 import os
 import sys
 from traceback import format_exc
-from argparse import ArgumentParser
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.general import (
@@ -18,24 +17,11 @@ from tutils.general import (
 from tutils.config import get_config
 from tutils.logging import setup_logging, log_msg, start_message, elapsed_time_formatter
 from load.preprocess_utils import attempt_merge
-from tutils.parser import standard_parser
+from tutils.parser import standard_parser, notify_parser
 from tutils.notify import send_notification
 
 LOGGER = setup_logging("preprocess_data.log")
 CHECKPOINT_VAL = 5_000
-
-
-def build_parser() -> ArgumentParser:
-    parser, _ = standard_parser()
-    parser.add_argument(
-        "--notify",
-        action="store_true",
-        help="Whether to send a notification email when execution finishes",
-    )
-    parser.add_argument(
-        "--email", action="append", required=False, help="Email receipients to notify"
-    )
-    return parser
 
 
 def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
@@ -306,7 +292,8 @@ def main(server: str) -> str:
 
 
 if __name__ == "__main__":
-    parser = build_parser()
+    parser, _ = standard_parser()
+    parser = notify_parser(parser=parser)
     options = parser.parse_args()
 
     if not options.server:
