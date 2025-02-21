@@ -78,7 +78,7 @@ def contact_notification(api_request: Request) -> Tuple[Dict, int]:
     request_arguments, request_http_code = utils.get_request_object(
         api_request, "notification"
     )
-    if request_arguments != 200:
+    if request_http_code != 200:
         return request_arguments, request_http_code
 
     load_dotenv()
