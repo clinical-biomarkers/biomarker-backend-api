@@ -16,7 +16,7 @@ ENDPOINT = "http://localhost:{port}/auth/contact_notification"
 
 def main():
     parser, server_list = standard_parser()
-    parser.add_argument("--email", nargs="+", required=True)
+    parser.add_argument("--email", action="append", required=True)
     parser.add_argument("--subject", type=str, required=True)
     parser.add_argument("--message", type=str, required=True)
     options = parser.parse_args()
