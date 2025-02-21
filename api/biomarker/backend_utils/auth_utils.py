@@ -83,7 +83,6 @@ def contact_notification(api_request: Request) -> Tuple[Dict, int]:
 
     load_dotenv()
 
-    response_json = {"type": "notification-success", "message": "Message sent"}
     source_app_password = os.environ.get("EMAIL_APP_PASSWORD")
     if source_app_password is None:
         error_obj = db_utils.log_error(
@@ -99,6 +98,7 @@ def contact_notification(api_request: Request) -> Tuple[Dict, int]:
     msg["Subject"] = request_arguments["subject"]
     msg["To"] = emails
     msg["From"] = f"{CONTACT_SOURCE}@gmail.com"
+    response_json = {"type": "notification-success", "message": "Message sent"}
 
     try:
         smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
