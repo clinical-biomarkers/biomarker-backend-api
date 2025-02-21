@@ -118,6 +118,19 @@ class ContactSchema(Schema):
     page = fields.Str(required=False)
 
 
+### Contact Notification Schema
+
+
+class ContactNotificationSchema(Schema):
+
+    class Meta(Schema.Meta):
+        uknown = EXCLUDE
+
+    email = fields.List(fields.Str(), required=True)
+    subject = fields.Str(required=True)
+    message = fields.Str(required=True)
+
+
 ### Frontend Logging Schema
 
 
@@ -142,4 +155,5 @@ SCHEMA_MAP = {
     "list": ListSchema,
     "contact": ContactSchema,
     "frontend_logging": FrontendLogger,
+    "notification": ContactNotificationSchema,
 }

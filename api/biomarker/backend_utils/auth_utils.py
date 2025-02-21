@@ -1,5 +1,4 @@
-""" Handles the backend logic for the biomarker auth endpoints.
-"""
+"""Handles the backend logic for the biomarker auth endpoints."""
 
 from flask import Request, current_app
 from typing import Tuple, Dict
@@ -71,5 +70,46 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
             error_log=f"Failure to send contact email. {e}\n{traceback.format_exc()}",
             error_msg="internal-email-error",
             origin="contact",
+        )
+        return error_obj, 500
+
+
+def contact_notification(api_request: Request) -> Tuple[Dict, int]:
+    request_arguments, request_http_code = utils.get_request_object(
+        api_request, "notification"
+    )
+    if request_arguments != 200:
+        return request_arguments, request_http_code
+
+    load_dotenv()
+
+    response_json = {"type": "notification-success", "message": "Message sent"}
+    source_app_password = os.environ.get("EMAIL_APP_PASSWORD")
+    if source_app_password is None:
+        error_obj = db_utils.log_error(
+            error_log="Error reading email password environment variable.",
+            error_msg="internal-email-error",
+            origin="contact",
+        )
+        return error_obj, 500
+
+    emails = ", ".join(request_arguments["email"])
+
+    msg = MIMEText(request_arguments["message"])
+    msg["Subject"] = request_arguments["subject"]
+    msg["To"] = emails
+    msg["From"] = f"{CONTACT_SOURCE}@gmail.com"
+
+    try:
+        smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+        smtp_server.login(user=CONTACT_SOURCE, password=source_app_password)
+        smtp_server.sendmail(msg["From"], emails, msg.as_string())
+        smtp_server.quit()
+        return response_json, 200
+    except Exception as e:
+        error_obj = db_utils.log_error(
+            error_log=f"Failure to send notification email. {e}\n{traceback.format_exc()}",
+            error_msg="internal-email-error",
+            origin="contact_notification",
         )
         return error_obj, 500
