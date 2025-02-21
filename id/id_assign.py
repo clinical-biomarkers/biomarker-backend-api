@@ -33,8 +33,14 @@ from tutils.notify import send_notification
 
 def build_parser() -> tuple[ArgumentParser, list[str]]:
     parser, server_list = standard_parser()
-    parser.add_argument("--notify", action="store_true")
-    parser.add_argument("--email", action="append", required=False)
+    parser.add_argument(
+        "--notify",
+        action="store_true",
+        help="Whether to send a notification email when execution finishes",
+    )
+    parser.add_argument(
+        "--email", action="append", required=False, help="Email receipients to notify"
+    )
     return parser, server_list
 
 
@@ -159,13 +165,14 @@ if __name__ == "__main__":
         subject = f"[SUCCESS] {server} ID Assign Process Completed"
         message = f"Elapsed time: {elapsed_time}\n"
     except Exception as e:
-        subject = f"[Failed] {server} ID Assign Process Completed"
+        subject = f"[FAILED] {server} ID Assign Process Completed"
         message = f"ID Assign failed, check the logs.\n{e}\n{format_exc()}"
         log_msg(
             logger=LOGGER,
             msg=message,
             level="error",
         )
+
     if options.notify:
         send_notification(
             email=options.email,
