@@ -27,3 +27,16 @@ def parse_server(
         parser.print_help()
         sys.exit(1)
     return server
+
+
+def notify_parser(parser: ArgumentParser) -> ArgumentParser:
+    """Adds notification args to a base parser."""
+    parser.add_argument(
+        "--notify",
+        action="store_true",
+        help="Whether to send a notification email when execution finishes",
+    )
+    parser.add_argument(
+        "--email", action="append", required=False, help="Email receipients to notify"
+    )
+    return parser
