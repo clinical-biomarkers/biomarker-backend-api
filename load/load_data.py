@@ -1,19 +1,9 @@
-"""Loads the preprocessed data into MongoDB.
-
-usage: parser.py [-h] server
-
-positional arguments:
-  server      prd/beta/tst/dev
-
-options:
-  -h, --help  show this help message and exit
-"""
-
 import glob
 import sys
 import time
 import os
 from traceback import format_exc
+from argparse import Namespace
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.db import (
@@ -30,7 +20,7 @@ from tutils.general import (
     get_user_confirmation,
     confirmation_message_complete,
 )
-from tutils.parser import standard_parser
+from tutils.parser import standard_parser, notify_parser
 from tutils.constants import (
     biomarker_default,
     stats_default,
@@ -46,30 +36,13 @@ from load.load_utils import (
     LOGGER,
     load_checkpoint,
 )
+from tutils.notify import send_notification
 from load.preprocess import CHECKPOINT_VAL
 
 WRITE_BATCH = 500
 
 
-def main() -> None:
-
-    parser, server_list = standard_parser()
-    parser.add_argument(
-        "-c",
-        "--continue",
-        dest="continue_load",
-        action="store_true",
-        help="Continue from last successful index",
-    )
-    options = parser.parse_args()
-    if not options.server:
-        parser.print_help()
-        sys.exit(1)
-    server = options.server.lower().strip()
-    if server not in server_list:
-        print("Invalid server.")
-        parser.print_help()
-        sys.exit(1)
+def main(options: Namespace, server: str) -> str:
 
     start_message(logger=LOGGER, msg=f"Loading data for server: {server}")
 
@@ -305,6 +278,7 @@ def main() -> None:
         + collision_elapsed_time
         + stats_elapsed_time
     )
+    total_time_str = elapsed_time_formatter(total_time)
     finish_str = (
         "Finished loading data and calculating new metadata stats\n"
         f"{loading_coll_log}"
@@ -312,13 +286,50 @@ def main() -> None:
         f"\tLoading merged data took {elapsed_time_formatter(merged_elapsed_time)}\n"
         f"\tLoading collision data took {elapsed_time_formatter(collision_elapsed_time)}\n"
         f"\tCalculating stats took {elapsed_time_formatter(stats_elapsed_time)}\n"
-        f"\tTotal time: {elapsed_time_formatter(total_time)}"
+        f"\tTotal time: {total_time_str}"
     )
     log_msg(logger=LOGGER, msg=finish_str)
 
+    return total_time_str
+
 
 if __name__ == "__main__":
+    parser, server_list = standard_parser()
+    parser = notify_parser(parser=parser)
+    parser.add_argument(
+        "-c",
+        "--continue",
+        dest="continue_load",
+        action="store_true",
+        help="Continue from last successful index",
+    )
+    options = parser.parse_args()
+
+    if not options.server:
+        parser.print_help()
+        sys.exit(1)
+    server = options.server.lower().strip()
+    if server not in server_list:
+        print("Invalid server.")
+        parser.print_help()
+        sys.exit(1)
+
+    subject: str
+    message: str
     try:
-        main()
+        elapsed_time = main(options=options, server=server)
+        subject = f"[SUCCESS] {server} Data Load Process Completed"
+        message = f"Elapsed time: {elapsed_time}\n"
     except Exception as e:
-        log_msg(logger=LOGGER, msg=f"Loading failed: {e}.{format_exc()}", level="error")
+        subject = f"[FAILED] {server} Data Load Process Completed"
+        message = f"Data Load failed, check the logs.\n{e}\n{format_exc()}"
+        log_msg(logger=LOGGER, msg=message, level="error")
+
+    if options.notify:
+        send_notification(
+            email=options.email,
+            subject=subject,
+            message=message,
+            server=server,
+            logger=LOGGER,
+        )
