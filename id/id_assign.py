@@ -1,4 +1,3 @@
-import argparse
 import sys
 import glob
 import os
@@ -33,10 +32,6 @@ from tutils.notify import send_notification
 
 
 def build_parser() -> tuple[ArgumentParser, list[str]]:
-    parser = argparse.ArgumentParser(
-        prog="id_assign.py",
-        usage="python id_assign.py [options] server",
-    )
     parser, server_list = standard_parser()
     parser.add_argument("--notify", action="store_true")
     parser.add_argument("--email", action="append", required=False)
