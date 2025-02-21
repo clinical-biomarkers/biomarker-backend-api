@@ -1,19 +1,3 @@
-"""Preprocesses the JSON data model data by attempting to merge collision records.
-
-For now this is the implementation that I created on the fly. However, its slow, incurring significant runtime complexity.
-As the project gets more and more data this approach will be very slow. This is a heavily IO bound workflow. In an ideal
-world, you could complete this logic in memory and avoid excessive IO calls. However, with the amount of data we currently
-have that is not feasible.
-
-usage: parser.py [-h] server
-
-positional arguments:
-  server      prd/beta/tst/dev
-
-options:
-  -h, --help  show this help message and exit
-"""
-
 import ijson
 import time
 import subprocess
@@ -21,6 +5,7 @@ import glob
 import os
 import sys
 from traceback import format_exc
+from argparse import ArgumentParser
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.general import (
@@ -34,9 +19,23 @@ from tutils.config import get_config
 from tutils.logging import setup_logging, log_msg, start_message, elapsed_time_formatter
 from load.preprocess_utils import attempt_merge
 from tutils.parser import standard_parser
+from tutils.notify import send_notification
 
 LOGGER = setup_logging("preprocess_data.log")
 CHECKPOINT_VAL = 5_000
+
+
+def build_parser() -> ArgumentParser:
+    parser, _ = standard_parser()
+    parser.add_argument(
+        "--notify",
+        action="store_true",
+        help="Whether to send a notification email when execution finishes",
+    )
+    parser.add_argument(
+        "--email", action="append", required=False, help="Email receipients to notify"
+    )
+    return parser
 
 
 def first_pass(files: list[str], merged_dir: str, collision_dir: str) -> float:
@@ -210,18 +209,7 @@ def second_pass(merged_dir: str, collision_dir: str) -> float:
     return elapsed_time
 
 
-def main() -> None:
-
-    parser, _ = standard_parser()
-    options = parser.parse_args()
-    if not options.server:
-        parser.print_help()
-        sys.exit(1)
-    server = options.server.lower().strip()
-    # only allow running this script on the dev server
-    if server != "dev":
-        print("This script can only be run on the dev server.")
-        sys.exit(1)
+def main(server: str) -> str:
 
     start_message(logger=LOGGER, msg=f"Preprocessing data for server: {server}")
 
@@ -310,18 +298,48 @@ def main() -> None:
     finish_str = "Finished preprocessing data."
     finish_str += f"\n\tFirst pass took {elapsed_time_formatter(first_pass_time)}."
     finish_str += f"\n\tSecond pass took {elapsed_time_formatter(second_pass_time)}."
-    finish_str += (
-        f"\n\tTotal time: {elapsed_time_formatter(first_pass_time + second_pass_time)}."
-    )
+    total_elapsed_time_str = elapsed_time_formatter(first_pass_time + second_pass_time)
+    finish_str += f"\n\tTotal time: {total_elapsed_time_str}."
     log_msg(logger=LOGGER, msg=finish_str)
+
+    return total_elapsed_time_str
 
 
 if __name__ == "__main__":
+    parser = build_parser()
+    options = parser.parse_args()
+
+    if not options.server:
+        parser.print_help()
+        sys.exit(1)
+    server = options.server.lower().strip()
+    # only allow running this script on the dev server
+    if server != "dev":
+        print("This script can only be run on the dev server.")
+        sys.exit(1)
+    if options.notify and not options.email:
+        print("Notify was set to true but no emails were passed, see --help:\n")
+        parser.print_help()
+        sys.exit(1)
+
     try:
-        main()
+        elapsed_time = main(server=server)
+        subject = f"[SUCCESS] {server} Preprocessing Completed"
+        message = f"Elapsed time: {elapsed_time}"
     except Exception as e:
+        subject = f"[FAILED] {server} Preprocessing Completed"
+        message = f"Preprocess failed: {e}\n{format_exc()}"
         log_msg(
             logger=LOGGER,
-            msg=f"Preprocess failed: {e}\n{format_exc()}",
+            msg=message,
             level="error",
+        )
+
+    if options.notify:
+        send_notification(
+            email=options.email,
+            subject=subject,
+            message=message,
+            server=server,
+            logger=LOGGER,
         )
