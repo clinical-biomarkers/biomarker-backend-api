@@ -313,6 +313,10 @@ if __name__ == "__main__":
         print("Invalid server.")
         parser.print_help()
         sys.exit(1)
+    if options.notify and not options.email:
+        print("Notify was set to true but no emails were passed, see --help:\n")
+        parser.print_help()
+        sys.exit(1)
 
     subject: str
     message: str
