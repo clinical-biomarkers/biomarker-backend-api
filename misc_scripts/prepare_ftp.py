@@ -6,7 +6,7 @@ import subprocess
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.config import get_config
 from tutils.parser import standard_parser, parse_server
-from tutils.general import copy_file, resolve_symlink, get_user_confirmation
+from tutils.general import copy_file, resolve_symlink, get_user_confirmation, confirmation_message_complete
 
 ALL_BIOMARKER_JSON = "all-biomarker-json"
 ALL_BIOMARKER_TSV = "all-biomarker-tsv"
@@ -71,6 +71,7 @@ def main() -> None:
         confirmation_str += f"\n\t\tTarball: {metadata['tarball']}"
     print(confirmation_str)
     get_user_confirmation()
+    confirmation_message_complete()
 
     for data_type, metadata in data_config.items():
         if not os.path.isdir(metadata["dest_path"]):

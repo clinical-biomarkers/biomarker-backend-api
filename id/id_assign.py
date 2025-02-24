@@ -1,4 +1,3 @@
-import argparse
 import sys
 import glob
 import os
@@ -14,7 +13,7 @@ from tutils.db import (
     get_connection_string,
     dump_id_collection,
 )
-from tutils.parser import standard_parser, parse_server
+from tutils.parser import standard_parser, parse_server, notify_parser
 from tutils.config import get_config
 from tutils.general import (
     load_json_type_safe,
@@ -28,20 +27,10 @@ from tutils.constants import (
     canonical_id_default,
     second_level_id_default,
 )
+from tutils.notify import send_notification
 
 
-def main() -> None:
-
-    parser = argparse.ArgumentParser(
-        prog="id_assign.py",
-        usage="python id_assign.py [options] server",
-    )
-    parser, server_list = standard_parser()
-    options = parser.parse_args()
-    server = parse_server(parser=parser, server=options.server, server_list=server_list)
-    if server.lower() != "dev":
-        print("Can only run this script on the `dev` server.")
-        sys.exit(1)
+def main(server: str) -> str:
 
     start_message(logger=LOGGER, msg="Beginning ID assignment process.")
 
@@ -130,22 +119,52 @@ def main() -> None:
     )
 
     elapsed_time = time() - start_time
-    msg = (
-        f"Elapsed time: {elapsed_time_formatter(elapsed_time)}\n"
-        "Finished ID assignment process" + ("-" * 30)
+    elapsed_time_str = elapsed_time_formatter(elapsed_time)
+    msg = f"Elapsed time: {elapsed_time_str}\n" "Finished ID assignment process" + (
+        "-" * 30
     )
     log_msg(
         logger=LOGGER,
         msg=msg,
     )
 
+    return elapsed_time_str
+
 
 if __name__ == "__main__":
+    parser, server_list = standard_parser()
+    parser = notify_parser(parser=parser)
+    options = parser.parse_args()
+    server = parse_server(parser=parser, server=options.server, server_list=server_list)
+
+    if server.lower() != "dev":
+        print("Can only run this script on the `dev` server.")
+        sys.exit(1)
+    if options.notify and not options.email:
+        print("Notify was set to true but no emails were passed, see --help:\n")
+        parser.print_help()
+        sys.exit(1)
+
+    subject: str
+    message: str
     try:
-        main()
+        elapsed_time = main(server=server)
+        subject = f"[SUCCESS] {server} ID Assign Process Completed"
+        message = f"Elapsed time: {elapsed_time}\n"
     except Exception as e:
+        subject = f"[FAILED] {server} ID Assign Process Completed"
+        message = f"ID Assign failed, check the logs.\n{e}\n{format_exc()}"
         log_msg(
             logger=LOGGER,
-            msg=f"id_assign failed: {e}\n{format_exc()}",
+            msg=message,
             level="error",
+        )
+
+    if options.notify:
+        send_notification(
+            email=options.email,
+            subject=subject,
+            message=message,
+            server=server,
+            logger=LOGGER,
         )
