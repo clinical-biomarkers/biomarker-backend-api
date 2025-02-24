@@ -4,9 +4,15 @@ import glob
 import subprocess
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from . import ROOT_DIR
 from tutils.config import get_config
 from tutils.parser import standard_parser, parse_server
-from tutils.general import copy_file, resolve_symlink, get_user_confirmation, confirmation_message_complete
+from tutils.general import (
+    copy_file,
+    resolve_symlink,
+    get_user_confirmation,
+    confirmation_message_complete,
+)
 
 ALL_BIOMARKER_JSON = "all-biomarker-json"
 ALL_BIOMARKER_TSV = "all-biomarker-tsv"
@@ -62,6 +68,7 @@ def main() -> None:
         },
     }
 
+    log_file = os.path.join(ROOT_DIR, "logs", f"prepare_ftp.log")
     confirmation_str = "Confirmation data:"
     for idx, (data_type, metadata) in enumerate(data_config.items()):
         confirmation_str += f"\n\t{idx}. {data_type}"
@@ -73,6 +80,7 @@ def main() -> None:
     get_user_confirmation()
     confirmation_message_complete()
 
+    f = open(log_file, "w")
     for data_type, metadata in data_config.items():
         if not os.path.isdir(metadata["dest_path"]):
             os.mkdir(metadata["dest_path"])
@@ -80,10 +88,14 @@ def main() -> None:
         for fp in files_to_copy:
             copy_file(src=fp, dest=metadata["dest_path"])
         subprocess.run(
-            f"{TAR_CMD} {metadata['tarball']} -C {metadata['dest_path']}", shell=True
+            f"{TAR_CMD} {metadata['tarball']} -C {metadata['dest_path']}",
+            shell=True,
+            stdout=f,
         )
         if data_type == "merged":
-            subprocess.run(f"rm -r {metadata['dest_path']}", shell=True)
+            subprocess.run(f"rm -r {metadata['dest_path']}", shell=True, stdout=f)
+
+    f.close()
 
 
 if __name__ == "__main__":
