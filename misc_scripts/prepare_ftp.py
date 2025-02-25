@@ -58,7 +58,7 @@ def main() -> None:
     merged_data_dir = os.path.join(
         data_root_path, *generated_path_segment, *merged_data_segment
     )
-    tsv_dir = "/data/shared/biomarkerdb/releases/data/current/reviewed"
+    tsv_dir = "/data/shared/biomarkerdb/releases/data/current/"
 
     data_config: dict[str, dict[str, str]] = {
         "json": {
@@ -81,7 +81,7 @@ def main() -> None:
             "tarball": os.path.join(ftp_path, f"{ALL_BIOMARKER_JSON_MERGED}{TAR_EXT}"),
         },
     }
-    log_msg(logger=LOGGER, msg=pformat(data_config))
+    log_msg(logger=LOGGER, msg=f"\n{pformat(data_config)}")
 
     confirmation_str = "Confirmation data:"
     for idx, (data_type, metadata) in enumerate(data_config.items()):
@@ -101,7 +101,8 @@ def main() -> None:
     try:
         for data_type, metadata in data_config.items():
             data_type_start_time = time()
-            log_msg(logger=LOGGER, msg=f"Processing {data_type} data...")
+            start_str = ("-" * 50) + f"Processing {data_type} data" + ("-" * 50)
+            log_msg(logger=LOGGER, msg=start_str)
             log_msg(logger=LOGGER, msg=pformat(metadata))
 
             if not os.path.isdir(metadata["dest_path"]):
