@@ -237,6 +237,7 @@ def load_id_collection(
     float
         Elapsed time in seconds.
     """
+    import_log = os.path.join(ROOT_DIR, "logs", f"mongoimport_{collection}.log")
     command = [
         "mongoimport",
         "--uri",
@@ -254,13 +255,15 @@ def load_id_collection(
 
     try:
         start_time = time()
-        subprocess.run(command, check=True)
+        with open(import_log, "w") as f:
+            subprocess.run(command, check=True, stdout=f, stderr=subprocess.STDOUT)
         elapsed_time = time() - start_time
         msg = f"Finished loading {collection} collection, took {elapsed_time_formatter(elapsed_time)}"
         log_msg(logger=logger, msg=msg)
         return elapsed_time
     except subprocess.CalledProcessError as e:
         msg = (
+            f"Error, check the logs at {import_log}\n"
             "Args passed:\n"
             f"\tConnection string: {connection_string}\n"
             f"\tLoad path: {load_path}\n"
