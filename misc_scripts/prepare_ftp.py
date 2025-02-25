@@ -58,7 +58,7 @@ def main() -> None:
     merged_data_dir = os.path.join(
         data_root_path, *generated_path_segment, *merged_data_segment
     )
-    tsv_dir = "/data/shared/biomarkerdb/releases/data/current/"
+    tsv_dir = "/data/shared/biomarkerdb/releases/data/current"
 
     data_config: dict[str, dict[str, str]] = {
         "json": {
@@ -68,14 +68,14 @@ def main() -> None:
             "tarball": os.path.join(ftp_path, f"{ALL_BIOMARKER_JSON}{TAR_EXT}"),
         },
         "tsv": {
-            "resolved_symlink": resolve_symlink(tsv_dir) or "UNABLE TO RESOLVE SYMLINK",
+            "resolved_symlink": resolve_symlink(tsv_dir) or f"UNABLE TO RESOLVE SYMLINK: {tsv_dir}",
             "src_glob_pattern": os.path.join(tsv_dir, "reviewed", "*.tsv"),
             "dest_path": os.path.join(ftp_path, ALL_BIOMARKER_TSV),
             "tarball": os.path.join(ftp_path, f"{ALL_BIOMARKER_TSV}{TAR_EXT}"),
         },
         "merged": {
             "resolved_symlink": resolve_symlink(merged_data_dir)
-            or "UNABLE TO RESOLVE SYMLINK",
+            or f"UNABLE TO RESOLVE SYMLINK: {merged_data_dir}",
             "src_glob_pattern": os.path.join(merged_data_dir, "merged_json", "*.json"),
             "dest_path": os.path.join(ftp_path, ALL_BIOMARKER_JSON_MERGED),
             "tarball": os.path.join(ftp_path, f"{ALL_BIOMARKER_JSON_MERGED}{TAR_EXT}"),
