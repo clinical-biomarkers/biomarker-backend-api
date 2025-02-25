@@ -4,7 +4,7 @@ import glob
 import subprocess
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from . import ROOT_DIR
+from tutils import ROOT_DIR
 from tutils.config import get_config
 from tutils.parser import standard_parser, parse_server
 from tutils.general import (
