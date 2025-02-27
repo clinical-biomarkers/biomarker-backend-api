@@ -197,7 +197,6 @@ def main(options: Namespace, server: str) -> str:
 
         merged_ops.append(create_load_record_command(record=record, all_text=True))
         if len(merged_ops) == WRITE_BATCH:
-            log_msg(logger=LOGGER, msg=f"Bulk writing at index: {idx + 1}.")
             bulk_load(
                 dbh=dbh,
                 ops=merged_ops,
@@ -231,21 +230,36 @@ def main(options: Namespace, server: str) -> str:
     collision_start_time = time.time()
     collision_ops = []
     total_collision_ops = 0
+    last_index = 0
+
     for idx, file in enumerate(collision_data_files):
         if (idx + 1) % CHECKPOINT_VAL == 0:
             log_msg(logger=LOGGER, msg=f"Hit collision load checkpoint at index: {idx}")
+
+        last_index = idx
+
         record = load_json_type_safe(filepath=file, return_type="dict")
         collision_ops.append(create_load_record_command(record=record, all_text=False))
         if len(collision_ops) == WRITE_BATCH:
             log_msg(logger=LOGGER, msg=f"Bulk writing at index: {idx + 1}.")
             bulk_load(
-                dbh=dbh, ops=collision_ops, destination="collision", server=server
+                dbh=dbh,
+                ops=collision_ops,
+                destination="collision",
+                server=server,
+                current_index=last_index,
             )
             total_collision_ops += len(collision_ops)
             collision_ops = []
     if collision_ops:
         log_msg(logger=LOGGER, msg="Writing leftover records...")
-        bulk_load(dbh=dbh, ops=collision_ops, destination="collision", server=server)
+        bulk_load(
+            dbh=dbh,
+            ops=collision_ops,
+            destination="collision",
+            server=server,
+            current_index=last_index,
+        )
         total_collision_ops += len(collision_ops)
         collision_ops = []
     collision_elapsed_time = round(time.time() - collision_start_time, 2)
