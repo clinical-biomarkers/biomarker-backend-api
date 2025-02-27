@@ -1,9 +1,12 @@
 import glob
 import sys
 import time
+import json
 import os
 from traceback import format_exc
 from argparse import Namespace
+import requests
+from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.db import (
@@ -47,6 +50,7 @@ def main(options: Namespace, server: str) -> str:
     start_message(logger=LOGGER, msg=f"Loading data for server: {server}")
 
     config_obj = get_config()
+    port = config_obj["api_port"][server]
     biomarker_collection = biomarker_default()
     stats_collection = stats_default()
     data_root_path_segment = config_obj["data_path"]
@@ -284,6 +288,33 @@ def main(options: Namespace, server: str) -> str:
         if isinstance(clear_collection_elapsed_time, float)
         else 0.0
     )
+
+    clear_cache_endpoint = "/auth/clear_cache"
+    endpoint = f"http://localhost:{port}{clear_cache_endpoint}"
+    load_dotenv()
+    api_key = os.environ.get("ADMIN_API_KEY")
+    if api_key is None:
+        log_msg(
+            logger=LOGGER,
+            msg="Failed to find admin api key from environment variables",
+            level="error",
+        )
+    else:
+        log_msg(logger=LOGGER, msg=f"Calling {clear_cache_endpoint}...")
+        payload = {"api_key": api_key}
+        response = requests.post(endpoint, json=payload)
+        if response.status_code != 200:
+            msg = (
+                f"Non-200 status code: {response.status_code}\n"
+                f"Response body: {json.dumps(response.json(), indent=2)}\n"
+            )
+            log_msg(logger=LOGGER, msg=msg, level="error")
+        else:
+            log_msg(
+                logger=LOGGER,
+                msg=f"Successfully called clear cache endpoint, response:\n\t{json.dumps(response.json(), indent=2)}",
+            )
+
     total_time = (
         canonical_id_load_time
         + second_id_load_time
