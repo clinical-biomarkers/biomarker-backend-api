@@ -7,6 +7,7 @@ import sys
 from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tutils import ROOT_DIR
 from tutils.logging import setup_logging, log_msg
 from tutils.parser import standard_parser, parse_server
 from tutils.config import get_config
@@ -23,10 +24,12 @@ def main():
     options = parser.parse_args()
     server = parse_server(parser=parser, server=options.server, server_list=server_list)
 
-    load_dotenv()
+    dotenv_path = os.path.join(ROOT_DIR, ".env")
+    load_dotenv(dotenv_path=dotenv_path)
     api_key = os.environ.get("ADMIN_API_KEY")
     if api_key is None:
-        log_msg(logger=LOGGER, msg="FAILED to find admin api key", level="error")
+        msg = f"FAILED to find admin api key, looked in {dotenv_path}"
+        log_msg(logger=LOGGER, msg=msg, level="error")
         sys.exit(1)
 
     config_obj = get_config()
