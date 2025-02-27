@@ -129,6 +129,7 @@ class ContactNotificationSchema(Schema):
     email = fields.List(fields.Str(), required=True)
     subject = fields.Str(required=True)
     message = fields.Str(required=True)
+    api_key = fields.Str(required=True)
 
 
 ### Frontend Logging Schema
