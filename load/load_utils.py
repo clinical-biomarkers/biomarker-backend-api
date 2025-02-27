@@ -105,15 +105,15 @@ def bulk_load(
             save_checkpoint(last_index=current_index, server=server)
         return
     except BulkWriteError as e:
-        msg = "Bulk write error on entire batch write attempt\n"
+        msg = "Bulk write error on entire batch write attempt" + ("-" * 50) + "\n"
         level: Literal["warning", "error"] = "warning"
 
         if "duplicate key error" in str(e).lower():
             msg = (
                 "Encountered duplicate key error in bulk write. This likely means some records "
-                "were already inserted in a previous attempt.\n"
-                f"Error details: {e}\n"
+                "were already inserted in a previous attempt and this script will fail."
             )
+            level = "error"
 
         if hasattr(e, "details"):
             successful_ops = e.details.get("nInserted", 0)
@@ -127,12 +127,13 @@ def bulk_load(
             msg += f"\tCould not grab `nInserted` from BulkWriteError exception\n"
             level = "error"
 
-        msg += f"Falling back to smaller batched writes\n{e}\n\n"
+        msg += f"Falling back to smaller batched writes\nERROR DETAILS: {e}\n\n"
         log_msg(logger=LOGGER, msg=msg, level=level)
     except Exception as e:
         msg = (
             "Bulk write failed on non-BulkWriteError, continuing but will likely "
-            f"fail with a duplicate key error in subsequent smaller batch writes:\n{e}\n\n"
+            "fail with a duplicate key error in subsequent smaller batch writes\n"
+            f"ERROR DETAILS: {e}\n\n"
         )
         log_msg(
             logger=LOGGER,
@@ -146,6 +147,8 @@ def bulk_load(
     # If entire bulk write fails, try smaller batches with retries
     for i in range(0, len(remaining_ops), batch_size):
         batch = remaining_ops[i : i + batch_size]
+        log_msg(logger=LOGGER, msg=(f"Starting batch {i} attempt" + ("-" * 50)))
+
         for attempt in range(max_retries):
             try:
                 result = collection.bulk_write(batch)
@@ -168,9 +171,9 @@ def bulk_load(
                 if "duplicate key error" in str(e).lower():
                     msg = (
                         f"Batch at index {i}: Encountered duplicate key error. This likely means "
-                        f"some records were already inserted.\nError details: {e}\n\n"
+                        f"some records were already inserted and this will fail.\nERROR DETAILS: {e}\n\n"
                     )
-                    log_msg(logger=LOGGER, msg=msg, level="warning")
+                    log_msg(logger=LOGGER, msg=msg, level="error")
 
                 if hasattr(e, "details"):
                     batch_successful = e.details.get("nInserted", 0)
@@ -182,14 +185,14 @@ def bulk_load(
                     if attempt == max_retries - 1:
                         log_msg(
                             logger=LOGGER,
-                            msg=f"Failed all {max_retries} attempts for batch starting at index {i}: {e}\n\n",
+                            msg=f"Failed all {max_retries} attempts for batch starting at index {i}\nERROR DETAILS: {e}\n\n",
                             level="error",
                         )
                         raise
                     sleep_time = 2**attempt
                     log_msg(
                         logger=LOGGER,
-                        msg=f"Batch index {i}: Attempt {attempt + 1} of {max_retries} failed, retrying in {sleep_time} seconds: {e}\n\n",
+                        msg=f"Batch index {i}: Attempt {attempt + 1} of {max_retries} failed, retrying in {sleep_time} seconds:\nERROR DETAILS: {e}\n\n",
                         level="warning",
                     )
                     sleep(sleep_time)
@@ -197,14 +200,14 @@ def bulk_load(
                 if attempt == max_retries - 1:
                     log_msg(
                         logger=LOGGER,
-                        msg=f"Failed with non-BulkWriteError all {max_retries} attempts for batch starting at index {i}: {e}\n\n",
+                        msg=f"Failed with non-BulkWriteError all {max_retries} attempts for batch starting at index {i}:\nERROR DETAILS: {e}\n\n",
                         level="error",
                     )
                     raise
                 sleep_time = 2**attempt
                 msg = (
                     f"Batch at index {i}: Attempt {attempt + 1} of {max_retries} failed with non-BulkWriteError, "
-                    "retrying in {sleep_time} seconds: {e}\n\n"
+                    f"retrying in {sleep_time} seconds:\nERROR DETAILS: {e}\n\n"
                 )
                 log_msg(
                     logger=LOGGER,
