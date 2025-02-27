@@ -4,6 +4,7 @@ import requests
 import json
 import os
 import sys
+from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.logging import setup_logging, log_msg
@@ -22,6 +23,12 @@ def main():
     options = parser.parse_args()
     server = parse_server(parser=parser, server=options.server, server_list=server_list)
 
+    load_dotenv()
+    api_key = os.environ.get("ADMIN_API_KEY")
+    if api_key is None:
+        log_msg(logger=LOGGER, msg="FAILED to find admin api key", level="error")
+        sys.exit(1)
+
     config_obj = get_config()
     port = config_obj["api_port"][server]
 
@@ -31,6 +38,7 @@ def main():
         "email": options.email,
         "subject": options.subject,
         "message": options.message,
+        "api_key": api_key,
     }
 
     try:
@@ -56,6 +64,7 @@ def main():
             msg=f"Error in sending notification email: {e}",
             level="error",
         )
+        sys.exit(1)
 
 
 if __name__ == "__main__":
