@@ -108,7 +108,7 @@ class ListSchema(Schema):
 class ContactSchema(Schema):
 
     class Meta(Schema.Meta):
-        uknown = EXCLUDE
+        unknown = EXCLUDE
 
     fname = fields.Str(required=True)
     lname = fields.Str(required=True)
@@ -124,7 +124,7 @@ class ContactSchema(Schema):
 class ContactNotificationSchema(Schema):
 
     class Meta(Schema.Meta):
-        uknown = EXCLUDE
+        unknown = EXCLUDE
 
     email = fields.List(fields.Str(), required=True)
     subject = fields.Str(required=True)
@@ -146,6 +146,17 @@ class FrontendLogger(Schema):
     message = fields.Str(required=True)
 
 
+### Clear Cache Schema
+
+
+class ClearCacheSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    api_key = fields.Str(required=True)
+
+
 ### Schema Map
 
 SCHEMA_MAP = {
@@ -156,4 +167,5 @@ SCHEMA_MAP = {
     "contact": ContactSchema,
     "frontend_logging": FrontendLogger,
     "notification": ContactNotificationSchema,
+    "clear_cache": ClearCacheSchema,
 }

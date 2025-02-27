@@ -7,14 +7,17 @@
 # Eventually, a shared memory caching solution should be built out (e.g. Redis), which
 # will run as a separate service that can be accessed by all worker processes.
 from cachetools import TTLCache
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 import json
-from flask import current_app
+from dotenv import load_dotenv
+from flask import current_app, Request
+import os
 
-from .db import cast_app
+from . import utils
+from . import db as db_utils
 
 # Cache pipeline results with max 300 entries and a max time to live of 604,800
-# seconds, or two weeks. We are only caching simple search "Biomarker" and
+# seconds, or one weeks. We are only caching simple search "Biomarker" and
 # "Condition" category results.
 PIPELINE_CACHE = TTLCache(maxsize=300, ttl=604_800)
 
@@ -30,7 +33,7 @@ def _should_cache_search(cache_info: Dict) -> bool:
     term_category = api_request.get("term_category", "").lower().strip()
     should_cache = term_category in {"biomarker", "condition"}
 
-    custom_app = cast_app(current_app)
+    custom_app = db_utils.cast_app(current_app)
     if should_cache:
         custom_app.api_logger.info(f"Search eligible for caching: {term_category}")
     else:
@@ -57,7 +60,7 @@ def get_cached_pipeline_results(
     cache_key = generate_pipeline_cache_key(list_id=list_id, request_args=request_args)
     result = PIPELINE_CACHE.get(cache_key)
 
-    custom_app = cast_app(current_app)
+    custom_app = db_utils.cast_app(current_app)
     if result is not None:
         custom_app.api_logger.info(f"Cache HIT for key: {cache_key}")
     else:
@@ -78,6 +81,41 @@ def cache_pipeline_results(
     cache_key = generate_pipeline_cache_key(list_id=list_id, request_args=request_args)
     PIPELINE_CACHE[cache_key] = results
 
-    custom_app = cast_app(current_app)
+    custom_app = db_utils.cast_app(current_app)
     custom_app.api_logger.info(f"Cached results for key: {cache_key}")
     custom_app.api_logger.info(f"Current cache size: {len(PIPELINE_CACHE)}")
+
+
+def clear_pipeline_cache(api_request: Request) -> Tuple[Dict, int]:
+    request_arguments, request_http_code = utils.get_request_object(
+        api_request, "clear_cache"
+    )
+    if request_http_code != 200:
+        return request_arguments, request_http_code
+
+    load_dotenv()
+    api_key = request_arguments["api_key"]
+    admin_api_key = os.environ.get("ADMIN_API_KEY")
+    if admin_api_key is None:
+        error_object = db_utils.log_error(
+            error_log="Unable to find ADMIN_API_KEY in environment variables",
+            error_msg="internal-server-error",
+            origin="clear_pipeline_cache",
+        )
+        return error_object, 500
+
+    if admin_api_key != api_key:
+        error_object = db_utils.log_error(
+            error_log="Provided API key does not match ADMIN_API_KEY",
+            error_msg="unathorized",
+            origin="clear_pipeline_cache",
+        )
+        return error_object, 401
+
+    cache_size = len(PIPELINE_CACHE)
+    PIPELINE_CACHE.clear()
+
+    return {
+        "message": "Pipeline cache cleared",
+        "items_removed": cache_size,
+    }, 200
