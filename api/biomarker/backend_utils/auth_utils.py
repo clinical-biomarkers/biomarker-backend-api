@@ -83,6 +83,24 @@ def contact_notification(api_request: Request) -> Tuple[Dict, int]:
 
     load_dotenv()
 
+    api_key = request_arguments["api_key"]
+    admin_api_key = os.environ.get("ADMIN_API_KEY")
+    if admin_api_key is None:
+        error_object = db_utils.log_error(
+            error_log="Unable to find ADMIN_API_KEY in environment variables",
+            error_msg="internal-server-error",
+            origin="contact_notification",
+        )
+        return error_object, 500
+
+    if admin_api_key != api_key:
+        error_object = db_utils.log_error(
+            error_log="Provided API key does not match ADMIN_API_KEY",
+            error_msg="unathorized",
+            origin="contact_notification",
+        )
+        return error_object, 401
+
     source_app_password = os.environ.get("EMAIL_APP_PASSWORD")
     if source_app_password is None:
         error_obj = db_utils.log_error(
@@ -92,11 +110,11 @@ def contact_notification(api_request: Request) -> Tuple[Dict, int]:
         )
         return error_obj, 500
 
-    emails = ", ".join(request_arguments["email"])
+    emails = request_arguments["email"]
 
     msg = MIMEText(request_arguments["message"])
     msg["Subject"] = request_arguments["subject"]
-    msg["To"] = emails
+    msg["To"] = ", ".join(emails)
     msg["From"] = f"{CONTACT_SOURCE}@gmail.com"
     response_json = {"type": "notification-success", "message": "Message sent"}
 
