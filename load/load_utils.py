@@ -87,134 +87,102 @@ def bulk_load(
     ops: list[InsertOne],
     destination: Literal["biomarker", "collision"],
     server: str,
-    current_index: int = -1,
-    batch_size: int = 100,
+    current_index: int,
     max_retries: int = 3,
 ) -> None:
     """Performs a bulk write."""
-    if batch_size < 1:
-        raise ValueError("batch_size must be at least 1")
 
-    collection = dbh[TARGET_COLLECTIONS[destination]]
-    successful_ops = 0
-
-    # First try writing all ops at once
-    try:
-        collection.bulk_write(ops)
-        if destination == "biomarker":
-            save_checkpoint(last_index=current_index, server=server)
-        return
-    except BulkWriteError as e:
-        msg = "Bulk write error on entire batch write attempt" + ("-" * 50) + "\n"
-        level: Literal["warning", "error"] = "warning"
-
-        if "duplicate key error" in str(e).lower():
-            msg = (
-                "Encountered duplicate key error in bulk write. This likely means some records "
-                "were already inserted in a previous attempt and this script will fail."
-            )
-            level = "error"
-
-        if hasattr(e, "details"):
-            successful_ops = e.details.get("nInserted", 0)
-            if destination == "biomarker" and successful_ops > 0:
-                save_checkpoint(
-                    last_index=current_index - (len(ops) - successful_ops),
-                    server=server,
-                )
-            msg += f"\tSuccessfully grabbed `nInserted` from BulkWriteError exception: {successful_ops}\n"
-        else:
-            msg += f"\tCould not grab `nInserted` from BulkWriteError exception\n"
-            level = "error"
-
-        msg += f"Falling back to smaller batched writes\nERROR DETAILS: {e}\n\n"
-        log_msg(logger=LOGGER, msg=msg, level=level)
-    except Exception as e:
-        msg = (
-            "Bulk write failed on non-BulkWriteError, continuing but will likely "
-            "fail with a duplicate key error in subsequent smaller batch writes\n"
-            f"ERROR DETAILS: {e}\n\n"
-        )
+    def process_sleep(attempt: int) -> None:
+        sleep_time = 2 ** (attempt + 2)
         log_msg(
             logger=LOGGER,
-            msg=msg,
-            level="error",
+            msg=f"Retrying in {sleep_time} seconds (attempt {attempt + 1}/{max_retries})",
+        )
+        sleep(sleep_time)
+
+    if not ops:
+        return
+
+    collection = dbh[TARGET_COLLECTIONS[destination]]
+    log_msg(logger=LOGGER, msg=f"Bulk writing at index: {current_index + 1}")
+
+    for attempt in range(max_retries):
+        last_attempt = attempt == max_retries - 1
+        exception_level: Literal["warning", "error"] = (
+            "error" if last_attempt else "warning"
         )
 
-    remaining_ops = ops[successful_ops:]
-    log_msg(logger=LOGGER, msg=f"{len(remaining_ops)} remaining operations")
+        try:
+            result = collection.bulk_write(ops)
 
-    # If entire bulk write fails, try smaller batches with retries
-    for i in range(0, len(remaining_ops), batch_size):
-        batch = remaining_ops[i : i + batch_size]
-        log_msg(logger=LOGGER, msg=(f"Starting batch {i} attempt" + ("-" * 50)))
+            if destination == "biomarker":
+                new_index = current_index + result.inserted_count
+                save_checkpoint(last_index=new_index, server=server)
 
-        for attempt in range(max_retries):
-            try:
-                result = collection.bulk_write(batch)
-                batch_successful = result.inserted_count
-                if destination == "biomarker":
-                    new_index = (
-                        current_index
-                        - (len(ops) - successful_ops)
-                        + i
-                        + batch_successful
-                    )
+            log_msg(
+                logger=LOGGER,
+                msg=f"Successfully completed bulk write: {result.inserted_count} documents inserted",
+            )
+            return
+
+        except BulkWriteError as e:
+            successful_ops = 0
+            log_msg(
+                logger=LOGGER,
+                msg=f"BulkWriteError encountered on attempt {attempt + 1} of {max_retries}...",
+                level=exception_level,
+            )
+
+            if hasattr(e, "details"):
+                successful_ops = e.details.get("nInserted", 0)
+                log_msg(
+                    logger=LOGGER,
+                    msg=f"Successfully grabbed `nInserted` ({successful_ops}), remaining ops: {len(ops) - successful_ops}",
+                )
+                if destination == "biomarker" and successful_ops > 0:
+                    new_index = current_index + successful_ops
                     save_checkpoint(last_index=new_index, server=server)
-                successful_ops += batch_successful
-                log_msg(
-                    logger=LOGGER,
-                    msg=f"Successfully wrote remaining operations on batch {i + 1}",
-                )
-                break
-            except BulkWriteError as e:
-                if "duplicate key error" in str(e).lower():
-                    msg = (
-                        f"Batch at index {i}: Encountered duplicate key error. This likely means "
-                        f"some records were already inserted and this will fail.\nERROR DETAILS: {e}\n\n"
-                    )
-                    log_msg(logger=LOGGER, msg=msg, level="error")
 
-                if hasattr(e, "details"):
-                    batch_successful = e.details.get("nInserted", 0)
-                    successful_ops += batch_successful
-                    if destination == "biomarker":
-                        new_index = current_index - (len(ops) - successful_ops)
-                        save_checkpoint(last_index=new_index, server=server)
+                # Skip already processed ops
+                ops = ops[successful_ops:]
 
-                    if attempt == max_retries - 1:
-                        log_msg(
-                            logger=LOGGER,
-                            msg=f"Failed all {max_retries} attempts for batch starting at index {i}\nERROR DETAILS: {e}\n\n",
-                            level="error",
-                        )
-                        raise
-                    sleep_time = 2**attempt
-                    log_msg(
-                        logger=LOGGER,
-                        msg=f"Batch index {i}: Attempt {attempt + 1} of {max_retries} failed, retrying in {sleep_time} seconds:\nERROR DETAILS: {e}\n\n",
-                        level="warning",
-                    )
-                    sleep(sleep_time)
-            except Exception as e:
-                if attempt == max_retries - 1:
-                    log_msg(
-                        logger=LOGGER,
-                        msg=f"Failed with non-BulkWriteError all {max_retries} attempts for batch starting at index {i}:\nERROR DETAILS: {e}\n\n",
-                        level="error",
-                    )
-                    raise
-                sleep_time = 2**attempt
+            if "duplicate key error" in str(e).lower():
                 msg = (
-                    f"Batch at index {i}: Attempt {attempt + 1} of {max_retries} failed with non-BulkWriteError, "
-                    f"retrying in {sleep_time} seconds:\nERROR DETAILS: {e}\n\n"
+                    f"Bulk write error caused by duplicate key, {successful_ops} were inserted. "
+                    f"Attempting to recover by incrementing 1 operation..."
                 )
+                log_msg(logger=LOGGER, msg=msg, level=exception_level)
+
+                # Try to skip past duplicate op
+                ops = ops[1:]
+
+                if last_attempt:
+                    raise
+
+            else:
+                # For other types of bulk write errors
                 log_msg(
                     logger=LOGGER,
-                    msg=msg,
-                    level="warning",
+                    msg="Bulk write error, unable to grab `nInserted`",
+                    level=exception_level,
                 )
-                sleep(sleep_time)
+
+                if last_attempt:
+                    raise
+
+            process_sleep(attempt=attempt)
+
+        except Exception as e:
+            log_msg(
+                logger=LOGGER,
+                msg="Unexpected error during bulk write",
+                level=exception_level,
+            )
+
+            if last_attempt:
+                raise
+
+            process_sleep(attempt=attempt)
 
 
 def _concatenate_fields(document: dict, max_size: int = 10_000_000) -> str:
