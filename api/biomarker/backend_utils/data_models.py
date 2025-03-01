@@ -157,6 +157,20 @@ class ClearCacheSchema(Schema):
 
     api_key = fields.Str(required=True)
 
+### Download Schema
+
+
+class DownloadSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    id = fields.Str(required=True)
+    download_type = fields.Str(required=True)
+    format = fields.Str(required=True)
+    compressed = fields.Bool(required=True)
+    section = fields.Str(required=False)
+    filters = fields.List(fields.Nested(_FilterSchema), required=False)
 
 ### Schema Map
 
@@ -169,4 +183,5 @@ SCHEMA_MAP = {
     "frontend_logging": FrontendLogger,
     "notification": ContactNotificationSchema,
     "clear_cache": ClearCacheSchema,
+    "download": DownloadSchema,
 }
