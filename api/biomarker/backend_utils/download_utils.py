@@ -9,7 +9,7 @@ from . import db as db_utils
 from . import utils
 
 
-def detail_download(api_request: Request) -> Tuple[Union[Dict, Response], int]:
+def detail_download(api_request: Request) -> Union[Tuple[Dict, int], Response]:
     """Entry point for the detail download endpoint."""
     request_arguments, request_http_code = utils.get_request_object(
         api_request, "download"
@@ -50,14 +50,11 @@ def detail_download(api_request: Request) -> Tuple[Union[Dict, Response], int]:
         filename += ".gz"
         mimetype = "application/gzip"
 
-    return (
-        Response(
-            file_content,
-            mimetype=mimetype,
-            headers={
-                "Content-Disposition": f"attachment; filename={filename}",
-                "Content-Type": f"{mimetype}; charset=utf-8",
-            },
-        ),
-        200,
+    return Response(
+        file_content,
+        mimetype=mimetype,
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Content-Type": f"{mimetype}; charset=utf-8",
+        },
     )
