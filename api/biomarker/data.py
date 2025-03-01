@@ -39,27 +39,27 @@ list_download_query = api.model(
 #     @api.expect(list_download_query, validate=False)
 #     def post(self):
 #         return download_utils.list_download(request)
-#
-#
-# section_download_query = api.model(
-#     "Section Download Query",
-#     {
-#         "id": fields.String(required=True, default=""),
-#         "download_type": fields.String(required=True, default="biomarker_section"),
-#         "section": fields.String(required=True, default="biomarker_component"),
-#         "format": fields.String(required=True, default="csv"),
-#         "compressed": fields.Boolean(required=True, default=False),
-#     },
-# )
-#
-#
-# class SectionDownload(Resource):
-#
-#     @api.expect(section_download_query, validate=False)
-#     def post(self):
-#         return download_utils.section_download(request)
+
+
+section_download_query = api.model(
+    "Section Download Query",
+    {
+        "id": fields.String(required=True, default=""),
+        "download_type": fields.String(required=True, default="biomarker_section"),
+        "section": fields.String(required=True, default="biomarker_component"),
+        "format": fields.String(required=True, default="csv"),
+        "compressed": fields.Boolean(required=True, default=False),
+    },
+)
+
+
+class SectionDownload(Resource):
+
+    @api.expect(section_download_query, validate=False)
+    def post(self):
+        return download_utils.section_download(request)
 
 
 api.add_resource(DetailDownload, "/detail_download")
 # api.add_resource(ListDownload, "/list_download")
-# api.add_resource(SectionDownload, "/section_download")
+api.add_resource(SectionDownload, "/section_download")
