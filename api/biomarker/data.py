@@ -34,11 +34,11 @@ list_download_query = api.model(
 )
 
 
-# class ListDownload(Resource):
-#
-#     @api.expect(list_download_query, validate=False)
-#     def post(self):
-#         return download_utils.list_download(request)
+class ListDownload(Resource):
+
+    @api.expect(list_download_query, validate=False)
+    def post(self):
+        return download_utils.list_download(request)
 
 
 section_download_query = api.model(
@@ -61,5 +61,5 @@ class SectionDownload(Resource):
 
 
 api.add_resource(DetailDownload, "/detail_download")
-# api.add_resource(ListDownload, "/list_download")
+api.add_resource(ListDownload, "/list_download")
 api.add_resource(SectionDownload, "/section_download")
