@@ -10,7 +10,7 @@ detail_download_model = api.model(
     {
         "id": fields.String(required=True, default=""),
         "download_type": fields.String(required=True, default="biomarker_detail"),
-        "format": fields.String(required=True, default="csv"),
+        "format": fields.String(required=True, default="json"),
         "compressed": fields.Boolean(required=True, default=False),
     },
 )
