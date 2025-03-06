@@ -92,197 +92,120 @@ def bulk_load(
 ) -> None:
     """Performs a bulk write."""
 
-    def process_sleep(attempt: int) -> None:
-        sleep_time = 2 ** (attempt + 2)
-        log_msg(
-            logger=LOGGER,
-            msg=f"Retrying in {sleep_time} seconds (attempt {attempt + 1}/{max_retries})",
-        )
-        sleep(sleep_time)
-
     if not ops:
         return
 
     collection = dbh[TARGET_COLLECTIONS[destination]]
     log_msg(logger=LOGGER, msg=f"Bulk writing at index: {current_index + 1}")
 
-    # Start with the original batch size
-    current_batch_size = len(ops)
-    start_idx = 0
+    successful_ops = 0
 
-    while start_idx < len(ops):
-        remaining_retries = max_retries
+    # First, try the entire batch
+    try:
+        result = collection.bulk_write(ops)
 
-        while remaining_retries > 0:
-            end_idx = min(start_idx + current_batch_size, len(ops))
-            current_ops = ops[start_idx:end_idx]
+        if destination == "biomarker":
+            new_index = current_index + result.inserted_count
+            save_checkpoint(last_index=new_index, server=server)
 
+        log_msg(
+            logger=LOGGER,
+            msg=f"Successfully completed bulk write: {result.inserted_count} documents inserted",
+        )
+        return
+
+    except BulkWriteError as e:
+        if hasattr(e, "details"):
+            successful_ops = e.details.get("nInserted", 0)
+            log_msg(
+                logger=LOGGER,
+                msg=f"Bulk write failed after inserting {successful_ops} documents. Falling back to individual inserts.",
+                level="warning",
+            )
+
+            if destination == "biomarker" and successful_ops > 0:
+                new_index = current_index + successful_ops
+                save_checkpoint(last_index=new_index, server=server)
+        else:
+            log_msg(
+                logger=LOGGER,
+                msg="Bulk write failed. Falling back to individual inserts.",
+                level="warning",
+            )
+
+    except Exception as e:
+        log_msg(
+            logger=LOGGER,
+            msg=f"Unexpected error during bulk write: {str(e)}. Falling back to individual inserts.",
+            level="warning",
+        )
+
+    # If we get here, the bulk insert failed - fall back to one-by-one insertion
+    log_msg(logger=LOGGER, msg="Starting individual document insertion...")
+
+    # Track where to start based on how many succeeded in the bulk operation
+    start_idx = successful_ops if "successful_ops" in locals() else 0
+
+    # Process remaining documents one by one
+    for i in range(start_idx, len(ops)):
+        for attempt in range(max_retries):
             try:
-                result = collection.bulk_write(current_ops)
+                result = collection.bulk_write([ops[i]])
 
                 if destination == "biomarker":
-                    new_index = current_index + (start_idx + result.inserted_count)
+                    new_index = current_index + i + 1
                     save_checkpoint(last_index=new_index, server=server)
 
                 log_msg(
                     logger=LOGGER,
-                    msg=f"Successfully inserted {result.inserted_count} documents (batch {start_idx}-{end_idx-1})",
+                    msg=f"Successfully inserted document {i + 1}/{len(ops)}",
                 )
-
-                # Move to next batch
-                start_idx = end_idx
-
-                # Break out of retry loop since we succeeded
-                break
+                break  # Success - move to next document
 
             except BulkWriteError as e:
-                successful_ops = 0
-                remaining_retries -= 1
-                last_attempt = remaining_retries == 0
-
-                exception_level: Literal["warning", "error"] = (
-                    "error" if last_attempt else "warning"
-                )
-
-                log_msg(
-                    logger=LOGGER,
-                    msg=f"BulkWriteError on batch {start_idx}-{end_idx-1} (attempt {max_retries - remaining_retries}/{max_retries})",
-                    level=exception_level,
-                )
-
-                if hasattr(e, "details"):
-                    successful_ops = e.details.get("nInserted", 0)
-                    log_msg(
-                        logger=LOGGER,
-                        msg=f"Successfully inserted {successful_ops} operations before error",
-                    )
-
-                    if destination == "biomarker" and successful_ops > 0:
-                        new_index = current_index + (start_idx + successful_ops)
-                        save_checkpoint(last_index=new_index, server=server)
-
                 error_str = str(e)
-
-                # For WiredTiger index errors, do one-at-a-time processing
-                if (
-                    "WiredTiger" in error_str
-                    or "oldest pinned transaction ID" in error_str
-                ):
+                if "duplicate key error" in error_str.lower():
                     log_msg(
                         logger=LOGGER,
-                        msg="Detected WiredTiger error - switching to single document mode",
+                        msg=f"Document {i + 1}/{len(ops)} is a duplicate - already exists in the database",
                         level="warning",
                     )
+                    break  # Move to next document
 
-                    # Process remaining documents one by one
-                    if successful_ops > 0:
-                        start_idx += successful_ops
-
-                    # Make batch size 1 to process one document at a time
-                    if current_batch_size > 1:
-                        current_batch_size = 1
-                        continue  # Try again with batch size of 1
-                    else:
-                        # If we're already at batch size 1, we need to try with longer pauses
-                        if not last_attempt:
-                            process_sleep(max_retries - remaining_retries)
-                            continue  # Try the same document again after pause
-                        else:
-                            # If this is our last attempt, try to move past the problematic document
-                            log_msg(
-                                logger=LOGGER,
-                                msg=f"Unable to insert document after {max_retries} attempts. Moving to next document.",
-                                level="error",
-                            )
-                            start_idx += 1
-                            break  # Move to next document
-
-                # If some operations succeeded, move past them
-                elif successful_ops > 0:
-                    start_idx += successful_ops
-                    # Try again with remaining docs
-                    continue
-
-                # For duplicate key errors
-                elif "duplicate key error" in error_str.lower():
+                if attempt < max_retries - 1:
+                    sleep_time = 2 ** (attempt + 2)
                     log_msg(
                         logger=LOGGER,
-                        msg="Duplicate key error, skipping problematic document",
+                        msg=f"Error inserting document {i + 1}/{len(ops)}. Retrying in {sleep_time} seconds (attempt {attempt + 1}/{max_retries})",
                         level="warning",
                     )
-                    # Skip one document and continue
-                    start_idx += 1
-                    break
-
-                # For other errors
+                    sleep(sleep_time)
                 else:
-                    if last_attempt:
-                        if current_batch_size > 1:
-                            # Try with a smaller batch on the next overall attempt
-                            current_batch_size = max(1, current_batch_size // 2)
-                            log_msg(
-                                logger=LOGGER,
-                                msg=f"Reducing batch size to {current_batch_size} and retrying",
-                                level="warning",
-                            )
-                            continue
-                        else:
-                            # At batch size 1, we have to skip the problem document
-                            log_msg(
-                                logger=LOGGER,
-                                msg="Unable to insert document, skipping to next",
-                                level="error",
-                            )
-                            start_idx += 1
-                            break
-                    else:
-                        # Not the last attempt, so wait and retry
-                        process_sleep(max_retries - remaining_retries)
-                        continue
+                    log_msg(
+                        logger=LOGGER,
+                        msg=f"Failed to insert document {i + 1}/{len(ops)} after {max_retries} attempts. Error: {error_str}",
+                        level="error",
+                    )
+                    raise  # Re-raise the exception after max retries
 
             except Exception as e:
-                remaining_retries -= 1
-                last_attempt = remaining_retries == 0
-                exception_level = "error" if last_attempt else "warning"
-
-                log_msg(
-                    logger=LOGGER,
-                    msg=f"Unexpected error during bulk write: {str(e)}",
-                    level=exception_level,
-                )
-
-                if last_attempt:
-                    if current_batch_size > 1:
-                        # Try with a smaller batch
-                        current_batch_size = max(1, current_batch_size // 2)
-                        continue
-                    else:
-                        # Skip problematic document as last resort
-                        start_idx += 1
-                        break
+                if attempt < max_retries - 1:
+                    sleep_time = 2 ** (attempt + 2)
+                    log_msg(
+                        logger=LOGGER,
+                        msg=f"Unexpected error inserting document {i + 1}/{len(ops)}: {str(e)}. Retrying in {sleep_time} seconds (attempt {attempt + 1}/{max_retries})",
+                        level="warning",
+                    )
+                    sleep(sleep_time)
                 else:
-                    # Wait and retry
-                    process_sleep(max_retries - remaining_retries)
-                    continue
+                    log_msg(
+                        logger=LOGGER,
+                        msg=f"Failed to insert document {i + 1}/{len(ops)} after {max_retries} attempts due to unexpected error: {str(e)}",
+                        level="error",
+                    )
+                    raise  # Re-raise the exception after max retries
 
-        # If we exhausted all retries for this batch and still failed
-        if remaining_retries == 0 and start_idx < len(ops):
-            log_msg(
-                logger=LOGGER,
-                msg=f"Failed to insert some documents after {max_retries} attempts. Moving to next batch.",
-                level="error",
-            )
-            # Force move to next batch
-            if current_batch_size == 1:
-                start_idx += 1
-            else:
-                # Reset batch size to 1 for the next attempt
-                current_batch_size = 1
-
-    log_msg(
-        logger=LOGGER,
-        msg="Completed bulk write operation",
-    )
+    log_msg(logger=LOGGER, msg=f"Completed processing all {len(ops)} documents")
 
 
 def _concatenate_fields(document: dict, max_size: int = 10_000_000) -> str:
