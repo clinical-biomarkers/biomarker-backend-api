@@ -48,7 +48,7 @@ ENTITY_TYPE_SPLITS: list[dict] = [
 ]
 
 
-def clear_collections(dbh: Database, max_retries: int = 3, delay: float = 1.0) -> None:
+def clear_collections(dbh: Database, max_retries: int = 3) -> None:
     """Clears the biomarker and unreviewed collections."""
     for collection_name in list(TARGET_COLLECTIONS.values()):
         if collection_name == "stats":
@@ -66,13 +66,14 @@ def clear_collections(dbh: Database, max_retries: int = 3, delay: float = 1.0) -
                         level="error",
                     )
                     raise
+                sleep_time = 2**(attempt + 1)
                 log_msg(
                     logger=LOGGER,
-                    msg=f"Failed to clear {collection_name} on attempt {attempt + 1} of {max_retries}, sleeping for {delay} seconds...",
+                    msg=f"Failed to clear {collection_name} on attempt {attempt + 1} of {max_retries}, sleeping for {sleep_time} seconds...",
                     level="error",
                 )
                 log_msg(logger=LOGGER, msg=f"{e}\n", level="error")
-                sleep(delay)
+                sleep(sleep_time)
 
 
 def create_load_record_command(record: dict, all_text: bool = True) -> InsertOne:
