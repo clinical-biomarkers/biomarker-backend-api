@@ -97,7 +97,7 @@ def bulk_load(
         return
 
     collection = dbh[TARGET_COLLECTIONS[destination]]
-    log_msg(logger=LOGGER, msg=f"Bulk writing at index: {current_index + 1}")
+    log_msg(logger=LOGGER, msg=f"Bulk writing at index: {current_index + 1} ------")
 
     successful_ops = 0
 
