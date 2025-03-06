@@ -1,5 +1,4 @@
 import glob
-from logging import log
 import sys
 import time
 import json
@@ -138,6 +137,7 @@ def main(options: Namespace, server: str) -> str:
     drop_indexes_start_time = time.time()
     dbh[biomarker_collection].drop_indexes()
     drop_indexes_elapsed_time = time.time() - drop_indexes_start_time
+    log_msg(logger=LOGGER, msg=f"Finished dropping indexes, took {elapsed_time_formatter(drop_indexes_elapsed_time)}")
 
     clear_collection_elapsed_time: float | str = "N/A"
     if start_index < 0:
