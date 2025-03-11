@@ -92,45 +92,14 @@ def main(options: Namespace, server: str) -> str:
 
     dbh = get_standard_db_handle(server)
 
-    paths = [
-        "biomarker_component.biomarker",
-        "biomarker_component.assessed_biomarker_entity.recommended_name",
-        "biomarker_component.assessed_biomarker_entity_id",
-        "biomarker_component.assessed_entity_type",
-        "condition.recommended_name.name",
-        "best_biomarker_role.role",
-    ]
-    log_msg(logger=LOGGER, msg="Attempting to create indexes...")
-    setup_index(
-        collection=dbh[biomarker_collection],
-        index_field="biomarker_id",
-        unique=True,
-        index_name="biomarker_id_1",
-        logger=LOGGER,
-    )
-    for path in paths:
-        setup_index(
-            collection=dbh[biomarker_collection],
-            index_field=path,
-            index_name=f"{path}_1",
-            unique=False,
-            order="ascending",
-            logger=LOGGER,
-        )
-        setup_index(
-            collection=dbh[biomarker_collection],
-            index_field=path,
-            index_name=f"{path}_-1",
-            unique=False,
-            order="descending",
-            logger=LOGGER,
-        )
-    create_text_index(collection=dbh[biomarker_collection], logger=LOGGER)
-
     loading_coll_log = ""
     canonical_id_load_time = 0.0
     second_id_load_time = 0.0
     if server != "dev":
+        log_msg(
+            logger=LOGGER,
+            msg="------------- Starting ID Collection Loads -------------",
+        )
         canonical_id_collection_local_path = os.path.join(
             data_root_path_segment,
             *generated_path_segment,
@@ -161,9 +130,21 @@ def main(options: Namespace, server: str) -> str:
             f"\t\tTotal: {elapsed_time_formatter(canonical_id_load_time + second_id_load_time)}\n"
         )
 
+    log_msg(
+        logger=LOGGER,
+        msg="------------- Dropping Indexes -------------",
+    )
+    drop_indexes_start_time = time.time()
+    dbh[biomarker_collection].drop_indexes()
+    drop_indexes_elapsed_time = time.time() - drop_indexes_start_time
+    log_msg(logger=LOGGER, msg=f"Finished dropping indexes, took {elapsed_time_formatter(drop_indexes_elapsed_time)}")
+
     clear_collection_elapsed_time: float | str = "N/A"
     if start_index < 0:
-        log_msg(logger=LOGGER, msg="Clearing collections...")
+        log_msg(
+            logger=LOGGER,
+            msg="------------- Clearing Collections -------------",
+        )
         clear_collection_start_time = time.time()
         clear_collections(dbh=dbh)
         clear_collection_elapsed_time = time.time() - clear_collection_start_time
@@ -192,12 +173,7 @@ def main(options: Namespace, server: str) -> str:
                 logger=LOGGER,
                 msg=f"Hit merged data load checkpoint at index: {idx + 1}",
             )
-        try:
-            record = load_json_type_safe(filepath=file, return_type="dict")
-        except Exception as e:
-            msg = f"Error loading merged data on file: {file}\n{e}\n{format_exc()}"
-            log_msg(logger=LOGGER, msg=msg, level="error")
-            sys.exit(1)
+        record = load_json_type_safe(filepath=file, return_type="dict")
 
         merged_ops.append(create_load_record_command(record=record, all_text=True))
         if len(merged_ops) == WRITE_BATCH:
@@ -272,7 +248,74 @@ def main(options: Namespace, server: str) -> str:
         msg=f"Finished loading collision data in {elapsed_time_formatter(collision_elapsed_time)}, completed {total_collision_ops} writes.",
     )
 
-    log_msg(logger=LOGGER, msg="Calculating metadata stats...")
+    log_msg(
+        logger=LOGGER,
+        msg="------------- Creating Indexes -------------",
+    )
+    index_start_time = time.time()
+    index_create_str = ""
+    paths = [
+        "biomarker_component.biomarker",
+        "biomarker_component.assessed_biomarker_entity.recommended_name",
+        "biomarker_component.assessed_biomarker_entity_id",
+        "biomarker_component.assessed_entity_type",
+        "condition.recommended_name.name",
+        "best_biomarker_role.role",
+    ]
+    log_msg(logger=LOGGER, msg="Attempting to create indexes...")
+
+    biomarker_id_index_start_time = time.time()
+    setup_index(
+        collection=dbh[biomarker_collection],
+        index_field="biomarker_id",
+        unique=True,
+        index_name="biomarker_id_1",
+        logger=LOGGER,
+    )
+    index_create_str += (
+        "\tCreating ascending index `biomarker_id_1` took "
+        f"{elapsed_time_formatter(time.time() - biomarker_id_index_start_time)}\n"
+    )
+
+    for path in paths:
+        index_create_str += f"\tCreating ascending and descending index on `{path}`:\n"
+        path_index_asc_start_time = time.time()
+        setup_index(
+            collection=dbh[biomarker_collection],
+            index_field=path,
+            index_name=f"{path}_1",
+            unique=False,
+            order="ascending",
+            logger=LOGGER,
+        )
+        path_index_asc_elapsed_time = time.time() - path_index_asc_start_time
+        index_create_str += f"\t\tAscending index took {elapsed_time_formatter(path_index_asc_elapsed_time)}\n"
+
+        path_index_desc_start_time = time.time()
+        setup_index(
+            collection=dbh[biomarker_collection],
+            index_field=path,
+            index_name=f"{path}_-1",
+            unique=False,
+            order="descending",
+            logger=LOGGER,
+        )
+        path_index_desc_elapsed_time = time.time() - path_index_desc_start_time
+        index_create_str += (
+            f"\t\tAscending index took {elapsed_time_formatter(path_index_asc_elapsed_time)}\n"
+            f"\t\tTotal time {elapsed_time_formatter(path_index_asc_elapsed_time + path_index_desc_elapsed_time)}\n"
+        )
+
+    text_index_start = time.time()
+    create_text_index(collection=dbh[biomarker_collection], logger=LOGGER)
+    index_create_str += f"\tCreating text index took {elapsed_time_formatter(time.time() - text_index_start)}\n"
+
+    index_elapsed_time = time.time() - index_start_time
+
+    log_msg(
+        logger=LOGGER,
+        msg="------------- Calculating metadata stats -------------",
+    )
     stats_start_time = time.time()
     process_stats(
         dbh=dbh, data_collection=biomarker_collection, stat_collection=stats_collection
@@ -318,18 +361,22 @@ def main(options: Namespace, server: str) -> str:
     total_time = (
         canonical_id_load_time
         + second_id_load_time
+        + drop_indexes_elapsed_time
         + clear_collection_elapsed_time
         + merged_elapsed_time
         + collision_elapsed_time
+        + index_elapsed_time
         + stats_elapsed_time
     )
     total_time_str = elapsed_time_formatter(total_time)
     finish_str = (
         "Finished loading data and calculating new metadata stats\n"
         f"{loading_coll_log}"
+        f"\tDropping all indexes took {elapsed_time_formatter(drop_indexes_elapsed_time)}\n"
         f"\tClearing old data took {elapsed_time_formatter(clear_collection_elapsed_time)}\n"
         f"\tLoading merged data took {elapsed_time_formatter(merged_elapsed_time)}\n"
         f"\tLoading collision data took {elapsed_time_formatter(collision_elapsed_time)}\n"
+        f"{index_create_str}"
         f"\tCalculating stats took {elapsed_time_formatter(stats_elapsed_time)}\n"
         f"\tTotal time: {total_time_str}"
     )
