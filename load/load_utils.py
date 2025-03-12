@@ -271,21 +271,36 @@ def _concatenate_fields(document: dict, max_size: int = 10_000_000) -> str:
             add_val(comp_evidence["database"])
             for evidence in comp_evidence.get("evidence_list", []):
                 add_val(evidence["evidence"])
+
     for role in document["best_biomarker_role"]:
         add_val(role["role"])
-    add_val(document["condition"]["recommended_name"]["id"])
-    add_val(document["condition"]["recommended_name"]["name"])
-    add_val(document["condition"]["recommended_name"]["description"])
-    add_val(document["condition"]["recommended_name"]["resource"])
-    for cond_syn in document["condition"].get("synonyms", []):
-        add_val(cond_syn["id"])
-        add_val(cond_syn["name"])
-        add_val(cond_syn["resource"])
+
+    condition = document.get("condition")
+    if condition is not None:
+        cond_rec_name = condition.get("recommended_name", {})
+        add_val(cond_rec_name.get("id", ""))
+        add_val(cond_rec_name.get("name", ""))
+        add_val(cond_rec_name.get("description", ""))
+        add_val(cond_rec_name.get("resource", ""))
+        for cond_syn in condition.get("synonyms", []):
+            add_val(cond_syn["id"])
+            add_val(cond_syn["name"])
+            add_val(cond_syn["resource"])
+
+    exposure_agent = document.get("exposure_agent")
+    if exposure_agent is not None:
+        exposure_agent_rec_name = exposure_agent.get("recommended_name", {})
+        add_val(exposure_agent_rec_name.get("id", ""))
+        add_val(exposure_agent_rec_name.get("name", ""))
+        add_val(exposure_agent_rec_name.get("description", ""))
+        add_val(exposure_agent_rec_name.get("resource", ""))
+
     for top_evidence in document.get("evidence_source", []):
         add_val(top_evidence["id"])
         add_val(top_evidence["database"])
         for evidence in top_evidence.get("evidence_list", []):
             add_val(evidence["evidence"])
+
     for citation in document.get("citation", []):
         add_val(citation["title"])
         add_val(citation["journal"])
