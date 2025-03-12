@@ -106,7 +106,7 @@ def bulk_load(
         result = collection.bulk_write(ops)
 
         if destination == "biomarker":
-            new_index = current_index + result.inserted_count
+            new_index = current_index + len(ops)
             save_checkpoint(last_index=new_index, server=server)
 
         log_msg(
@@ -154,7 +154,7 @@ def bulk_load(
                 result = collection.bulk_write([ops[i]])
 
                 if destination == "biomarker":
-                    new_index = current_index + i + 1
+                    new_index = current_index + start_idx + (i - start_idx) + 1
                     save_checkpoint(last_index=new_index, server=server)
 
                 log_msg(
