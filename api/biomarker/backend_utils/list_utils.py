@@ -1,7 +1,7 @@
 """Handles the backend logic for the biomarker list endpoint."""
 
 from flask import Request, current_app
-from typing import Tuple, Dict, List
+from typing import Optional, Tuple, Dict, List
 
 from . import utils as utils
 from . import db as db_utils
@@ -146,6 +146,25 @@ def _unroll_results(results: List[Dict]) -> List:
     return_list: List[Dict] = []
     for document in results:
         components = document["biomarker_component"]
+
+        condition = document.get("condition")
+        condition_unrolled: Optional[str] = None
+        if condition is not None:
+            cond_rec_name = condition.get("recommended_name", {})
+            condition_unrolled = "; ".join(
+                [f"{cond_rec_name.get('name', '')} ({cond_rec_name.get('id', '')})"]
+            )
+
+        exposure_agent = document.get("exposure_agent")
+        exposure_agent_unrolled: Optional[str] = None
+        if exposure_agent is not None:
+            exposure_agent_rec_name = exposure_agent.get("recommended_name", {})
+            exposure_agent_unrolled = "; ".join(
+                [
+                    f"{exposure_agent_rec_name.get('name', '') ({exposure_agent_rec_name.get('id', '')})}"
+                ]
+            )
+
         entry = {
             "biomarker_canonical_id": document["biomarker_canonical_id"],
             "biomarker_id": document["biomarker_id"],
@@ -176,11 +195,6 @@ def _unroll_results(results: List[Dict]) -> List:
             "best_biomarker_role": "; ".join(
                 [role["role"] for role in document["best_biomarker_role"]]
             ),
-            "condition": "; ".join(
-                [
-                    f"{document['condition']['recommended_name']['name']} ({document['condition']['recommended_name']['id']})"
-                ]
-            ),
             "component_count": len(components),
             "record_type": "biomarker",
             "hit_score": document["score"],
@@ -199,6 +213,12 @@ def _unroll_results(results: List[Dict]) -> List:
                 },
             ),
         }
+
+        if condition_unrolled is not None:
+            entry["condition"] = condition_unrolled
+
+        if exposure_agent_unrolled is not None:
+            entry["exposure_agent"] = exposure_agent_unrolled
 
         return_list.append(entry)
 
