@@ -18,6 +18,10 @@ def home_init() -> Tuple[Dict, int]:
     if stats_http_code != 200:
         return stats, stats_http_code
 
+    versions, version_http_code = db_utils.get_version()
+    if version_http_code != 200:
+        return versions, version_http_code
+
     statistics = []
     database_stats = {"title": "Database Statistics"}
     database_stats_raw = {
@@ -39,6 +43,7 @@ def home_init() -> Tuple[Dict, int]:
     statistics.append(entity_type_splits)
 
     return_object = {
+        "version": versions["version"],
         "statistics": statistics,
         "statistics_new": {},
         "events": [],
