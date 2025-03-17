@@ -300,7 +300,9 @@ def get_version(version_collection: str = VERSION_COLLECTION) -> Tuple[Dict, int
 
     try:
         versions = list(
-            dbh[version_collection].find({"component": {"$in": ["api", "data"]}})
+            dbh[version_collection].find(
+                {"component": {"$in": ["api", "data"]}}, {"_id": 0}
+            )
         )
         return_data = {"version": versions}
         return return_data, 200
