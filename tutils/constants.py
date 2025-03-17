@@ -44,3 +44,7 @@ def error_default() -> str:
 def ontology_default() -> str:
     collections = get_collections()
     return collections["ontology"]
+
+def version_default() -> str:
+    collections = get_collections()
+    return collections["version"]
