@@ -1,4 +1,4 @@
-""" General functions that interact with the MongoDB database collections."""
+"""General functions that interact with the MongoDB database collections."""
 
 from flask import current_app, Flask, Request
 from . import (
@@ -8,6 +8,7 @@ from . import (
     DB_COLLECTION,
     SEARCH_CACHE_COLLECTION,
     STATS_COLLECTION,
+    VERSION_COLLECTION,
     ONTOLOGY_COLLECTION,
     REQ_LOG_COLLECTION,
     REQ_LOG_MAX_LEN,
@@ -291,6 +292,33 @@ def get_cached_objects(
         "mongo_query": cache_entry["cache_info"]["query"],
         "cache_info": cache_entry["cache_info"],
     }, 200
+
+
+def get_version(version_collection: str = VERSION_COLLECTION) -> Tuple[Dict, int]:
+    custom_app = cast_app(current_app)
+    dbh = custom_app.mongo_db
+
+    try:
+        versions = list(
+            dbh[version_collection].find({"component": {"$in": ["api", "data"]}})
+        )
+        return_data = {"version": versions}
+        return return_data, 200
+
+    except PyMongoError as e:
+        error_object = log_error(
+            error_log=f"Pymongo error in querying for database version info.\n{e}",
+            error_msg="internal-database-error",
+            origin="get_version",
+        )
+        return error_object, 500
+    except Exception as e:
+        error_object = log_error(
+            error_log=f"Unexpected error in querying for database version info.\n{e}",
+            error_msg="internal-database-error",
+            origin="get_version",
+        )
+        return error_object, 500
 
 
 def get_stats(

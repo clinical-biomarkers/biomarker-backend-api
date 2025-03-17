@@ -14,6 +14,7 @@ STATS_COLLECTION = "stats_collection"
 ONTOLOGY_COLLECTION = "ontology_collection"
 REQ_LOG_COLLECTION = "request_log_collection"
 ERROR_LOG_COLLECTION = "error_log_collection"
+VERSION_COLLECTION = "version_collection"
 
 REQ_LOG_MAX_LEN = 20_000
 CACHE_BATCH_SIZE = 5_000
