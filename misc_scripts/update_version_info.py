@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 from datetime import datetime
 import time
 from pymongo.collection import Collection
@@ -16,6 +17,11 @@ def get_current_version(collection: Collection, component: Literal["api", "data"
     return collection.find_one({"component": component})
 
 
+def is_valid_version(version: str, pattern: str) -> bool:
+    """ Check if the version string matches the required pattern. """
+    return bool(re.fullmatch(pattern, version))
+
+
 def main() -> None:
 
     parser, server_list = standard_parser()
@@ -27,8 +33,20 @@ def main() -> None:
 
     api_version = options.api_version
     data_version = options.data_version
+
+    api_pattern = r"^\d+\.\d+$" # Matches X.X (e.g. 1.0)
+    data_pattern = r"^\d+\.\d+\.\d+$" # Matches X.X.X (e.g. 1.2.3)
+
     if not api_version and not data_version:
         print("Need to include one or both of api and data versions.")
+        sys.exit(1)
+
+    if api_version and not is_valid_version(api_version, api_pattern):
+        print("Error: --api-version must be in the format X.X (e.g. 1.0)")
+        sys.exit(1)
+
+    if data_version and not is_valid_version(data_version, data_pattern):
+        print("Error: --data-version must be in the format X.X.X (e.g. 1.2.3)")
         sys.exit(1)
 
     version_collection_name = version_default()
