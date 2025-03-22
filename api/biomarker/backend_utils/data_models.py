@@ -157,6 +157,7 @@ class ClearCacheSchema(Schema):
 
     api_key = fields.Str(required=True)
 
+
 ### Download Schema
 
 
@@ -172,6 +173,18 @@ class DownloadSchema(Schema):
     section = fields.Str(required=False)
     filters = fields.List(fields.Nested(_FilterSchema), required=False)
 
+
+### AI Search Schema
+
+
+class AISearchSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    query = fields.Str(required=True)
+
+
 ### Schema Map
 
 SCHEMA_MAP = {
@@ -184,4 +197,5 @@ SCHEMA_MAP = {
     "notification": ContactNotificationSchema,
     "clear_cache": ClearCacheSchema,
     "download": DownloadSchema,
+    "ai_search": AISearchSchema,
 }
