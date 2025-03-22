@@ -12,7 +12,7 @@ class OpenAILLM(LLM):
 
     def __init__(self, api_key_name: str = "LLM_API_KEY", max_tokens: int = 1000, max_retries: int = 2):
         super().__init__(api_key_name, max_tokens, max_retries)
-        self.instance = openai.OpenAI()
+        self.instance = openai.OpenAI(api_key=self._api_key)
         super().__init__(api_key_name)
 
     def advanced_search(self, query: str) -> Optional[Dict]:
