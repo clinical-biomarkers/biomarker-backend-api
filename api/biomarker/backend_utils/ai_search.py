@@ -1,5 +1,5 @@
 from flask import Request, current_app
-from typing import Tuple, Dict, List, Optional
+from typing import Tuple, Dict
 import os
 from dotenv import load_dotenv
 from pprint import pformat
@@ -9,6 +9,7 @@ from . import utils as utils
 from .search_utils import _search_query_builder
 from .llm import LLM
 from .llm.openai_api import OpenAILLM
+from .llm.rate_limiter import ai_search_rate_limiter
 
 
 def ai_full_search(api_request: Request) -> Tuple[Dict, int]:
@@ -20,6 +21,17 @@ def ai_full_search(api_request: Request) -> Tuple[Dict, int]:
         return request_arguments, request_http_code
 
     user_query = request_arguments["query"]
+
+    # Check rate limit before proceeding
+    if not ai_search_rate_limiter.can_make_request():
+        rate_status = ai_search_rate_limiter.get_status()
+        error_obj = db_utils.log_error(
+            error_log="Rate limit exceeded for AI search",
+            error_msg="rate-limit-exceeded",
+            origin="ai_full_search",
+            rate_limit_status=rate_status,
+        )
+        return error_obj, 429
 
     # Generate structured search parameters using OpenAI
     search_params, search_params_http_code = _parse_full_search_query_ai(user_query)
