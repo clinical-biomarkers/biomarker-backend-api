@@ -15,3 +15,4 @@ requests==2.32.3
 ijson==3.3.0
 typing-extensions==4.12.2
 openai==1.68.2
+Flask-JWT-Extended==4.7.1
