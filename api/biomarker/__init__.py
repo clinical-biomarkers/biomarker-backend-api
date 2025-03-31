@@ -1,6 +1,8 @@
 from flask_cors import CORS
 from flask_restx import Api, apidoc, Resource
 from flask import request, g, render_template
+from flask_jwt_extended import JWTManager
+import datetime
 from pymongo import MongoClient
 import os
 import json
@@ -82,6 +84,12 @@ def create_app():
             log_db.close()
 
     CORS(app)
+
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(days=1)
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = datetime.timedelta(days=30)
+    app.config["PROPAGATE_EXCEPTIONS"] = True
+    jwt = JWTManager(app)
 
     # load in config data
     api_root = os.path.realpath(os.path.dirname(__file__))

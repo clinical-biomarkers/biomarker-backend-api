@@ -185,6 +185,30 @@ class AISearchSchema(Schema):
     query = fields.Str(required=True)
 
 
+### Login Schema
+
+
+class AuthLoginSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    email = fields.Str(required=True)
+    password = fields.Str(required=True)
+
+
+### Register Schema
+
+
+class AuthRegisterSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    email = fields.Str(required=True)
+    password = fields.Str(required=True)
+
+
 ### Schema Map
 
 SCHEMA_MAP = {
@@ -198,4 +222,6 @@ SCHEMA_MAP = {
     "clear_cache": ClearCacheSchema,
     "download": DownloadSchema,
     "ai_search": AISearchSchema,
+    "auth_login": AuthLoginSchema,
+    "auth_register": AuthRegisterSchema,
 }
