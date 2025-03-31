@@ -3,6 +3,7 @@ from flask_restx import Resource, Namespace, fields
 from .backend_utils import detail_utils as detail_utils
 from .backend_utils import list_utils as list_utils
 from .backend_utils import search_utils as search_utils
+from .backend_utils import ai_search
 
 api = Namespace("biomarker", description="Biomarker API namespace.")
 
@@ -100,8 +101,28 @@ class List(Resource):
         return self.post()
 
 
+ai_full_search_model = api.model(
+    "AI Full Search Query",
+    {
+        "query": fields.String(
+            required=True,
+            default="Can you show me protein biomarkers related to prostate cancer",
+        )
+    },
+)
+
+
+class AIFullSearch(Resource):
+
+    @api.doc("ai_full_search")
+    @api.expect(ai_full_search_model, validate=False)
+    def post(self):
+        return ai_search.ai_full_search(request)
+
+
 api.add_resource(Detail, "/detail/<string:biomarker_id>")
 api.add_resource(SearchInit, "/search_init")
 api.add_resource(SearchSimple, "/search_simple")
 api.add_resource(FullSearch, "/search")
 api.add_resource(List, "/list")
+api.add_resource(AIFullSearch, "/ai_search")
