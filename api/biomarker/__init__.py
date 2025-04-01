@@ -36,7 +36,7 @@ class CustomApi(Api):
                 del schema["paths"][path]
         if "/swagger.json" in schema["paths"]:
             del schema["paths"]["/swagger.json"]
-        ns_to_rm = ["auth", "log", "default"]
+        ns_to_rm = ["log", "default"]
         ns = schema["tags"]
         ns = [x for x in ns if x["name"] not in ns_to_rm]
         schema["tags"] = ns
