@@ -2,7 +2,6 @@
 
 from flask import Request, current_app
 from typing import Tuple, Dict
-from dotenv import load_dotenv
 import os
 import traceback
 import smtplib
@@ -21,7 +20,7 @@ import random
 import string
 from email.mime.text import MIMEText
 
-from . import ADMIN_LIST, USER_COLLECTION
+from . import ADMIN_LIST, USER_COLLECTION, EMAIL_API_KEY, ADMIN_API_KEY
 from . import utils as utils
 from . import db as db_utils
 from . import CONTACT_SOURCE, CONTACT_RECIPIENTS
@@ -45,8 +44,7 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
     response_txt += "We have received your message and will make every effort to respond to you within a reasonable amount of time."
     response_json = {"type": "alert-success", "message": response_txt}
 
-    load_dotenv()
-    source_app_password = os.environ.get("EMAIL_APP_PASSWORD")
+    source_app_password = EMAIL_API_KEY
     if source_app_password is None:
         error_obj = db_utils.log_error(
             error_log="Error reading email password environment variable.",
@@ -95,11 +93,8 @@ def contact_notification(api_request: Request) -> Tuple[Dict, int]:
     if request_http_code != 200:
         return request_arguments, request_http_code
 
-    load_dotenv()
-
     api_key = request_arguments["api_key"]
-    admin_api_key = os.environ.get("ADMIN_API_KEY")
-    if admin_api_key is None:
+    if ADMIN_API_KEY is None:
         error_object = db_utils.log_error(
             error_log="Unable to find ADMIN_API_KEY in environment variables",
             error_msg="internal-server-error",
@@ -107,7 +102,7 @@ def contact_notification(api_request: Request) -> Tuple[Dict, int]:
         )
         return error_object, 500
 
-    if admin_api_key != api_key:
+    if ADMIN_API_KEY != api_key:
         error_object = db_utils.log_error(
             error_log="Provided API key does not match ADMIN_API_KEY",
             error_msg="unathorized",

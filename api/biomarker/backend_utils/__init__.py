@@ -41,6 +41,9 @@ os.makedirs(os.path.dirname(LOG_DB_PATH), exist_ok=True)
 
 admin_list = os.getenv("ADMIN_LIST")
 ADMIN_LIST = admin_list.split(",") if admin_list is not None else None
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai")
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY")
+EMAIL_API_KEY = os.getenv("EMAIL_APP_PASSWORD")
 
 
 def init_api_log_db() -> Tuple[bool, str]:

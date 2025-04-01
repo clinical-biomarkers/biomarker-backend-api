@@ -9,10 +9,9 @@
 from cachetools import TTLCache
 from typing import Any, Dict, Optional, Tuple
 import json
-from dotenv import load_dotenv
 from flask import current_app, Request
-import os
 
+from . import ADMIN_API_KEY
 from . import utils
 from . import db as db_utils
 
@@ -93,10 +92,8 @@ def clear_pipeline_cache(api_request: Request) -> Tuple[Dict, int]:
     if request_http_code != 200:
         return request_arguments, request_http_code
 
-    load_dotenv()
     api_key = request_arguments["api_key"]
-    admin_api_key = os.environ.get("ADMIN_API_KEY")
-    if admin_api_key is None:
+    if ADMIN_API_KEY is None:
         error_object = db_utils.log_error(
             error_log="Unable to find ADMIN_API_KEY in environment variables",
             error_msg="internal-server-error",
@@ -104,7 +101,7 @@ def clear_pipeline_cache(api_request: Request) -> Tuple[Dict, int]:
         )
         return error_object, 500
 
-    if admin_api_key != api_key:
+    if ADMIN_API_KEY != api_key:
         error_object = db_utils.log_error(
             error_log="Provided API key does not match ADMIN_API_KEY",
             error_msg="unathorized",
