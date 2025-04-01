@@ -15,6 +15,8 @@ class LLM(ABC):
     def __init__(self, api_key_name: str = "LLM_API_KEY", max_tokens: int = 1_000, max_retries: int = 2):
         load_dotenv()
         self.api_key_name = api_key_name
+        self.key_error_str = "key-error"
+        self.relevancy_error_str = "relevancy-error"
         self._api_key = os.getenv(self.api_key_name)
         self._max_tokens = max_tokens
         self._max_retries = max_retries

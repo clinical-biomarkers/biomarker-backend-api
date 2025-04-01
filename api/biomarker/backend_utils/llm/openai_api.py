@@ -10,7 +10,12 @@ from ..db import cast_app
 
 class OpenAILLM(LLM):
 
-    def __init__(self, api_key_name: str = "LLM_API_KEY", max_tokens: int = 1000, max_retries: int = 2):
+    def __init__(
+        self,
+        api_key_name: str = "LLM_API_KEY",
+        max_tokens: int = 1000,
+        max_retries: int = 2,
+    ):
         super().__init__(api_key_name, max_tokens, max_retries)
         self.instance = openai.OpenAI(api_key=self._api_key)
         super().__init__(api_key_name)
@@ -20,7 +25,7 @@ class OpenAILLM(LLM):
 
         if not self._validate_api_key():
             custom_app.api_logger.warning("Could not verify OpenAI API key")
-            return None
+            return {"error": self.key_error_str}
 
         messages: List[ChatCompletionMessageParam] = [
             {"role": "system", "content": self._full_search_system_prompt},
@@ -39,6 +44,9 @@ class OpenAILLM(LLM):
                 if response_text is None:
                     sleep((i + 1) ** 2)
                     continue
+
+                if response_text.strip().lower() == "none":
+                    return {"error": self.relevancy_error_str}
 
                 validated, validated_response, error_message = (
                     self.validate_advanced_search_response(llm_response=response_text)

@@ -84,6 +84,22 @@ def _parse_full_search_query_ai(query: str) -> Tuple[Dict, int]:
             )
             return error_obj, 500
 
+        if "error" in search_params:
+            if search_params["error"] == llm_client.key_error_str:
+                error_obj = db_utils.log_error(
+                    error_log="Unable to find LLM API key",
+                    error_msg="internal-server-error",
+                    origin="_parse_full_search_query_ai",
+                )
+                return error_obj, 500
+            elif search_params["error"] == llm_client.relevancy_error_str:
+                error_obj = db_utils.log_error(
+                    error_log=f"User made non-biomarker query:\n{query}",
+                    error_msg="non-biomarker-related-query",
+                    origin="_parse_full_search_query_ai",
+                )
+                return error_obj, 400
+
         return search_params, 200
 
     except Exception as e:
