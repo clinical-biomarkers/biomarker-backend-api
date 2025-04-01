@@ -209,6 +209,58 @@ class AuthRegisterSchema(Schema):
     password = fields.Str(required=True)
 
 
+### Event Schemas
+
+
+class EventAddNewSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    title = fields.Str(required=True)
+    description = fields.Str(required=True)
+    start_date = fields.Str(required=True)
+    end_date = fields.Str(required=True)
+    venue = fields.Str(required=False)
+    url = fields.Str(required=False)
+    url_name = fields.Str(required=False)
+    visibility = fields.Str(required=False, missing="visible")
+
+
+class EventDetailSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    id = fields.Str(required=True)
+
+
+class EventListSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    visibility = fields.Str(required=True)
+    status = fields.Str(required=True)
+
+
+class EventUpdateSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    id = fields.Str(required=True)
+    visibility = fields.Str(required=True)
+
+
+class EventDeleteSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    id = fields.Str(required=True)
+
+
 ### Schema Map
 
 SCHEMA_MAP = {
@@ -224,4 +276,9 @@ SCHEMA_MAP = {
     "ai_search": AISearchSchema,
     "auth_login": AuthLoginSchema,
     "auth_register": AuthRegisterSchema,
+    "event_addnew": EventAddNewSchema,
+    "event_detail": EventDetailSchema,
+    "event_list": EventListSchema,
+    "event_update": EventUpdateSchema,
+    "event_delete": EventDeleteSchema,
 }

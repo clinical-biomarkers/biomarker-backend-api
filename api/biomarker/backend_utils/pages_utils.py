@@ -1,7 +1,13 @@
 """Handles the backend logic for the pages endpoints."""
 
 from typing import Tuple, Dict, List
+import pytz
+import datetime
+import pymongo
 
+from flask import current_app
+
+from . import EVENT_COLLECTION
 from . import db as db_utils
 from . import utils as utils
 
@@ -42,11 +48,61 @@ def home_init() -> Tuple[Dict, int]:
         entity_type_splits[entity_type] = split["count"]
     statistics.append(entity_type_splits)
 
+    # Get events
+    custom_app = db_utils.cast_app(current_app)
+    dbh = custom_app.mongo_db
+    events = []
+    try:
+        # Calculate current time in seconds
+        now_est = datetime.datetime.now(pytz.timezone("US/Eastern")).strftime(
+            "%m/%d/%Y %H:%M:%S"
+        )
+        dt, tm = now_est.split(" ")[0], now_est.split(" ")[1]
+        mm, dd, yy = dt.split("/")
+        hr, mn, sc = tm.split(":")
+        now_in_seconds = (
+            int(yy) * 365 * 24 * 3600
+            + int(mm) * 31 * 24 * 3600
+            + int(dd) * 24 * 3600
+            + int(hr) * 3600
+            + int(mn) * 60
+            + int(sc)
+        )
+
+        # Build query conditions
+        cond_list = [
+            {"visibility": {"$eq": "visible"}},
+            {"start_date_s": {"$lte": now_in_seconds}},
+            {"end_date_s": {"$gte": now_in_seconds}},
+        ]
+        query = {"$and": cond_list}
+
+        doc_list = (
+            dbh[EVENT_COLLECTION].find(query).sort("createdts", pymongo.DESCENDING)
+        )
+
+        # Process results
+        for doc in doc_list:
+            # Convert _id to string
+            doc["id"] = str(doc["_id"])
+            doc.pop("_id")
+
+            # Format datetime fields
+            for k in ["createdts", "updatedts", "start_date", "end_date"]:
+                if k in doc and hasattr(doc[k], "strftime"):
+                    doc[k] = doc[k].strftime("%Y-%m-%d %H:%M:%S %Z%z")
+
+            # Add timestamp for now
+            doc["now_in_seconds"] = now_in_seconds
+            events.append(doc)
+    except Exception as e:
+        custom_app.api_logger.error(f"Error retrieving events: {str(e)}")
+
     return_object = {
         "version": versions["version"],
         "statistics": statistics,
         "statistics_new": {},
-        "events": [],
+        "events": events,
         "video": {},
     }
 

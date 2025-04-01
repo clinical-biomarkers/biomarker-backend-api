@@ -18,6 +18,7 @@ from .auth import api as auth_api
 from .log import api as log_api
 from .pages import api as pages_api
 from .data import api as data_api
+from .event import api as event_api
 
 MONGO_URI = os.getenv("MONGODB_CONNSTRING")
 DB_NAME = "biomarkerdb_api"
@@ -138,5 +139,6 @@ def create_app():
     api.add_namespace(log_api)
     api.add_namespace(pages_api)
     api.add_namespace(data_api)
+    api.add_namespace(event_api)
 
     return app

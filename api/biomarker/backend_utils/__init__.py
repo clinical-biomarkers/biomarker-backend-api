@@ -19,6 +19,7 @@ REQ_LOG_COLLECTION = "request_log_collection"
 ERROR_LOG_COLLECTION = "error_log_collection"
 VERSION_COLLECTION = "version_collection"
 USER_COLLECTION = "user_collection"
+EVENT_COLLECTION = "event_collection"
 
 REQ_LOG_MAX_LEN = 20_000
 CACHE_BATCH_SIZE = 5_000
