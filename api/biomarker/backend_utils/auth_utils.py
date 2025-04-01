@@ -307,7 +307,7 @@ def login(api_request: Request) -> Tuple[Dict, int]:
         refresh_token = create_refresh_token(identity=email)
 
         return {
-            "status": 1,
+            "type": "success",
             "access_token": access_token,
             "access_csrf": get_csrf_token(access_token),
             "refresh_csrf": get_csrf_token(refresh_token),
