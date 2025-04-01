@@ -31,7 +31,6 @@ class EventAddnew(Resource):
     @api.expect(addnew_model)
     @jwt_required()
     def post(self):
-        """Add a new event."""
         return event_utils.event_addnew(request)
 
     @api.doc(False)
@@ -47,7 +46,6 @@ detail_model = api.model(
 class EventDetail(Resource):
     @api.expect(detail_model)
     def post(self):
-        """Get event details."""
         return event_utils.event_detail(request)
 
     @api.doc(False)
@@ -71,7 +69,6 @@ list_model = api.model(
 class EventList(Resource):
     @api.expect(list_model)
     def post(self):
-        """List events with filters."""
         return event_utils.event_list(request)
 
     @api.doc(False)
@@ -94,7 +91,6 @@ class EventUpdate(Resource):
     @api.expect(update_model)
     @jwt_required()
     def post(self):
-        """Update an existing event."""
         return event_utils.event_update(request)
 
     @api.doc(False)
@@ -111,7 +107,6 @@ class EventDelete(Resource):
     @api.expect(delete_model)
     @jwt_required()
     def post(self):
-        """Delete an event (soft delete)."""
         return event_utils.event_delete(request)
 
     @api.doc(False)
