@@ -6,7 +6,10 @@ from logging import Logger
 from logging.handlers import RotatingFileHandler
 import sqlite3
 import os
+from dotenv import load_dotenv
 from .performance_logger import PerformanceLogger
+
+load_dotenv()
 
 DB_COLLECTION = "biomarker_collection"
 SEARCH_CACHE_COLLECTION = "search_cache"
@@ -15,6 +18,8 @@ ONTOLOGY_COLLECTION = "ontology_collection"
 REQ_LOG_COLLECTION = "request_log_collection"
 ERROR_LOG_COLLECTION = "error_log_collection"
 VERSION_COLLECTION = "version_collection"
+USER_COLLECTION = "user_collection"
+EVENT_COLLECTION = "event_collection"
 
 REQ_LOG_MAX_LEN = 20_000
 CACHE_BATCH_SIZE = 5_000
@@ -34,6 +39,12 @@ LOG_DB_PATH = (
     f"{os.environ.get('DATA_PATH')}log_db/{os.environ.get('SERVER')}/api_logs.db"
 )
 os.makedirs(os.path.dirname(LOG_DB_PATH), exist_ok=True)
+
+admin_list = os.getenv("ADMIN_LIST")
+ADMIN_LIST = admin_list.split(",") if admin_list is not None else None
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai")
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY")
+EMAIL_API_KEY = os.getenv("EMAIL_APP_PASSWORD")
 
 
 def init_api_log_db() -> Tuple[bool, str]:

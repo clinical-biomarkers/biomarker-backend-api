@@ -1,6 +1,8 @@
 from flask_cors import CORS
 from flask_restx import Api, apidoc, Resource
 from flask import request, g, render_template
+from flask_jwt_extended import JWTManager
+import datetime
 from pymongo import MongoClient
 import os
 import json
@@ -16,6 +18,7 @@ from .auth import api as auth_api
 from .log import api as log_api
 from .pages import api as pages_api
 from .data import api as data_api
+from .event import api as event_api
 
 MONGO_URI = os.getenv("MONGODB_CONNSTRING")
 DB_NAME = "biomarkerdb_api"
@@ -34,7 +37,7 @@ class CustomApi(Api):
                 del schema["paths"][path]
         if "/swagger.json" in schema["paths"]:
             del schema["paths"]["/swagger.json"]
-        ns_to_rm = ["auth", "log", "default"]
+        ns_to_rm = ["log", "default"]
         ns = schema["tags"]
         ns = [x for x in ns if x["name"] not in ns_to_rm]
         schema["tags"] = ns
@@ -83,6 +86,12 @@ def create_app():
 
     CORS(app)
 
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = datetime.timedelta(days=1)
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = datetime.timedelta(days=30)
+    app.config["PROPAGATE_EXCEPTIONS"] = True
+    jwt = JWTManager(app)
+
     # load in config data
     api_root = os.path.realpath(os.path.dirname(__file__))
     hit_score_conf_path = os.path.join(api_root, "conf/hit_score_config.json")
@@ -130,5 +139,6 @@ def create_app():
     api.add_namespace(log_api)
     api.add_namespace(pages_api)
     api.add_namespace(data_api)
+    api.add_namespace(event_api)
 
     return app

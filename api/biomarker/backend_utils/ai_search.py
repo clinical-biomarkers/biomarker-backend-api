@@ -1,9 +1,8 @@
 from flask import Request, current_app
 from typing import Tuple, Dict
-import os
-from dotenv import load_dotenv
 from pprint import pformat
 
+from . import LLM_PROVIDER
 from . import db as db_utils
 from . import utils as utils
 from .search_utils import _search_query_builder
@@ -64,16 +63,14 @@ def ai_full_search(api_request: Request) -> Tuple[Dict, int]:
 def _parse_full_search_query_ai(query: str) -> Tuple[Dict, int]:
     """Parse a natural language query into structured search parameters using OpenAI."""
     custom_app = db_utils.cast_app(current_app)
-    load_dotenv()
-    llm_provider = os.getenv("LLM_PROVIDER", "openai").lower()
 
     try:
         llm_client: LLM
-        if llm_provider == "openai":
+        if LLM_PROVIDER == "openai":
             llm_client = OpenAILLM()
         else:
             custom_app.api_logger.warning(
-                f"Unsupported LLM provider: `{llm_provider}`, falling back to OpenAI"
+                f"Unsupported LLM provider: `{LLM_PROVIDER}`, falling back to OpenAI"
             )
             llm_client = OpenAILLM()
 
@@ -81,7 +78,7 @@ def _parse_full_search_query_ai(query: str) -> Tuple[Dict, int]:
 
         if search_params is None:
             error_obj = db_utils.log_error(
-                error_log=f"Unable to parse query using LLM provider: `{llm_provider}`\nquery: {query}",
+                error_log=f"Unable to parse query using LLM provider: `{LLM_PROVIDER}`\nquery: {query}",
                 error_msg="internal-server-error",
                 origin="_parse_full_search_query_ai",
             )
@@ -91,7 +88,7 @@ def _parse_full_search_query_ai(query: str) -> Tuple[Dict, int]:
 
     except Exception as e:
         error_obj = db_utils.log_error(
-            error_log=f"Unable to parse query using LLM provider: `{llm_provider}`\nquery: {query}\nerror: {e}",
+            error_log=f"Unable to parse query using LLM provider: `{LLM_PROVIDER}`\nquery: {query}\nerror: {e}",
             error_msg="internal-server-error",
             origin="_parse_full_search_query_ai",
         )
