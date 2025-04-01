@@ -34,8 +34,12 @@ class ClearCache(Resource):
 register_model = api.model(
     "Auth Register Query",
     {
-        "email": fields.String(required=True, description="User email"),
-        "password": fields.String(required=True, description="User password"),
+        "email": fields.String(
+            required=True, description="User email", default="example@example.com"
+        ),
+        "password": fields.String(
+            required=True, description="User password", default="password"
+        ),
     },
 )
 
@@ -53,8 +57,12 @@ class Register(Resource):
 login_model = api.model(
     "Auth Login Query",
     {
-        "email": fields.String(required=True, description="User email"),
-        "password": fields.String(required=True, description="User password"),
+        "email": fields.String(
+            required=True, description="User email", default="example@example.com"
+        ),
+        "password": fields.String(
+            required=True, description="User password", default="password"
+        ),
     },
 )
 
@@ -70,6 +78,7 @@ class Login(Resource):
 
 
 class UserID(Resource):
+    @api.doc(False)
     def get(self):
         return auth_utils.userid()
 

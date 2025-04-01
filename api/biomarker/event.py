@@ -9,19 +9,35 @@ api = Namespace("event", description="Event API namespace.")
 addnew_model = api.model(
     "Event Addnew Query",
     {
-        "title": fields.String(required=True, description="Event title"),
-        "description": fields.String(required=True, description="Event description"),
+        "title": fields.String(
+            required=True, description="Event title", default="some title"
+        ),
+        "description": fields.String(
+            required=True, description="Event description", default="some description"
+        ),
         "start_date": fields.String(
-            required=True, description="Start date (MM/DD/YYYY HH:MM:SS)"
+            required=True,
+            description="Start date (MM/DD/YYYY HH:MM:SS)",
+            default="01/20/2021 23:59:59",
         ),
         "end_date": fields.String(
-            required=True, description="End date (MM/DD/YYYY HH:MM:SS)"
+            required=True,
+            description="End date (MM/DD/YYYY HH:MM:SS)",
+            default="01/20/2021 07:00:00",
         ),
-        "venue": fields.String(required=True, description="Event venue"),
-        "url": fields.String(required=True, description="Event URL"),
-        "url_name": fields.String(required=True, description="Event URL name"),
+        "venue": fields.String(
+            required=False, description="Event venue", default="some venue"
+        ),
+        "url": fields.String(
+            required=False, description="Event URL", default="some url"
+        ),
+        "url_name": fields.String(
+            required=False, description="Event URL name", default="some url name"
+        ),
         "visibility": fields.String(
-            required=True, description="Event visibility (visible/hidden)"
+            required=False,
+            description="Event visibility (visible/hidden)",
+            default="visible",
         ),
     },
 )
@@ -39,7 +55,12 @@ class EventAddnew(Resource):
 
 
 detail_model = api.model(
-    "Event Detail Query", {"id": fields.String(required=True, description="Event ID")}
+    "Event Detail Query",
+    {
+        "id": fields.String(
+            required=True, description="Event ID", default="67ec3e1f1333bc73cd602fbe"
+        )
+    },
 )
 
 
@@ -57,10 +78,12 @@ list_model = api.model(
     "Event List Query",
     {
         "visibility": fields.String(
-            required=True, description="Visibility filter (all/visible/hidden)"
+            required=True,
+            description="Visibility filter (all/visible/hidden)",
+            default="all",
         ),
         "status": fields.String(
-            required=True, description="Status filter (all/current)"
+            required=True, description="Status filter (all/current)", default="all"
         ),
     },
 )
@@ -79,9 +102,13 @@ class EventList(Resource):
 update_model = api.model(
     "Event Update Query",
     {
-        "id": fields.String(required=True, description="Event ID"),
+        "id": fields.String(
+            required=True, description="Event ID", default="67ec3e1f1333bc73cd602fbe"
+        ),
         "visibility": fields.String(
-            required=True, description="Event visibility (visible/hidden)"
+            required=True,
+            description="Event visibility (visible/hidden)",
+            default="visible",
         ),
     },
 )
@@ -99,7 +126,12 @@ class EventUpdate(Resource):
 
 
 delete_model = api.model(
-    "Event Delete Query", {"id": fields.String(required=True, description="Event ID")}
+    "Event Delete Query",
+    {
+        "id": fields.String(
+            required=True, description="Event ID", default="67ec3e1f1333bc73cd602fbe"
+        )
+    },
 )
 
 
