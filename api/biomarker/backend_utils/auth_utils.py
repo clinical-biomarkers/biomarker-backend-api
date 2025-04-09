@@ -20,7 +20,13 @@ import random
 import string
 from email.mime.text import MIMEText
 
-from . import ADMIN_LIST, USER_COLLECTION, EMAIL_API_KEY, ADMIN_API_KEY
+from . import (
+    ADMIN_LIST,
+    USER_COLLECTION,
+    EMAIL_API_KEY,
+    ADMIN_API_KEY,
+    GITHUB_ISSUES_TOKEN,
+)
 from . import utils as utils
 from . import db as db_utils
 from . import CONTACT_SOURCE, CONTACT_RECIPIENTS
@@ -43,6 +49,7 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
     response_txt = f"\n\n{request_arguments['fname']},\n"
     response_txt += "We have received your message and will make every effort to respond to you within a reasonable amount of time."
     response_json = {"type": "alert-success", "message": response_txt}
+    response_code = 200
 
     source_app_password = EMAIL_API_KEY
     if source_app_password is None:
@@ -76,14 +83,26 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
         smtp_server.login(user=CONTACT_SOURCE, password=source_app_password)
         smtp_server.sendmail(msg["From"], CONTACT_RECIPIENTS, msg.as_string())
         smtp_server.quit()
-        return response_json, 200
     except Exception as e:
-        error_obj = db_utils.log_error(
+        response_json = db_utils.log_error(
             error_log=f"Failure to send contact email. {e}\n{traceback.format_exc()}",
             error_msg="internal-email-error",
             origin="contact",
         )
-        return error_obj, 500
+        response_code = 500
+
+    # TODO : validate github token
+    if GITHUB_ISSUES_TOKEN is None:
+        _ = db_utils.log_error()
+        return response_json, response_code
+
+    # TODO : try to create github ticket
+    try:
+        pass
+    except Exception as e:
+        _ = db_utils.log_error()
+
+    return response_json, response_code
 
 
 def contact_notification(api_request: Request) -> Tuple[Dict, int]:
@@ -197,14 +216,21 @@ def register(api_request: Request) -> Tuple[Dict, int]:
             )
 
         # Check if user already exists
-        existing_user = dbh[USER_COLLECTION].find_one({"email": email})
-        if existing_user:
+        existing_user_error_obj, existing_user_http_code = db_utils.find_one(
+            query_object={"email": email},
+            projection_object={},
+            collection=USER_COLLECTION,
+        )
+        # Found a conflicting user
+        if existing_user_http_code == 200:
             error_obj = db_utils.log_error(
                 error_log=f"User attempted to register with existing email: {email}",
                 error_msg="email-already-registered",
                 origin="register",
             )
             return error_obj, 409  # Conflict status code
+        elif existing_user_http_code == 500:
+            return existing_user_error_obj, 500
 
         # Hash password
         hashed_password = bcrypt.hashpw(
@@ -254,22 +280,24 @@ def login(api_request: Request) -> Tuple[Dict, int]:
         return request_data, status_code
 
     try:
-        custom_app = db_utils.cast_app(current_app)
-        dbh = custom_app.mongo_db
-
         email = request_data["email"].lower()
         password = request_data["password"]
 
         # Find user
-        user_doc = dbh[USER_COLLECTION].find_one({"email": email})
-
-        if not user_doc:
+        user_doc, user_http_code = db_utils.find_one(
+            query_object={"email": email},
+            projection_object={},
+            collection=USER_COLLECTION,
+        )
+        if user_http_code == 404:
             error_obj = db_utils.log_error(
                 error_log=f"Login attempt with unknown email: {email}",
                 error_msg="incorrect-email/password",
                 origin="login",
             )
             return error_obj, 401  # Unauthorized
+        elif user_http_code == 500:
+            return user_doc, user_http_code
 
         if "password" not in user_doc:
             error_obj = db_utils.log_error(
