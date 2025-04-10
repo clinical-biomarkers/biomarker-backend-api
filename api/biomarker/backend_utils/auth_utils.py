@@ -95,15 +95,18 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
 
     # TODO : validate github token
     if GITHUB_ISSUES_TOKEN is None:
-        _ = db_utils.log_error()
+        _ = db_utils.log_error(
+            error_log="GITHUB_ISSUES_TOKEN is None",
+            error_msg="Missing GitHub token; cannot create issue.",
+            origin="contact"
+        )
         return response_json, response_code
-    else:
-        auth = Auth.Token(GITHUB_ISSUES_TOKEN)
-        # Create the Github instance
-        g = Github(auth=auth)
 
     # TODO : try to create github ticket
     try:
+        auth = Auth.Token(GITHUB_ISSUES_TOKEN)
+        # Create the Github instance
+        g = Github(auth=auth)
         repo = g.get_repo("clinical-biomarkers/biomarker-issue-repo")
         repo.create_issue(
             title=f"{request_arguments['subject']}",
@@ -112,7 +115,11 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
             assignee="jeet-vora"
         )
     except Exception as e:
-        _ = db_utils.log_error()
+        _ = db_utils.log_error(
+            error_log=str(e),
+            error_msg="Failed to create GitHub issue from user feedback.",
+            origin="contact"
+        )
 
     return response_json, response_code
 
