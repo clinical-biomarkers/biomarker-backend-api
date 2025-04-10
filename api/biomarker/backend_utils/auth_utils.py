@@ -93,16 +93,16 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
         )
         response_code = 500
 
-    # TODO : validate github token
+    # Validate github token
     if GITHUB_ISSUES_TOKEN is None:
         _ = db_utils.log_error(
             error_log="GITHUB_ISSUES_TOKEN is None",
-            error_msg="Missing GitHub token; cannot create issue.",
+            error_msg="internal-server-error",
             origin="contact"
         )
         return response_json, response_code
 
-    # TODO : try to create github ticket
+    # Try to create github ticket
     try:
         auth = Auth.Token(GITHUB_ISSUES_TOKEN)
         # Create the Github instance
@@ -116,8 +116,8 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
         )
     except Exception as e:
         _ = db_utils.log_error(
-            error_log=str(e),
-            error_msg="Failed to create GitHub issue from user feedback.",
+            error_log=f"Failed to create GitHub issue from user feedback: {str(e)}",
+            error_msg="internal-server-error",
             origin="contact"
         )
 
