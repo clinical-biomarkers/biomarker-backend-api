@@ -1,6 +1,8 @@
 """Handles the backend logic for the biomarker auth endpoints."""
 
 from flask import Request, current_app
+from github import Github
+from github import Auth
 from typing import Tuple, Dict
 import os
 import traceback
@@ -95,10 +97,20 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
     if GITHUB_ISSUES_TOKEN is None:
         _ = db_utils.log_error()
         return response_json, response_code
+    else:
+        auth = Auth.Token(GITHUB_ISSUES_TOKEN)
+        # Create the Github instance
+        g = Github(auth=auth)
 
     # TODO : try to create github ticket
     try:
-        pass
+        repo = g.get_repo("clinical-biomarkers/biomarker-issue-repo")
+        repo.create_issue(
+            title=f"{request_arguments['subject']}",
+            body=f"{request_arguments['message']}",
+            labels=["User Feedback"],
+            assignee="jeet-vora"
+        )
     except Exception as e:
         _ = db_utils.log_error()
 
