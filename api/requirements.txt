@@ -17,3 +17,4 @@ typing-extensions==4.12.2
 openai==1.68.2
 Flask-JWT-Extended==4.7.1
 bcrypt==4.3.0
+PyGithub==2.6.1
