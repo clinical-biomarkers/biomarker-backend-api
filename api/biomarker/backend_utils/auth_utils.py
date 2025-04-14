@@ -110,7 +110,7 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
         repo = g.get_repo("clinical-biomarkers/biomarker-issue-repo")
         repo.create_issue(
             title=f"{request_arguments['subject']}",
-            body=f"{request_arguments['message']}",
+            body=f"Subject: {request_arguments['subject']}\nPage: {page}\nMessage: {request_arguments['message']}",
             labels=["User Feedback"],
             assignee="jeet-vora"
         )
