@@ -1,3 +1,7 @@
+"""
+Defines API endpoints for managing calendar events within the application.
+"""
+
 from flask import request
 from flask_restx import Resource, Namespace, fields
 from flask_jwt_extended import jwt_required

@@ -1,3 +1,3 @@
 # API 
 
-All endpoints are hosted at the root URL https://hivelab.biochemistry.gwu.edu/biomarker/api/.
+All endpoints are hosted at the root URL api.biomarkerkb.org.

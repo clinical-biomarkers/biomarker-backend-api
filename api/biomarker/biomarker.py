@@ -1,5 +1,10 @@
+"""
+Defines the main API endpoints for accessing and searching biomarker data.
+"""
+
 from flask import request
 from flask_restx import Resource, Namespace, fields
+
 from .backend_utils import detail_utils as detail_utils
 from .backend_utils import list_utils as list_utils
 from .backend_utils import search_utils as search_utils
