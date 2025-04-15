@@ -1,4 +1,4 @@
-"""Clears some supplementary collections. Allows you to clear all or one of the cache, 
+"""Clears some supplementary collections. Allows you to clear all or one of the cache,
 log, and error collections.
 
 usage: parser.py [-h] [-c] [-l] [-e] server
@@ -20,7 +20,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tutils.db import get_standard_db_handle
 from tutils.parser import standard_parser, parse_server
 from tutils.general import get_user_confirmation
-from tutils.constants import cache_default, log_default, error_default
+from tutils.constants import cache_default, log_default, error_default, event_default
 
 
 def main():
@@ -44,6 +44,12 @@ def main():
         action="store_false",
         help="Store false argument for clearing the error log collection.",
     )
+    parser.add_argument(
+        "-t",
+        "--event",
+        action="store_false",
+        help="Store false argument for clearing the event collection.",
+    )
     options = parser.parse_args()
     server = parse_server(parser=parser, server=options.server, server_list=server_list)
 
@@ -54,6 +60,8 @@ def main():
         confimation_message += "\n\tLog collection"
     if options.error:
         confimation_message += "\n\tError collection"
+    if options.event:
+        confimation_message += "\n\tEvent collection"
 
     print(confimation_message)
     get_user_confirmation()
@@ -62,6 +70,7 @@ def main():
     cache_collection = cache_default()
     log_collection = log_default()
     error_collection = error_default()
+    event_collection = event_default()
 
     if options.cache:
         try:
@@ -83,6 +92,13 @@ def main():
             print("Error collection cleared.")
         except Exception as e:
             print(f"Error clearing error collection.\n{e}")
+
+    if options.event:
+        try:
+            dbh[event_collection].delete_many({})
+            print("Event collection cleared.")
+        except Exception as e:
+            print(f"Error clearing event collection.\n{e}")
 
 
 if __name__ == "__main__":
