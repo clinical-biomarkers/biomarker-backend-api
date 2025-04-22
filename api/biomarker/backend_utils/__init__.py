@@ -15,10 +15,8 @@ from flask import Flask, current_app
 from pymongo.database import Database
 
 from .performance_logger import PerformanceLogger
-from .db import cast_app
 
 load_dotenv()
-custom_app = cast_app(current_app)
 
 # --- Database Collection Names ---
 DB_COLLECTION = "biomarker_collection"
@@ -42,7 +40,7 @@ TIMEZONE = "US/Eastern"
 CONTACT_SOURCE = "biomarkerpartnership"
 contact_recipients = os.getenv("CONTACT_RECIPIENTS")
 if contact_recipients is None:
-    custom_app.api_logger.error(
+    current_app.api_logger.error(  # type: ignore
         "Failed to find contact recipients list from .env file."
     )
     sys.exit(1)
