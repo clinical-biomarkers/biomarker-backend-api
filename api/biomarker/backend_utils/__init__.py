@@ -8,14 +8,17 @@ from logging.handlers import RotatingFileHandler
 import os
 import sqlite3
 from typing import Tuple
+import sys
 
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, current_app
 from pymongo.database import Database
 
 from .performance_logger import PerformanceLogger
+from .db import cast_app
 
 load_dotenv()
+custom_app = cast_app(current_app)
 
 # --- Database Collection Names ---
 DB_COLLECTION = "biomarker_collection"
@@ -37,10 +40,12 @@ TIMEZONE = "US/Eastern"
 
 # --- Contact Form Configuration ---
 CONTACT_SOURCE = "biomarkerpartnership"
-contact_recipients = os.getenv(
-    "CONTACT_RECIPIENTS",
-    "daniallmasood@email.gwu.edu,jeetvora@email.gwu.edu,mariia.kim@gwu.edu",
-)
+contact_recipients = os.getenv("CONTACT_RECIPIENTS")
+if contact_recipients is None:
+    custom_app.api_logger.error(
+        "Failed to find contact recipients list from .env file."
+    )
+    sys.exit(1)
 CONTACT_RECIPIENTS = contact_recipients.split(",")
 
 # --- SQLite Logging Configuration ---
@@ -57,6 +62,7 @@ ADMIN_LIST = admin_list.split(",") if admin_list is not None else None
 ADMIN_API_KEY = os.getenv("ADMIN_API_KEY")
 EMAIL_API_KEY = os.getenv("EMAIL_APP_PASSWORD")
 GITHUB_ISSUES_TOKEN = os.getenv("GITHUB_ISSUES_TOKEN")
+GITHUB_ISSUE_ASSIGNEE = os.getenv("GITHUB_ISSUE_ASSIGNEE")
 
 # --- AI Search Configuration ---
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai")
