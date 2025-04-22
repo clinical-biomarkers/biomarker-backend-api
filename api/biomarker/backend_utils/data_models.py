@@ -1,6 +1,20 @@
+"""
+Defines Marshmallow schemas for validating API request and response data structures.
+"""
+
 from marshmallow import Schema, fields, EXCLUDE, validate
 
-### Detail Schemas
+# --- Base Schemas ---
+
+
+class _FilterSchema(Schema):
+
+    class Meta(Schema.Meta):
+        unknown = EXCLUDE
+
+    id = fields.Str(required=True)
+    operator = fields.Str(required=False, missing="and")
+    selected = fields.List(fields.Str(), required=True)
 
 
 class _PaginatedTableSchema(Schema):
@@ -15,15 +29,22 @@ class _PaginatedTableSchema(Schema):
     order = fields.String(required=False, missing="desc")
 
 
+# --- Detail Schemas ---
+
+
 class DetailSchema(Schema):
 
     class Meta(Schema.Meta):
         unknown = EXCLUDE
 
-    paginated_tables = fields.List(fields.Nested(_PaginatedTableSchema), required=False)
+    paginated_tables = fields.List(
+        fields.Nested(_PaginatedTableSchema),
+        required=False,
+        description="Optional list of table pagination/sorting configurations.",
+    )
 
 
-### Search Simple Schema
+# --- Search Schemas ---
 
 
 class SearchSimpleSchema(Schema):
@@ -31,7 +52,11 @@ class SearchSimpleSchema(Schema):
     class Meta(Schema.Meta):
         unknown = EXCLUDE
 
-    operation = fields.Str(required=False)
+    operation = fields.Str(
+        required=False,
+        missing="AND",
+        validate=validate.OneOf(["and", "AND", "or", "OR"]),
+    )
     query_type = fields.Str(required=False)
     term = fields.Str(required=True)
     term_category = fields.Str(
@@ -49,10 +74,8 @@ class SearchSimpleSchema(Schema):
                 "CONDITION",
             }
         ),
+        description="Simple search category",
     )
-
-
-### Search Full Schema
 
 
 class SearchFullSchema(Schema):
@@ -69,24 +92,46 @@ class SearchFullSchema(Schema):
     specimen_name = fields.Str(required=False)
     specimen_id = fields.Str(required=False)
     specimen_loinc_code = fields.Str(required=False)
-    best_biomarker_role = fields.Str(required=False)
+    best_biomarker_role = fields.Str(
+        required=False,
+        validate=validate.OneOf(
+            {
+                "diagnostic",
+                "Diagnostic",
+                "prognostic",
+                "Prognostic",
+                "monitoring",
+                "Monitoring",
+                "risk",
+                "Risk",
+                "predictive",
+                "Predictive",
+                "safety",
+                "Safety",
+                "response",
+                "Response",
+            }
+        ),
+    )
     condition_id = fields.Str(required=False)
     condition_name = fields.Str(required=False)
     publication_id = fields.Str(required=False)
-    operation = fields.Str(required=False, missing="and")
+    operation = fields.Str(
+        required=False,
+        missing="AND",
+        validate=validate.OneOf(["and", "AND", "or", "OR"]),
+    )
 
 
-### List Schema
-
-
-class _FilterSchema(Schema):
+class AISearchSchema(Schema):
 
     class Meta(Schema.Meta):
         unknown = EXCLUDE
 
-    id = fields.Str(required=True)
-    operator = fields.Str(required=False, missing="and")
-    selected = fields.List(fields.Str(), required=True)
+    query = fields.Str(required=True)
+
+
+# --- List Schemas ---
 
 
 class ListSchema(Schema):
@@ -98,11 +143,15 @@ class ListSchema(Schema):
     offset = fields.Integer(required=False, missing=1)
     sort = fields.Str(required=False, missing="hit_score")
     limit = fields.Integer(required=False, missing=20)
-    order = fields.Str(required=False, missing="desc")
+    order = fields.Str(
+        required=False,
+        missing="desc",
+        validate=validate.OneOf(["asc", "ASC", "desc", "DESC"]),
+    )
     filters = fields.List(fields.Nested(_FilterSchema), required=False)
 
 
-### Contact Schema
+# --- Notification Schemas ---
 
 
 class ContactSchema(Schema):
@@ -118,9 +167,6 @@ class ContactSchema(Schema):
     page = fields.Str(required=False)
 
 
-### Contact Notification Schema
-
-
 class ContactNotificationSchema(Schema):
 
     class Meta(Schema.Meta):
@@ -132,7 +178,7 @@ class ContactNotificationSchema(Schema):
     api_key = fields.Str(required=True)
 
 
-### Frontend Logging Schema
+# --- Logging Schemas ---
 
 
 class FrontendLogger(Schema):
@@ -147,7 +193,7 @@ class FrontendLogger(Schema):
     message = fields.Str(required=True)
 
 
-### Clear Cache Schema
+# --- Clear Cache Schema ---
 
 
 class ClearCacheSchema(Schema):
@@ -158,7 +204,7 @@ class ClearCacheSchema(Schema):
     api_key = fields.Str(required=True)
 
 
-### Download Schema
+# --- Download Schema ---
 
 
 class DownloadSchema(Schema):
@@ -168,24 +214,13 @@ class DownloadSchema(Schema):
 
     id = fields.Str(required=True)
     download_type = fields.Str(required=True)
-    format = fields.Str(required=True)
+    format = fields.Str(required=True, validate=validate.OneOf(["json", "csv"]))
     compressed = fields.Bool(required=True)
     section = fields.Str(required=False)
     filters = fields.List(fields.Nested(_FilterSchema), required=False)
 
 
-### AI Search Schema
-
-
-class AISearchSchema(Schema):
-
-    class Meta(Schema.Meta):
-        unknown = EXCLUDE
-
-    query = fields.Str(required=True)
-
-
-### Login Schema
+# --- Login Schemas ---
 
 
 class AuthLoginSchema(Schema):
@@ -197,9 +232,6 @@ class AuthLoginSchema(Schema):
     password = fields.Str(required=True)
 
 
-### Register Schema
-
-
 class AuthRegisterSchema(Schema):
 
     class Meta(Schema.Meta):
@@ -209,7 +241,7 @@ class AuthRegisterSchema(Schema):
     password = fields.Str(required=True)
 
 
-### Event Schemas
+# --- Event Schemas ---
 
 
 class EventAddNewSchema(Schema):
@@ -224,7 +256,11 @@ class EventAddNewSchema(Schema):
     venue = fields.Str(required=False)
     url = fields.Str(required=False)
     url_name = fields.Str(required=False)
-    visibility = fields.Str(required=False, missing="visible")
+    visibility = fields.Str(
+        required=False,
+        missing="visible",
+        validate=validate.OneOf(["visible", "hidden"]),
+    )
 
 
 class EventDetailSchema(Schema):
@@ -240,8 +276,10 @@ class EventListSchema(Schema):
     class Meta(Schema.Meta):
         unknown = EXCLUDE
 
-    visibility = fields.Str(required=True)
-    status = fields.Str(required=True)
+    visibility = fields.Str(
+        required=True, validate=validate.OneOf(["all", "visible", "hidden"])
+    )
+    status = fields.Str(required=True, validate=validate.OneOf(["all", "current"]))
 
 
 class EventUpdateSchema(Schema):
@@ -250,7 +288,9 @@ class EventUpdateSchema(Schema):
         unknown = EXCLUDE
 
     id = fields.Str(required=True)
-    visibility = fields.Str(required=True)
+    visibility = fields.Str(
+        required=True, validate=validate.OneOf(["visible", "hidden"])
+    )
 
 
 class EventDeleteSchema(Schema):
@@ -261,7 +301,7 @@ class EventDeleteSchema(Schema):
     id = fields.Str(required=True)
 
 
-### Schema Map
+# --- Schema Mapping ---
 
 SCHEMA_MAP = {
     "detail": DetailSchema,
