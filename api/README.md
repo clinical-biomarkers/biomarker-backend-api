@@ -1,4 +1,4 @@
-# API Structure
+# API Directory Structure
 
 | Directory/File                | Description                                                                |
 | ----------------------------- | -------------------------------------------------------------------------- |
