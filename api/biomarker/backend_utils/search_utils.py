@@ -9,6 +9,7 @@ from . import SEARCH_CACHE_COLLECTION
 
 
 def init() -> Tuple[Dict, int]:
+    # TODO : Update this docstring 
     """Gets the searchable fields? Not really sure the purpose
     of this endpoint, copying Robel's response object.
 
