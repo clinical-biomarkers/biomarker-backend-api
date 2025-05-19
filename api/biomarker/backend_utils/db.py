@@ -408,11 +408,13 @@ def search_and_cache(
     tuple: (dict, int)
         The return object or an error object and HTTP status code.
     """
+    custom_app = cast_app(current_app)
     dict_to_hash = (
         {**query_object, **ai_search_metadata}
         if ai_search_metadata is not None
         else query_object
     )
+    custom_app.api_logger.info(f"DICT_TO_HASH: {dict_to_hash}")
     list_id = _get_query_hash(dict_to_hash)
     cache_hit, error_object = _search_cache(list_id, cache_collection)
 
