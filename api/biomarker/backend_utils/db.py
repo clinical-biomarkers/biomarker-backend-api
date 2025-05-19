@@ -350,7 +350,7 @@ def _cache_object(
         },
     }
     if ai_search_metadata is not None:
-        cache_object_to_insert["ai_parsing"] = ai_search_metadata
+        cache_object_to_insert["cache_info"]["ai_parsing"] = ai_search_metadata  # type: ignore
 
     try:
         dbh[cache_collection].delete_many({"list_id": list_id})
@@ -408,13 +408,11 @@ def search_and_cache(
     tuple: (dict, int)
         The return object or an error object and HTTP status code.
     """
-    custom_app = cast_app(current_app)
     dict_to_hash = (
         {**query_object, **ai_search_metadata}
         if ai_search_metadata is not None
         else query_object
     )
-    custom_app.api_logger.info(f"DICT_TO_HASH: {dict_to_hash}")
     list_id = _get_query_hash(dict_to_hash)
     cache_hit, error_object = _search_cache(list_id, cache_collection)
 

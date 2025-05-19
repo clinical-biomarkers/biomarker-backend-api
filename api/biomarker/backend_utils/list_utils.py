@@ -53,6 +53,10 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     del cache_info["api_request"]
     cache_info["mongo_query"] = mongo_query
 
+    ai_search_metata = cache_info.get("ai_parsing", None)
+    if ai_search_metata is not None:
+        cache_info["ai_parsing"] = ai_search_metata
+
     search_pipeline = _search_query_builder(search_query, request_arguments)
 
     # Try to get cached pipeline results
