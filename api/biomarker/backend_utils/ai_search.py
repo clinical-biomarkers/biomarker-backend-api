@@ -42,20 +42,23 @@ def ai_full_search(api_request: Request) -> Tuple[Dict, int]:
         f"AI Full Search\nOriginal Query: `{user_query}`\nParsedParameters: {pformat(search_params)}"
     )
 
+    ai_search_metadata = {
+        "original_query": user_query,
+        "parsed_parameters": search_params,
+    }
+
     # Perform the search using the parsed parameters
     mongo_query = _search_query_builder(search_params, False)
     return_object, query_http_code = db_utils.search_and_cache(
         request_object=search_params,
         query_object=mongo_query,
         search_type="full",
+        ai_search_metadata=ai_search_metadata,
     )
 
     # Add the original query and parsed parameters to the response
     if query_http_code == 200:
-        return_object["ai_parsing"] = {
-            "original_query": user_query,
-            "parsed_parameters": search_params,
-        }
+        return_object["ai_parsing"] = ai_search_metadata
 
     return return_object, query_http_code
 

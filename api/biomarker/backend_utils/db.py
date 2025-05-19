@@ -314,6 +314,7 @@ def _cache_object(
     query_object: Dict,
     search_type: Literal["simple", "full"],
     cache_collection: str = SEARCH_CACHE_COLLECTION,
+    ai_search_metadata: Optional[Dict] = None,
 ) -> Tuple[Dict, int]:
     """Stores a search query and its associated request arguments in the cache collection. It also first deletes
     any existing cache entry with the same list_id.
@@ -348,6 +349,8 @@ def _cache_object(
             "timestamp": create_timestamp(),
         },
     }
+    if ai_search_metadata is not None:
+        cache_object_to_insert["ai_parsing"] = ai_search_metadata
 
     try:
         dbh[cache_collection].delete_many({"list_id": list_id})
@@ -375,8 +378,9 @@ def search_and_cache(
     query_object: Dict,
     search_type: Literal["simple", "full"],
     cache_collection: str = SEARCH_CACHE_COLLECTION,
+    ai_search_metadata: Optional[Dict] = None,
 ) -> Tuple[Dict[Any, Any], int]:
-    """Checks cache for a query; if not found, executes search and caches the query info.
+    """Checks cache for a query; if not found caches the query info.
 
     Function orchestrates the caching process:
         1. Hashes the `query_object` to get a `list_id`
@@ -404,7 +408,12 @@ def search_and_cache(
     tuple: (dict, int)
         The return object or an error object and HTTP status code.
     """
-    list_id = _get_query_hash(query_object)
+    dict_to_hash = (
+        {**query_object, **ai_search_metadata}
+        if ai_search_metadata is not None
+        else query_object
+    )
+    list_id = _get_query_hash(dict_to_hash)
     cache_hit, error_object = _search_cache(list_id, cache_collection)
 
     if error_object is not None:
@@ -417,6 +426,7 @@ def search_and_cache(
             query_object,
             search_type,
             cache_collection,
+            ai_search_metadata,
         )
         if http_code != 200:
             return return_object, http_code
