@@ -239,18 +239,18 @@ def list_download(api_request: Request) -> Union[Tuple[Dict, int], Response]:
         for result in formatted_results:
             csv_writer.writerow(
                 [
-                    result["biomarker_canonical_id"],
-                    result["biomarker_id"],
-                    result["biomarker"],
-                    result["assessed_biomarker_entity_id"],
-                    result["assessed_entity_type"],
-                    result["assessed_biomarker_entity"],
-                    result["specimen"],
-                    result["best_biomarker_role"],
-                    result["condition"],
-                    result["component_count"],
-                    result["record_type"],
-                    result["hit_score"],
+                    result.get("biomarker_canonical_id", ""),
+                    result.get("biomarker_id", ""),
+                    result.get("biomarker", ""),
+                    result.get("assessed_biomarker_entity_id", ""),
+                    result.get("assessed_entity_type", ""),
+                    result.get("assessed_biomarker_entity", ""),
+                    result.get("specimen", ""),
+                    result.get("best_biomarker_role", ""),
+                    result.get("condition", ""),
+                    result.get("component_count", ""),
+                    result.get("record_type", ""),
+                    result.get("hit_score", ""),
                 ]
             )
 

@@ -1,3 +1,7 @@
+"""
+Defines API endpoints for downloading biomarker data.
+"""
+
 from flask import request
 from flask_restx import Resource, Namespace, fields
 

@@ -1,46 +1,146 @@
-"""Handles the backend logic for the biomarker auth endpoints."""
+"""
+Handles the backend logic for the biomarker auth endpoints.
+"""
 
-from flask import Request, current_app
-from github import Github
-from github import Auth
-from typing import Tuple, Dict
-import os
-import traceback
 import smtplib
+import traceback
+import os
 import base64
 import time
 import bcrypt
 import hashlib
 import datetime
 import pytz
+import random
+import string
+from typing import Optional, Tuple, Dict, List, Any
+from typing_extensions import deprecated
+
+from flask import Request, current_app
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
     get_csrf_token,
 )
-import random
-import string
 from email.mime.text import MIMEText
+from github import Github, Auth as GithubAuth
 
 from . import (
     ADMIN_LIST,
+    TIMEZONE,
     USER_COLLECTION,
     EMAIL_API_KEY,
     ADMIN_API_KEY,
     GITHUB_ISSUES_TOKEN,
+    GITHUB_ISSUE_ASSIGNEE,
 )
 from . import utils as utils
 from . import db as db_utils
 from . import CONTACT_SOURCE, CONTACT_RECIPIENTS
 
+# --- Helper Functions ---
 
-def contact(api_request: Request) -> Tuple[Dict, int]:
-    """Entry point for the backend logic of the contact endpoint.
+
+def _send_email(subject: str, body: str, recipients: List[str]) -> Optional[str]:
+    """Sends an email using configured Gmail SMTP settings.
 
     Parameters
     ----------
-    tuple : (dict, int)
-        The return JSON and HTTP code.
+    subject: str
+        The subject line of the email.
+    body: str
+        The plain text body of the email.
+    recipients: List[str]
+        A list of email addresses to send the email to.
+
+    Returns
+    -------
+    Optional[str]
+        None if the email was sent successfully, otherwise an error message string.
+    """
+    if not EMAIL_API_KEY:
+        return "Email app password (EMAIL_API_KEY) is not configured."
+    if not CONTACT_SOURCE:
+        return "Email source user (CONTACT_SOURCE) is not configured."
+    if not recipients:
+        return "No recipients specified for this email."
+
+    sender_email = f"{CONTACT_SOURCE}@gmail.com"
+    msg = MIMEText(body)
+    msg["Subject"] = subject
+    msg["To"] = ", ".join(recipients)
+    msg["From"] = sender_email
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp_server:
+            smtp_server.login(user=CONTACT_SOURCE, password=EMAIL_API_KEY)
+            smtp_server.sendmail(sender_email, recipients, msg.as_string())
+        return None
+    except smtplib.SMTPAuthenticationError:
+        return f"SMTP Authentication Error: Check CONTACT_SOURCE (`{CONTACT_SOURCE}`) and EMAIL_API_KEY."
+    except smtplib.SMTPException as e:
+        return f"SMTP Error: Failed to send email. {e}"
+    except Exception as e:
+        return f"Unexpected Error: Failed to send email. {e}\n{traceback.format_exc()}"
+
+
+def _create_github_issue(
+    title: str, body: str, labels: List[str], assignee: Optional[str] = None
+) -> Optional[str]:
+    """Creates an issue in the configured Github repository.
+
+    Parameters
+    ----------
+    title: str
+        The title of the Github issue.
+    body: str
+        The body content of the Github issue.
+    labels: List[str]
+        A list of labels to apply to the issue.
+    assignee: Optional[str], optional
+        The Github username to assign the issue to (if overriding global).
+
+    Returns
+    -------
+    Optional[str]
+        None if the issue was created successfully, otherwise an error message string.
+    """
+    if not GITHUB_ISSUES_TOKEN:
+        return "Github issues token (GITHUB_ISSUES_TOKEN) is not configured."
+    if not GITHUB_ISSUE_ASSIGNEE:
+        return "Github issue assignee(s) (GITHUB_ISSUE_ASSIGNEES) is not configured."
+
+    issue_assignee = assignee if assignee else GITHUB_ISSUE_ASSIGNEE
+
+    try:
+        auth = GithubAuth.Token(GITHUB_ISSUES_TOKEN)
+        g = Github(auth=auth)
+        repo = g.get_repo("clinical-biomarkers/biomarker-issue-repo")
+        repo.create_issue(
+            title=title, body=body, labels=labels, assignee=issue_assignee
+        )
+        return None
+    except Exception as e:
+        return f"Failed to create Github issue: {e}\n{traceback.format_exc()}"
+
+
+# --- Backend Functions ---
+
+
+def contact(api_request: Request) -> Tuple[Dict, int]:
+    """Handles the backend logic for the user contact form submission.
+
+    Sends an email to configured recipients and attempts to create a Github issue.
+
+    Parameters
+    ----------
+    api_request: Request
+        The Flask request object containing contact form data.
+
+    Returns
+    -------
+    Tuple: (dict, int)
+        A response dictionary of error object and HTTP return code.
     """
     request_arguments, request_http_code = utils.get_request_object(
         api_request, "contact"
@@ -48,83 +148,76 @@ def contact(api_request: Request) -> Tuple[Dict, int]:
     if request_http_code != 200:
         return request_arguments, request_http_code
 
-    response_txt = f"\n\n{request_arguments['fname']},\n"
-    response_txt += "We have received your message and will make every effort to respond to you within a reasonable amount of time."
-    response_json = {"type": "alert-success", "message": response_txt}
-    response_code = 200
+    # Prepare email content
+    fname = request_arguments.get("fname", "N/A")
+    lname = request_arguments.get("lname", "N/A")
+    email_addr = request_arguments.get("email", "N/A")
+    subject = request_arguments.get("subject", "No Subject Provided")
+    message = request_arguments.get("message", "")
+    page = request_arguments.get("page")
 
-    source_app_password = EMAIL_API_KEY
-    if source_app_password is None:
-        error_obj = db_utils.log_error(
-            error_log="Error reading email password environment variable.",
-            error_msg="internal-email-error",
-            origin="contact",
-        )
-        return error_obj, 500
+    email_body = f"From: {fname} {lname}\n"
+    email_body += f"Email: {email_addr}\n"
+    email_body += f"Subject: {subject}\n"
+    if page:
+        email_body += f"Page: {page}\n"
+    email_body += f"\nMessage:\n{message}"
 
-    custom_app = db_utils.cast_app(current_app)
-    custom_app.api_logger.info(
-        "********************************** Contact Log **********************************"
+    # Send email notification
+    email_error = _send_email(
+        subject=subject, body=email_body, recipients=CONTACT_RECIPIENTS
     )
-    custom_app.logger.info(request_arguments)
 
-    detailed_message = f"From {request_arguments['fname']} {request_arguments['lname']}"
-    detailed_message += f"\nEmail: {request_arguments['email']}, Subject: {request_arguments['subject']}"
-    page = request_arguments.get("page", None)
-    if page is not None:
-        detailed_message += f"\nPage: {page}"
-    detailed_message += f"\nMessage: {request_arguments['message']}"
+    response_json: Dict[str, Any]
+    response_code: int
 
-    msg = MIMEText(detailed_message)
-    msg["Subject"] = request_arguments["subject"]
-    msg["To"] = ", ".join(CONTACT_RECIPIENTS)
-    msg["From"] = f"{CONTACT_SOURCE}@gmail.com"
-
-    try:
-        smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-        smtp_server.login(user=CONTACT_SOURCE, password=source_app_password)
-        smtp_server.sendmail(msg["From"], CONTACT_RECIPIENTS, msg.as_string())
-        smtp_server.quit()
-    except Exception as e:
+    if email_error:
         response_json = db_utils.log_error(
-            error_log=f"Failure to send contact email. {e}\n{traceback.format_exc()}",
+            error_log=f"Failure sending contact email: {email_error}",
             error_msg="internal-email-error",
             origin="contact",
         )
         response_code = 500
+    else:
+        response_txt = f"\n\n{fname},\n"
+        response_txt += "We have received your message and will make every effort to respond to you within a reasonable amount of time."
+        response_json = {"type": "alert-success", "message": response_txt}
+        response_code = 200
 
-    # Validate github token
-    if GITHUB_ISSUES_TOKEN is None:
-        _ = db_utils.log_error(
-            error_log="GITHUB_ISSUES_TOKEN is None",
-            error_msg="internal-server-error",
-            origin="contact"
-        )
-        return response_json, response_code
+    # Attempt to create Github issue ergardless of email success or failure
+    github_body = f"**Page:** {page}\n" if page else ""
+    github_body += f"**Subject:** {subject}\n\n"
+    github_body += f"**Message:**\n{message}"
 
-    # Try to create github ticket
-    try:
-        auth = Auth.Token(GITHUB_ISSUES_TOKEN)
-        # Create the Github instance
-        g = Github(auth=auth)
-        repo = g.get_repo("clinical-biomarkers/biomarker-issue-repo")
-        repo.create_issue(
-            title=f"{request_arguments['subject']}",
-            body=f"Subject: {request_arguments['subject']}\nPage: {page}\nMessage: {request_arguments['message']}",
-            labels=["User Feedback"],
-            assignee="jeet-vora"
-        )
-    except Exception as e:
-        _ = db_utils.log_error(
-            error_log=f"Failed to create GitHub issue from user feedback: {str(e)}",
+    github_error = _create_github_issue(
+        title=subject, body=github_body, labels=["User Feedback"]
+    )
+
+    if github_error:
+        db_utils.log_error(
+            error_log=f"Failed to create Github issue from contact form: {github_error}",
             error_msg="internal-server-error",
-            origin="contact"
+            origin="contact",
         )
 
     return response_json, response_code
 
 
 def contact_notification(api_request: Request) -> Tuple[Dict, int]:
+    """Handles sending arbitrary notifications via email (Admin restricted).
+
+    Requires a valid ADMIN_API_KEY for authorization.
+
+    Parameters
+    ----------
+    api_request: Request
+        The Flask request object.
+
+    Returns
+    -------
+    tuple: (dict, int)
+        A response dictionary and HTTP status code.
+    """
     request_arguments, request_http_code = utils.get_request_object(
         api_request, "notification"
     )
@@ -134,7 +227,7 @@ def contact_notification(api_request: Request) -> Tuple[Dict, int]:
     api_key = request_arguments["api_key"]
     if ADMIN_API_KEY is None:
         error_object = db_utils.log_error(
-            error_log="Unable to find ADMIN_API_KEY in environment variables",
+            error_log="ADMIN_API_KEY is not configured in environment variables",
             error_msg="internal-server-error",
             origin="contact_notification",
         )
@@ -142,60 +235,48 @@ def contact_notification(api_request: Request) -> Tuple[Dict, int]:
 
     if ADMIN_API_KEY != api_key:
         error_object = db_utils.log_error(
-            error_log="Provided API key does not match ADMIN_API_KEY",
+            error_log="Invalid ADMIN_API_KEY provided for contact_notification.",
             error_msg="unathorized",
             origin="contact_notification",
         )
         return error_object, 401
 
-    source_app_password = os.environ.get("EMAIL_APP_PASSWORD")
-    if source_app_password is None:
+    # --- Send Email ---
+    subject = request_arguments.get("subject", "Notification")
+    message = request_arguments.get("message", "")
+    recipients = request_arguments.get("email", [])
+
+    if not recipients:
+        return {
+            "error": {
+                "error_msg": "bad-request",
+                "details": "No recipient emails provided.",
+            }
+        }, 400
+
+    email_error = _send_email(subject=subject, body=message, recipients=recipients)
+
+    if email_error:
         error_obj = db_utils.log_error(
-            error_log="Error reading email password environment variable.",
-            error_msg="internal-email-error",
-            origin="contact",
-        )
-        return error_obj, 500
-
-    emails = request_arguments["email"]
-
-    msg = MIMEText(request_arguments["message"])
-    msg["Subject"] = request_arguments["subject"]
-    msg["To"] = ", ".join(emails)
-    msg["From"] = f"{CONTACT_SOURCE}@gmail.com"
-    response_json = {"type": "notification-success", "message": "Message sent"}
-
-    try:
-        smtp_server = smtplib.SMTP_SSL("smtp.gmail.com", 465)
-        smtp_server.login(user=CONTACT_SOURCE, password=source_app_password)
-        smtp_server.sendmail(msg["From"], emails, msg.as_string())
-        smtp_server.quit()
-        return response_json, 200
-    except Exception as e:
-        error_obj = db_utils.log_error(
-            error_log=f"Failure to send notification email. {e}\n{traceback.format_exc()}",
+            error_log=f"Failure sending notification email: {email_error}",
             error_msg="internal-email-error",
             origin="contact_notification",
         )
         return error_obj, 500
+    else:
+        return {
+            "type": "notification-success",
+            "message": "Notification sent successfully",
+        }, 200
+
+
+# --- User Authentication / Management ---
 
 
 def _get_random_string(length: int = 32) -> str:
+    """Generates a random alphanumeric string of specified length."""
     chars = string.ascii_lowercase + string.digits
     return "".join(random.choice(chars) for _ in range(length))
-
-
-def make_hash_string() -> str:
-    """Create a unique hash string for token generation."""
-    m = hashlib.md5()
-    s = str(time.time())
-    m.update(s.encode("utf-8"))
-    s = str(os.urandom(64))
-    m.update(s.encode("utf-8"))
-
-    s1 = base64.b64encode(m.digest())[:-3]
-    s = s1.decode("utf-8").replace("/", "$").replace("+", "$")
-    return s
 
 
 def register(api_request: Request) -> Tuple[Dict, int]:
@@ -203,12 +284,12 @@ def register(api_request: Request) -> Tuple[Dict, int]:
 
     Parameters
     ----------
-    api_request : Request
+    api_request: Request
         The flask request object.
 
     Returns
     -------
-    tuple : (dict, int)
+    tuple: (dict, int)
         The return JSON and HTTP code.
     """
     request_data, status_code = utils.get_request_object(api_request, "auth_register")
@@ -221,20 +302,19 @@ def register(api_request: Request) -> Tuple[Dict, int]:
 
         email = request_data["email"].lower()
 
-        # Set default user status
-        user_status = 0  # 0: inactive, 1: active
-        user_access = "readonly"
-        user_role = ""
+        # --- Determine User Status/Access ---
+        user_status = 0  # 0: inactive, 1: active (default inactive)
+        user_access = "readonly"  # Default read-only
+        user_role = ""  # Default no role
 
-        if ADMIN_LIST is not None:
-            if email in ADMIN_LIST:
-                user_status, user_access, user_role = 1, "write", "admin"
+        if ADMIN_LIST and email in (admin.lower() for admin in ADMIN_LIST):
+            user_status, user_access, user_role = 1, "write", "admin"
         else:
             custom_app.api_logger.warning(
                 "ADMIN LIST is None, all users will be read only"
             )
 
-        # Check if user already exists
+        # --- Check for Existing User ---
         existing_user_error_obj, existing_user_http_code = db_utils.find_one(
             query_object={"email": email},
             projection_object={},
@@ -251,30 +331,47 @@ def register(api_request: Request) -> Tuple[Dict, int]:
         elif existing_user_http_code == 500:
             return existing_user_error_obj, 500
 
-        # Hash password
-        hashed_password = bcrypt.hashpw(
-            request_data["password"].encode("utf-8"), bcrypt.gensalt()
-        )
+        # --- Hash Password ---
+        try:
+            hashed_password = bcrypt.hashpw(
+                request_data["password"].encode("utf-8"), bcrypt.gensalt()
+            )
+        except ValueError as e:
+            error_obj = db_utils.log_error(
+                error_log=f"Error hashing password for user {email}: {e}",
+                error_msg="internal-server-error",
+                origin="register",
+            )
+            return error_obj, 500
 
-        # Create user document
+        # --- Create User Document ---
+        now_ts = datetime.datetime.now(pytz.timezone(TIMEZONE))
         user_doc = {
             "email": email,
             "password": hashed_password,
             "status": user_status,
             "access": user_access,
             "role": user_role,
-            "created_at": datetime.datetime.now(pytz.timezone("US/Eastern")),
-            "updated_at": datetime.datetime.now(pytz.timezone("US/Eastern")),
+            "created_at": now_ts,
+            "updated_at": now_ts,
         }
 
-        # Insert user into database
-        dbh[USER_COLLECTION].insert_one(user_doc)
+        # --- Insert User ---
+        try:
+            dbh[USER_COLLECTION].insert_one(user_doc)
+        except Exception as e:
+            error_obj = db_utils.log_error(
+                error_log=f"Database error registering user {email}: {e}\n{traceback.format_exc()}",
+                error_msg="internal-server-error",
+                origin="register",
+            )
+            return error_obj, 500
 
-        return {"type": "success"}, 200
+        return {"type": "success", "message": "Registration successful."}, 200
 
     except Exception as e:
         error_obj = db_utils.log_error(
-            error_log=f"Error during user registration: {str(e)}",
+            error_log=f"Unexpected error during user registration for email {request_data.get('email', 'N/A')}: {e}\n{traceback.format_exc()}",
             error_msg="registration-error",
             origin="register",
         )
@@ -286,12 +383,12 @@ def login(api_request: Request) -> Tuple[Dict, int]:
 
     Parameters
     ----------
-    api_request : Request
+    api_request: Request
         The flask request object.
 
     Returns
     -------
-    tuple : (dict, int)
+    tuple: (dict, int)
         The return JSON and HTTP code.
     """
     request_data, status_code = utils.get_request_object(api_request, "auth_login")
@@ -302,74 +399,97 @@ def login(api_request: Request) -> Tuple[Dict, int]:
         email = request_data["email"].lower()
         password = request_data["password"]
 
-        # Find user
+        # --- Find User ---
         user_doc, user_http_code = db_utils.find_one(
             query_object={"email": email},
             projection_object={},
             collection=USER_COLLECTION,
         )
+
+        # --- Validate User Existence and Password ---
         if user_http_code == 404:
             error_obj = db_utils.log_error(
                 error_log=f"Login attempt with unknown email: {email}",
-                error_msg="incorrect-email/password",
+                error_msg="incorrect-email-or-password",
                 origin="login",
             )
             return error_obj, 401  # Unauthorized
         elif user_http_code == 500:
             return user_doc, user_http_code
 
-        if "password" not in user_doc:
+        stored_password_hash = user_doc.get("password")
+        if stored_password_hash is None:
             error_obj = db_utils.log_error(
-                error_log=f"User record for {email} is missing password field",
-                error_msg="password does not exist for registered user",
+                error_log=f"User record for {email} is missing the password field.",
+                error_msg="internal-server-error",
                 origin="login",
             )
             return error_obj, 500
 
-        submitted_password = password.encode("utf-8")
-        stored_password = user_doc["password"]
+        # Ensure stored_password_hash is bytes for bcrypt.checkpw
+        if isinstance(stored_password_hash, str):
+            stored_password_hash = stored_password_hash.encode("utf-8")
 
-        # Handle string/bytes type for stored_password
-        if isinstance(stored_password, str):
-            stored_password = stored_password.encode("utf-8")
-
-        if bcrypt.hashpw(submitted_password, stored_password) != stored_password:
+        # Verify the password
+        try:
+            if not bcrypt.checkpw(password.encode("utf-8"), stored_password_hash):
+                error_obj = db_utils.log_error(
+                    error_log=f"Incorrect password attempt for user: {email}",
+                    error_msg="incorrect-email-or-password",
+                    origin="login",
+                )
+                return error_obj, 401
+        except ValueError as e:
             error_obj = db_utils.log_error(
-                error_log=f"Incorrect password for user: {email}",
-                error_msg="incorrect-email/password",
+                error_log=f"Error comparing password hash for user {email} (hash might be invalid): {e}",
+                error_msg="internal-server-error",
                 origin="login",
             )
-            return error_obj, 401
+            return error_obj, 500
 
-        # Check if account is active
-        if user_doc["status"] == 0:
+        # --- Check Account Status ---
+        if user_doc.get("status", 0) == 0:
             error_obj = db_utils.log_error(
                 error_log=f"Login attempt with inactive account: {email}",
-                error_msg="inactive account",
+                error_msg="account-inactive",
                 origin="login",
             )
             return error_obj, 403
 
-        access_token = create_access_token(identity=email)
-        refresh_token = create_refresh_token(identity=email)
+        # --- Generate Tokens ---
+        identity = email
+        access_token = create_access_token(identity=identity)
+        refresh_token = create_refresh_token(identity=identity)
 
+        # Return tokens and CSRF tokens
         return {
             "type": "success",
+            "message": "Login successful",
             "access_token": access_token,
             "access_csrf": get_csrf_token(access_token),
+            "refresh_token": refresh_token,
             "refresh_csrf": get_csrf_token(refresh_token),
             "username": email,
+            "role": user_doc.get("role", ""),
+            "access": user_doc.get("access", "readonly"),
         }, 200
 
     except Exception as e:
         error_obj = db_utils.log_error(
-            error_log=f"Error during login: {str(e)}",
+            error_log=f"Unexpected error during login for email {request_data.get('email', 'N/A')}: {e}\n{traceback.format_exc()}",
             error_msg="login-error",
             origin="login",
         )
         return error_obj, 500
 
 
+# --- Deprecated ---
+
+
+# Copied from Glygen, not used and has some potential issues:
+# - Possibility of collisions
+# - Race condition possibility (two requests could generate the same ID and check existence before inserts)
+@deprecated("Not used")
 def userid() -> Tuple[Dict, int]:
     """Generate a unique user ID.
 
@@ -411,3 +531,17 @@ def userid() -> Tuple[Dict, int]:
             origin="userid",
         )
         return error_obj, 500
+
+
+@deprecated("Not used")
+def make_hash_string() -> str:
+    """Create a unique hash string for token generation."""
+    m = hashlib.md5()
+    s = str(time.time())
+    m.update(s.encode("utf-8"))
+    s = str(os.urandom(64))
+    m.update(s.encode("utf-8"))
+
+    s1 = base64.b64encode(m.digest())[:-3]
+    s = s1.decode("utf-8").replace("/", "$").replace("+", "$")
+    return s

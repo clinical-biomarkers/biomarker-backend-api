@@ -1,5 +1,11 @@
+"""
+Defines API endpoints related to authentication, user management.
+contact forms, and administrative actions like cache clearing.
+"""
+
 from flask import request
 from flask_restx import Resource, Namespace, fields
+
 from .backend_utils import auth_utils
 from .backend_utils import cache_utils
 

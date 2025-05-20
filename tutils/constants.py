@@ -48,3 +48,7 @@ def ontology_default() -> str:
 def version_default() -> str:
     collections = get_collections()
     return collections["version"]
+
+def event_default() -> str:
+    collections = get_collections()
+    return collections["event"]

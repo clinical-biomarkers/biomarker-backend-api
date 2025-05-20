@@ -1,116 +1,109 @@
-from collections.abc import Sequence
+"""
+Handles backend logic for event management endpoints.
+"""
+
+import datetime
+import traceback
+from typing import Tuple, Dict, List, Any, Union
+
+import pymongo
+import pytz
+from bson.objectid import ObjectId
+from bson.errors import InvalidId
 from flask import Request, current_app
 from flask_jwt_extended import get_jwt_identity
-from typing import Tuple, Dict, List, Any, Union
-import datetime
-import pytz
-import traceback
-from bson.objectid import ObjectId
-import pymongo
 
-from . import USER_COLLECTION, EVENT_COLLECTION
+from . import USER_COLLECTION, EVENT_COLLECTION, TIMEZONE
 from . import db as db_utils
 from . import utils as utils
 
+# --- Date/Time Validation ---
 
-def validate_date_time(date_string: str) -> Tuple[bool, List[Dict], Dict]:
-    """Validate a date string in format MM/DD/YYYY HH:MM:SS
+
+def validate_date_time(
+    date_string: str, expected_format: str = "%m/%d/%Y %H:%M:%S"
+) -> Tuple[bool, List[Dict], Dict]:
+    """Validates a date string expect in MM/DD/YYYY HH:MM:SS format.
+
+    Also converts the valid date string into a datetime object and calculates
+    total seconds since epoch (approximation used for simple comparisons).
 
     Parameters
     ----------
-    date_string : str
-        Date string in format MM/DD/YYYY HH:MM:SS
+    date_string: str
+        The date string to validate.
 
     Returns
     -------
-    tuple : (bool, list, dict)
-        Success flag, error list, and parsed date info
+    tuple: (bool, list, dict)
+        Success flag, error list, and parsed date info.
     """
     error_list = []
-    date_info = {}  # type: ignore
+    date_info: Dict = {}
 
     try:
-        date_parts: Sequence[Union[int, str]] = (
-            date_string.strip().split(" ")[0].strip().split("/")
-        )
-        time_parts: Sequence[Union[int, str]] = (
-            date_string.strip().split(" ")[1].strip().split(":")
-        )
+        # Attempt to parse the string using the expected format
+        parsed_dt = datetime.datetime.strptime(date_string, expected_format)
 
-        if len(date_parts) != 3:
-            error_list.append({"error_code": f"invalid-date-format: {date_string}"})
-            return False, error_list, date_info
-
-        if len(time_parts) != 3:
-            error_list.append({"error_code": f"invalid-time-format: {date_string}"})
-            return False, error_list, date_info
-
-        # Validate numeric values
-        for j in range(0, 3):
-            if not date_parts[j].isdigit():  # type: ignore
-                error_list.append({"error_code": f"invalid-date-format: {date_string}"})
-                return False, error_list, date_info
-
-            if not time_parts[j].isdigit():  # type: ignore
-                error_list.append({"error_code": f"invalid-time-format: {date_string}"})
-                return False, error_list, date_info
-
-            date_parts[j] = int(date_parts[j])  # type: ignore
-            time_parts[j] = int(time_parts[j])  # type: ignore
-
-        # Validate ranges
-        if date_parts[0] < 1 or date_parts[0] > 12:  # type: ignore
-            error_list.append({"error_code": f"invalid-month-value: {date_string}"})
-        if date_parts[1] < 1 or date_parts[1] > 31:  # type: ignore
-            error_list.append({"error_code": f"invalid-day-value: {date_string}"})
-        if date_parts[2] < 2021:  # type: ignore
+        # Simple validation for Reasonable year range
+        if parsed_dt.year < 2000 or parsed_dt.year > 2100:
             error_list.append({"error_code": f"invalid-year-value: {date_string}"})
-        if time_parts[0] < 0 or time_parts[0] > 23:  # type: ignore
-            error_list.append({"error_code": f"invalid-hour-value: {date_string}"})
-        if time_parts[1] < 0 or time_parts[1] > 59:  # type: ignore
-            error_list.append({"error_code": f"invalid-minute-value: {date_string}"})
-        if time_parts[2] < 0 or time_parts[2] > 59:  # type: ignore
-            error_list.append({"error_code": f"invalid-second-value: {date_string}"})
-
-        if error_list:
             return False, error_list, date_info
 
-        # Convert to datetime and seconds
-        dt, tm = date_string.split(" ")[0], date_string.split(" ")[1]
-        mm, dd, yy = dt.split("/")
-        hr, mn, sc = tm.split(":")
+        # Calculate seconds approximation
+        yy, mm, dd = parsed_dt.year, parsed_dt.month, parsed_dt.day
+        hr, mn, sc = parsed_dt.hour, parsed_dt.minute, parsed_dt.second
         seconds = (
-            int(yy) * 365 * 24 * 3600
-            + int(mm) * 31 * 24 * 3600
-            + int(dd) * 24 * 3600
-            + int(hr) * 3600
-            + int(mn) * 60
-            + int(sc)
+            yy * 365 * 24 * 3600  # Approximation: Ignores leap years
+            + mm * 30 * 24 * 3600  # Approximation: Assumes 30 days/month
+            + dd * 24 * 3600
+            + hr * 3600
+            + mn * 60
+            + sc
         )
+
+        # Use timezone-aware datetime based on configuration
+        tz = pytz.timezone(TIMEZONE)
+        aware_dt = tz.localize(parsed_dt)
 
         date_info = {
-            "datetime": datetime.datetime.strptime(date_string, "%m/%d/%Y %H:%M:%S"),
-            "seconds": seconds,
+            "datetime": aware_dt,  # Store timezone-aware datetime
+            "seconds": seconds,  # Store the custom seconds calculation
         }
-
         return True, [], date_info
+
+    except ValueError:
+        error_list.append(
+            {
+                "error_code": f"invalid-datetime-format: expected '{expected_format}', got '{date_string}'"
+            }
+        )
+        return False, error_list, date_info
 
     except Exception as e:
         error_list.append({"error_code": f"date-parsing-error: {str(e)}"})
+        # Log unexpected errors for debugging
+        custom_app = db_utils.cast_app(current_app)
+        custom_app.api_logger.error(
+            f"Unexpected date validation error for '{date_string}': {e}\n{traceback.format_exc()}"
+        )
         return False, error_list, date_info
 
 
+# --- Event CRUD Functions ---
+
+
 def event_addnew(api_request: Request) -> Tuple[Dict[str, Any], int]:
-    """Handle adding a new event.
+    """Handles adding a new event, requires JWT authentication and write access.
 
     Parameters
     ----------
-    api_request : Request
+    api_request: Request
         The flask request object.
 
     Returns
     -------
-    tuple : (dict, int)
+    tuple: (dict, int)
         The return JSON and HTTP code.
     """
     request_data, status_code = utils.get_request_object(api_request, "event_addnew")
@@ -118,45 +111,84 @@ def event_addnew(api_request: Request) -> Tuple[Dict[str, Any], int]:
         return request_data, status_code
 
     try:
-
-        current_user = get_jwt_identity()
+        current_user_email = get_jwt_identity()
+        if not current_user_email:
+            # Under correct usage, this shouldn't happen based on @jwt_required
+            return (
+                db_utils.log_error(
+                    error_log="JWT identity missing",
+                    error_msg="authentication-error",
+                    origin="event_addnew",
+                ),
+                401,
+            )
 
         custom_app = db_utils.cast_app(current_app)
         dbh = custom_app.mongo_db
 
         # Check write access
-        user_info = dbh[USER_COLLECTION].find_one({"email": current_user})
-        if not user_info or "access" not in user_info or user_info["access"] != "write":
+        user_info, user_info_http_code = db_utils.find_one(
+            query_object={"email": current_user_email},
+            projection_object={"_id": 0},
+            collection=USER_COLLECTION,
+        )
+        if user_info_http_code != 200:
+            return user_info, user_info_http_code
+
+        if not user_info or user_info.get("access") != "write":
             error_obj = db_utils.log_error(
-                error_log=f"User {current_user} attempted to add event without write access",
+                error_log=f"User {current_user_email} attempted to add event without write access",
                 error_msg="no-write-access",
                 origin="event_addnew",
             )
             return error_obj, 403
 
         # Validate date fields
-        date_fields = ["start_date", "end_date"]
-        for field in date_fields:
+        validated_dates = {}
+        for field in ["start_date", "end_date"]:
             success, errors, date_info = validate_date_time(request_data[field])
             if not success:
                 return {"error_list": errors}, 400
+            validated_dates[field] = date_info
 
-            # Add parsed date info to request data
-            request_data[f"{field}_s"] = date_info["seconds"]
-            request_data[field] = date_info["datetime"]
+        # Check if end date is before start date
+        if (
+            validated_dates["end_date"]["datetime"]
+            <= validated_dates["start_date"]["datetime"]
+        ):
+            return {
+                "error_list": [
+                    {
+                        "error_code": "invalid-date-range: end_date cannot be before or same as start_date"
+                    }
+                ]
+            }, 400
 
-        # Add timestamps
-        request_data["createdts"] = datetime.datetime.now(pytz.timezone("US/Eastern"))
-        request_data["updatedts"] = request_data["createdts"]
+        # Prepare document for insertion
+        event_doc = request_data.copy()
+        event_doc["start_date"] = validated_dates["start_date"]["datetime"]
+        event_doc["start_date_s"] = validated_dates["start_date"]["seconds"]
+        event_doc["end_date"] = validated_dates["end_date"]["datetime"]
+        event_doc["end_date_s"] = validated_dates["end_date"]["seconds"]
+
+        # Add audit timestamps (timezone-aware)
+        now_ts = datetime.datetime.now(pytz.timezone(TIMEZONE))
+        event_doc["createdts"] = now_ts
+        event_doc["updatedts"] = now_ts
+        event_doc["created_by"] = current_user_email
 
         # Insert into database
-        dbh[EVENT_COLLECTION].insert_one(request_data)
+        result = dbh[EVENT_COLLECTION].insert_one(event_doc)
 
-        return {"type": "success", "message": "Event added successfully"}, 200
+        return {
+            "type": "success",
+            "message": "Event added successfully",
+            "id": str(result.inserted_id),
+        }, 201
 
     except Exception as e:
         error_obj = db_utils.log_error(
-            error_log=f"Error adding event: {str(e)}\n{traceback.format_exc()}",
+            error_log=f"Unexpected error adding event.\nData: {request_data}\nError: {e}\n{traceback.format_exc()}",
             error_msg="event-add-error",
             origin="event_addnew",
         )
@@ -164,16 +196,16 @@ def event_addnew(api_request: Request) -> Tuple[Dict[str, Any], int]:
 
 
 def event_detail(api_request: Request) -> Tuple[Dict[str, Any], int]:
-    """Handle retrieving event details.
+    """Handles retrieving details for a specific event by is ID.
 
     Parameters
     ----------
-    api_request : Request
+    api_request: Request
         The flask request object.
 
     Returns
     -------
-    tuple : (dict, int)
+    tuple: (dict, int)
         The return JSON and HTTP code.
     """
     request_data, status_code = utils.get_request_object(api_request, "event_detail")
@@ -183,122 +215,143 @@ def event_detail(api_request: Request) -> Tuple[Dict[str, Any], int]:
     try:
         custom_app = db_utils.cast_app(current_app)
         dbh = custom_app.mongo_db
+        event_id_str = request_data["id"]
 
-        event_id = request_data["id"]
         try:
-            event = dbh[EVENT_COLLECTION].find_one({"_id": ObjectId(event_id)})
-        except Exception as e:
+            event_oid = ObjectId(event_id_str)
+        except InvalidId:
             error_obj = db_utils.log_error(
-                error_log=f"Invalid event ID format: {event_id}",
+                error_log=f"Invalid ObjectID format for event ID: `{event_id_str}`",
                 error_msg="invalid-id-format",
                 origin="event_detail",
             )
             return error_obj, 400
 
+        event = dbh[EVENT_COLLECTION].find_one(
+            {"_id": event_oid}, {"_id": 0, "start_date_s": 0, "end_date_s": 0}
+        )
+
         if not event:
             error_obj = db_utils.log_error(
-                error_log=f"Event not found with ID: {event_id}",
+                error_log=f"Event not found with ID: `{event_id_str}`",
                 error_msg="record-not-found",
                 origin="event_detail",
             )
             return error_obj, 404
 
-        # Format the event data
-        event["id"] = str(event["_id"])
-        del event["_id"]
-
-        # Format datetime fields
+        # Format datetime fields for display
+        # Use ISO 8601 format
+        datetime_format = "%Y-%m-%dT%H:%M:%S%z"
         for field in ["createdts", "updatedts", "start_date", "end_date"]:
-            if field in event and hasattr(event[field], "strftime"):
-                event[field] = event[field].strftime("%Y-%m-%d %H:%M:%S %Z%z")
+            if field in event and isinstance(event[field], datetime.datetime):
+                if (
+                    event[field].tzinfo is None
+                    or event[field].tzinfo.utcoffset(event[field]) is None
+                ):
+                    tz = pytz.timezone(TIMEZONE)
+                    event[field] = tz.localize(event[field])
+                event[field] = event[field].strftime(datetime_format)
+
+        event["id"] = event_id_str
 
         return event, 200
 
     except Exception as e:
         error_obj = db_utils.log_error(
-            error_log=f"Error retrieving event details: {str(e)}\n{traceback.format_exc()}",
+            error_log=f"Error retrieving event details for ID `{request_data.get('id')}`.\nError: {e}\n{traceback.format_exc()}",
             error_msg="event-detail-error",
             origin="event_detail",
         )
-        return {"error_list": [{"error_code": str(e)}]}, 500
+        return (
+            db_utils._create_error_obj(
+                error_obj["error"]["error_id"], "internal-server-error"
+            ),
+            500,
+        )
+
 
 def event_list(api_request: Request) -> Tuple[Union[Dict, List], int]:
-    """Handle listing events.
+    """Handles listing events based on visbility and status filters.
 
     Parameters
     ----------
-    api_request : Request
+    api_request: Request
         The flask request object.
 
     Returns
     -------
-    tuple : (dict, int)
+    tuple: (dict, int)
         The return JSON and HTTP code.
     """
-    # Parse and validate request
     request_data, status_code = utils.get_request_object(api_request, "event_list")
     if status_code != 200:
         return request_data, status_code
 
     try:
-        # Get database connection
         custom_app = db_utils.cast_app(current_app)
         dbh = custom_app.mongo_db
 
-        # Get current time in seconds
-        now_est = datetime.datetime.now(pytz.timezone("US/Eastern")).strftime(
-            "%m/%d/%Y %H:%M:%S"
-        )
-        dt, tm = now_est.split(" ")[0], now_est.split(" ")[1]
-        mm, dd, yy = dt.split("/")
-        hr, mn, sc = tm.split(":")
-        seconds = (
-            int(yy) * 365 * 24 * 3600
-            + int(mm) * 31 * 24 * 3600
-            + int(dd) * 24 * 3600
-            + int(hr) * 3600
-            + int(mn) * 60
-            + int(sc)
+        # Calculate current time in seconds
+        now_dt = datetime.datetime.now(pytz.timezone(TIMEZONE))
+        yy, mm, dd = now_dt.year, now_dt.month, now_dt.day
+        hr, mn, sc = now_dt.hour, now_dt.minute, now_dt.second
+        now_in_seconds = (
+            yy * 365 * 24 * 3600
+            + mm * 30 * 24 * 3600  # Approximation
+            + dd * 24 * 3600
+            + hr * 3600
+            + mn * 60
+            + sc
         )
 
         # Build query conditions
         cond_list = []
-        if request_data["visibility"] != "all":
-            cond_list.append({"visibility": {"$eq": request_data["visibility"]}})
+        visibility = request_data.get("visibility", "all").lower()
+        status = request_data.get("status", "all").lower()
 
-        if "status" in request_data and request_data["status"] == "current":
-            cond_list.append({"start_date_s": {"$lte": seconds}})
-            cond_list.append({"end_date_s": {"$gte": seconds}})
+        if visibility != "all":
+            cond_list.append({"visibility": visibility})
 
-        query = {} if not cond_list else {"$and": cond_list}
+        if status == "current":
+            cond_list.append({"start_date_s": {"$lte": now_in_seconds}})
+            cond_list.append({"end_date_s": {"$gte": now_in_seconds}})
 
-        # Execute query
-        events = list(
-            dbh[EVENT_COLLECTION].find(query).sort("createdts", pymongo.DESCENDING)
+        # Combine conditions if any, otherwise emtpy query
+        query = {"$and": cond_list} if cond_list else {}
+
+        event_cursor = (
+            dbh[EVENT_COLLECTION]
+            .find(query, {"_id": 1, "start_date_s": 1, "end_date_s": 1})
+            .sort("createdts", pymongo.DESCENDING)
         )
 
-        # Format results
+        # Process results
         result_list = []
-        for event in events:
-            if "title" not in event or "start_date_s" not in event:
-                continue
-
+        datetime_format = "%Y-%m-%dT%H:%M:%S%z"
+        for event in event_cursor:
             event["id"] = str(event["_id"])
-            del event["_id"]
+            event.pop("_id")
 
             # Format datetime fields
             for field in ["createdts", "updatedts", "start_date", "end_date"]:
-                if field in event and hasattr(event[field], "strftime"):
-                    event[field] = event[field].strftime("%Y-%m-%d %H:%M:%S %Z%z")
+                if field in event and isinstance(event[field], datetime.datetime):
+                    if (
+                        event[field].tzinfo is None
+                        or event[field].tzinfo.utcoffset(event[field]) is None
+                    ):
+                        tz = pytz.timezone(TIMEZONE)
+                        event[field] = tz.localize(event[field])
+                    event[field] = event[field].strftime(datetime_format)
 
-            event["now_ts"] = seconds
+            event.pop("start_date_s", None)
+            event.pop("end_date_s", None)
             result_list.append(event)
 
         return result_list, 200
 
     except Exception as e:
         error_obj = db_utils.log_error(
-            error_log=f"Error listing events: {str(e)}\n{traceback.format_exc()}",
+            error_log=f"Error listing events.\nFilters: {request_data}\nError: {e}\n{traceback.format_exc()}",
             error_msg="event-list-error",
             origin="event_list",
         )
@@ -306,71 +359,85 @@ def event_list(api_request: Request) -> Tuple[Union[Dict, List], int]:
 
 
 def event_update(api_request: Request) -> Tuple[Dict[str, Any], int]:
-    """Handle updating an event.
+    """Handles updating an event's visibility. Requires JWT authentication and write access.
 
     Parameters
     ----------
-    api_request : Request
+    api_request: Request
         The flask request object.
 
     Returns
     -------
-    tuple : (dict, int)
+    tuple: (dict, int)
         The return JSON and HTTP code.
     """
-    # Parse and validate request
     request_data, status_code = utils.get_request_object(api_request, "event_update")
     if status_code != 200:
         return request_data, status_code
 
     try:
-        current_user = get_jwt_identity()
+        current_user_email = get_jwt_identity()
+        if not current_user_email:
+            return (
+                db_utils.log_error(
+                    error_log="JWT identity missing",
+                    error_msg="authentication-error",
+                    origin="event_update",
+                ),
+                401,
+            )
 
         custom_app = db_utils.cast_app(current_app)
         dbh = custom_app.mongo_db
 
         # Check write access
-        user_info = dbh[USER_COLLECTION].find_one({"email": current_user})
-        if not user_info or "access" not in user_info or user_info["access"] != "write":
+        user_info = dbh[USER_COLLECTION].find_one({"email": current_user_email})
+        if not user_info or user_info.get("access") != "write":
             error_obj = db_utils.log_error(
-                error_log=f"User {current_user} attempted to update event without write access",
+                error_log=f"User {current_user_email} attempted to update event without write access",
                 error_msg="no-write-access",
                 origin="event_update",
             )
             return error_obj, 403
 
-        # Prepare update data
-        event_id = request_data["id"]
-        update_data = {k: v for k, v in request_data.items() if k != "id"}
-        update_data["updatedts"] = datetime.datetime.now(pytz.timezone("US/Eastern"))
+        event_id_str = request_data["id"]
+        new_visibility = request_data["visibility"]
 
-        # Update event
         try:
-            result = dbh[EVENT_COLLECTION].update_one(
-                {"_id": ObjectId(event_id)}, {"$set": update_data}
-            )
-
-            if result.matched_count == 0:
-                error_obj = db_utils.log_error(
-                    error_log=f"Event not found with ID: {event_id}",
-                    error_msg="record-not-found",
-                    origin="event_update",
-                )
-                return error_obj, 404
-
-            return {"type": "success", "message": "Event updated successfully"}, 200
-
-        except Exception as e:
+            event_oid = ObjectId(event_id_str)
+        except InvalidId:
             error_obj = db_utils.log_error(
-                error_log=f"Invalid event ID format: {event_id}",
+                error_log=f"Invalid ObjectID format for event ID: `{event_id_str}`",
                 error_msg="invalid-id-format",
                 origin="event_update",
             )
             return error_obj, 400
 
+        # Prepare update data
+        update_data = {
+            "visibility": new_visibility,
+            "updatedts": datetime.datetime.now(pytz.timezone(TIMEZONE)),
+            "updated_by": current_user_email,
+        }
+
+        # Perform the update operation
+        result = dbh[EVENT_COLLECTION].update_one(
+            {"_id": event_oid}, {"$set": update_data}
+        )
+
+        if result.matched_count == 0:
+            error_obj = db_utils.log_error(
+                error_log=f"Event not found for update with ID: `{event_id_str}`",
+                error_msg="record-not-found",
+                origin="event_update",
+            )
+            return error_obj, 404
+
+        return {"type": "success", "message": "Event updated successfully"}, 200
+
     except Exception as e:
         error_obj = db_utils.log_error(
-            error_log=f"Error updating event: {str(e)}\n{traceback.format_exc()}",
+            error_log=f"Error updating event `{request_data.get('id')}`.\nData: {request_data}\nError: {e}\n{traceback.format_exc()}",
             error_msg="event-update-error",
             origin="event_update",
         )
@@ -382,12 +449,12 @@ def event_delete(api_request: Request) -> Tuple[Dict[str, Any], int]:
 
     Parameters
     ----------
-    api_request : Request
+    api_request: Request
         The flask request object.
 
     Returns
     -------
-    tuple : (dict, int)
+    tuple: (dict, int)
         The return JSON and HTTP code.
     """
     request_data, status_code = utils.get_request_object(api_request, "event_delete")
@@ -395,56 +462,67 @@ def event_delete(api_request: Request) -> Tuple[Dict[str, Any], int]:
         return request_data, status_code
 
     try:
-        current_user = get_jwt_identity()
+        current_user_email = get_jwt_identity()
+        if not current_user_email:
+            return (
+                db_utils.log_error(
+                    error_log="JWT identity missing",
+                    error_msg="authentication-error",
+                    origin="event_delete",
+                ),
+                401,
+            )
 
         custom_app = db_utils.cast_app(current_app)
         dbh = custom_app.mongo_db
 
         # Check write access
-        user_info = dbh[USER_COLLECTION].find_one({"email": current_user})
-        if not user_info or "access" not in user_info or user_info["access"] != "write":
+        user_info = dbh[USER_COLLECTION].find_one({"email": current_user_email})
+        if not user_info or user_info.get("access") != "write":
             error_obj = db_utils.log_error(
-                error_log=f"User {current_user} attempted to delete event without write access",
+                error_log=f"User {current_user_email} attempted to delete event without write access",
                 error_msg="no-write-access",
                 origin="event_delete",
             )
             return error_obj, 403
 
         # Check if event exists
-        event_id = request_data["id"]
+        event_id_str = request_data["id"]
+
         try:
-            event = dbh[EVENT_COLLECTION].find_one({"_id": ObjectId(event_id)})
-        except Exception as e:
+            event_oid = ObjectId(event_id_str)
+        except InvalidId:
             error_obj = db_utils.log_error(
-                error_log=f"Invalid event ID format: {event_id}",
+                error_log=f"Invalid ObjectID format for event ID: `{event_id_str}`",
                 error_msg="invalid-id-format",
                 origin="event_delete",
             )
             return error_obj, 400
 
-        if not event:
+        # Soft delete by setting visibility to hidden
+        update_data = {
+            "visibility": "hidden",
+            "updatedts": datetime.datetime.now(pytz.timezone(TIMEZONE)),
+            "updated_by": current_user_email,
+        }
+
+        result = dbh[EVENT_COLLECTION].update_one(
+            {"_id": event_oid}, {"$set": update_data}
+        )
+
+        if result.matched_count == 0:
             error_obj = db_utils.log_error(
-                error_log=f"Event not found with ID: {event_id}",
+                error_log=f"Event not found for delete with ID: `{event_id_str}`",
                 error_msg="record-not-found",
                 origin="event_delete",
             )
             return error_obj, 404
 
-        # Soft delete by setting visibility to hidden
-        update_data = {
-            "visibility": "hidden",
-            "updatedts": datetime.datetime.now(pytz.timezone("US/Eastern")),
-        }
-
-        dbh[EVENT_COLLECTION].update_one(
-            {"_id": ObjectId(event_id)}, {"$set": update_data}
-        )
-
         return {"type": "sucess", "message": "Event deleted successfully"}, 200
 
     except Exception as e:
         error_obj = db_utils.log_error(
-            error_log=f"Error deleting event: {str(e)}\n{traceback.format_exc()}",
+            error_log=f"Error deleting event `{request_data.get('id')}`.\nError: {e}\n{traceback.format_exc()}",
             error_msg="event-delete-error",
             origin="event_delete",
         )

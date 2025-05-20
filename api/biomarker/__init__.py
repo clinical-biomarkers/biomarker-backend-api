@@ -1,3 +1,7 @@
+"""
+Initializes the Biomarker Flask application and configures its components.
+"""
+
 from flask_cors import CORS
 from flask_restx import Api, apidoc, Resource
 from flask import request, g, render_template
@@ -5,10 +9,9 @@ from flask_jwt_extended import JWTManager
 import datetime
 from pymongo import MongoClient
 import os
-import json
 import sys
 import time
-from typing import Dict
+from typing import Dict, List
 
 from .backend_utils import CustomFlask, init_api_log_db, setup_logging
 from .backend_utils import logging_utils
@@ -25,51 +28,73 @@ DB_NAME = "biomarkerdb_api"
 
 
 class CustomApi(Api):
+    """Custom Flask-Restx class to modify the generated Swagger schema. Serves as
+    a middlware to allow manual editing of the swagger schema JSON before it is served.
+    """
+
     def _register_specs(self, app_or_blueprint):
         pass
 
     @property
-    def __schema__(self) -> Dict:
-        # Override the __schema__ property if you need to modify the schema
+    def __schema__(
+        self,
+        endpoints_to_remove: List[str] = ["/auth/contact", "/log/logging"],
+        namespaces_to_remove: List[str] = ["log", "default"],
+    ) -> Dict:
+        """Overrides the default schema generation:
+        - Hides internal paths like /auth/contact, /log/logging, etc.
+        - Removes internal namespaces ('log', 'default')
+        """
+        # Get the default schema
         schema: Dict = super().__schema__.copy()
-        # Don't expose the contact and logging endpoints, those are purely internal
-        for path in ["/auth/contact", "/log/logging"]:
+
+        # Remove paths from swagger JSON
+        for path in endpoints_to_remove:
             if path in schema["paths"] and not schema["paths"][path]:
                 del schema["paths"][path]
         if "/swagger.json" in schema["paths"]:
             del schema["paths"]["/swagger.json"]
-        # Scrub the internal namespaces
-        ns_to_rm = ["log", "default"]
+
+        # Remove the namespaces from the list of tags
         ns = schema["tags"]
-        ns = [x for x in ns if x["name"] not in ns_to_rm]
+        ns = [x for x in ns if x["name"] not in namespaces_to_remove]
         schema["tags"] = ns
-        # schema["basePath"] = "/api"  # Set the basePath here
+
+        # Optionally set a base path override here
+        # schema["basePath"] = "/api"
+
         return schema
 
 
 def create_app():
+    """Creates and configures the Flask application instance."""
 
-    # create flask instance
+    # Initialize the Flask app using the custom class
     app = CustomFlask(__name__)
 
+    # --- Logging Setup ---
     app.api_logger = setup_logging()
     app.api_logger.info("API Started")
 
+    # Initialize the SQLite database for API request logging
     api_log_db_status, api_log_db_msg = init_api_log_db()
     if api_log_db_status:
         app.api_logger.info(api_log_db_msg)
     else:
         app.api_logger.error(api_log_db_msg)
-        sys.exit(1)
+        sys.exit(1)  # Exit if logging database initilization fails
 
     app.performance_logger = PerformanceLogger(logger=app.api_logger)
 
+    # --- Request Hooks ---
     @app.before_request
     def start_timer():
+        """Start a timer before each request."""
         g.start_time = time.time()
 
     @app.after_request
     def log_request(response):
+        """Log API request details after each request is processed."""
         duration = time.time() - g.start_time
         logging_utils.api_log(
             request_object=request.json if request.is_json else request.args.to_dict(),
@@ -82,10 +107,12 @@ def create_app():
 
     @app.teardown_appcontext
     def close_db(e=None):
+        """Close the SQLite database connection when the app context ends."""
         log_db = g.pop("log_db", None)
         if log_db is not None:
             log_db.close()
 
+    # --- Extensions Initialization ---
     CORS(app)
 
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
@@ -94,28 +121,28 @@ def create_app():
     app.config["PROPAGATE_EXCEPTIONS"] = True
     jwt = JWTManager(app)
 
-    # load in config data
-    api_root = os.path.realpath(os.path.dirname(__file__))
-    hit_score_conf_path = os.path.join(api_root, "conf/hit_score_config.json")
-    with open(hit_score_conf_path, "r") as f:
-        app.hit_score_config = json.load(f)
+    # --- Configuration Loading ---
+    # api_root = os.path.realpath(os.path.dirname(__file__))
+    # hit_score_conf_path = os.path.join(api_root, "conf/hit_score_config.json")
+    # with open(hit_score_conf_path, "r") as f:
+    #     app.hit_score_config = json.load(f)
 
-    # initialize mongo client database handle
-    mongo_client = MongoClient(MONGO_URI)
-    mongo_db = mongo_client[DB_NAME]
-    app.mongo_db = mongo_db
+    # --- Database Connection ---
+    # Initialize mongo client database handle
+    try:
+        mongo_client = MongoClient(MONGO_URI)
+        mongo_db = mongo_client[DB_NAME]
+        app.mongo_db = mongo_db
+        app.api_logger.info("MongoDB connection successful")
+    except Exception as e:
+        app.api_logger.error(f"Failed to connect to MongoDB: {e}")
+        sys.exit(1)
 
+    # --- API Setup ---
+    # Serve the custom swagger.json
     @apidoc.apidoc.add_app_template_global
     def swagger_static(filename):
         return f"./swaggerui/{filename}"
-
-    # setup the api using the flask_restx library
-    # api = Api(
-    #     app,
-    #     version="1.0",
-    #     title="Biomarker APIs",
-    #     description="Biomarker Knowledgebase API",
-    # )
 
     api = CustomApi(
         app,
@@ -126,16 +153,19 @@ def create_app():
 
     @api.route("/swagger.json")
     class SwaggerJson(Resource):
+        """Serves the generated OpenAPI spec."""
         def get(self):
             swagger_spec = api.__schema__.copy()
             return swagger_spec
 
     @api.documentation
     def custom_ui():
+        """Renders the custom Swagger UI interface."""
         return render_template(
             "swagger-ui.html", title=api.title, specs_url="./swagger.json"
         )
 
+    # Add API namespaces
     api.add_namespace(biomarker_api)
     api.add_namespace(auth_api)
     api.add_namespace(log_api)

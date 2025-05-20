@@ -51,7 +51,8 @@
                 "cache": "search_cache",
                 "stats": "stats_collection",
                 "ontology": "ontology_collection",
-                "version": "version_collection"
+                "version": "version_collection",
+                "event": "event_collection"
             }
         }
     }
