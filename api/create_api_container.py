@@ -29,6 +29,8 @@ def main() -> None:
     ### create and populate command list
     cmd_list = []
 
+    # clean up build cache before building (prevents space issues)
+    cmd_list.append("docker builder prune -af")
     # command to package the api
     cmd_list.append("python setup.py bdist_wheel")
     # if no python error, use below line
