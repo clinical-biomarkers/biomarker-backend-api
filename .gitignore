@@ -12,6 +12,7 @@ build/
 *egg-info/
 test.py
 misc_documentation.md
+misc_scripts/mondo/mondo.json
 *.log 
 logs/
 collision_reports/
