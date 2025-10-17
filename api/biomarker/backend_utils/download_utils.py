@@ -189,7 +189,7 @@ def list_download(api_request: Request) -> Union[Tuple[Dict, int], Response]:
 
     request_arguments["offset"] = 0
     request_arguments["sort"] = "hit_score"
-    request_arguments["limit"] = 10_000
+    request_arguments["limit"] = 15_900
     request_arguments["order"] = "desc"
 
     mongo_query, projection_object = _list_query_builder(request_arguments)
