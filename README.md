@@ -1,6 +1,6 @@
 # Biomarker Backend API 
 
-This repository handles the backend API for the Biomarker-Partnership project and handles the data ID assignment process.
+This repository handles the backend API for the BiomarkerKB project and handles the data ID assignment process.
 
 The API powers https://biomarkerkb.org/.
 
