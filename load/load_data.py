@@ -66,7 +66,7 @@ def main(options: Namespace, server: str) -> str:
     print(f"Resolved symlink for {merged_path_root} points to:\n\t{resolved_symlink}")
     get_user_confirmation()
 
-    merged_data_pattern = os.path.join(merged_path_root, "merged_json", "*.json")
+    merged_data_pattern = os.path.join(merged_path_root, "merged_json_updated", "*.json") # Inject EHR data from "merged_json_updated", previously "merged_json"
     collision_data_pattern = os.path.join(merged_path_root, "collision_json", "*.json")
 
     merged_data_files = sorted(glob.glob(merged_data_pattern))
