@@ -84,6 +84,11 @@ class Login(Resource):
 
 
 class UserID(Resource):
+
+    @api.doc(False)
+    def post(self):
+        return auth_utils.userid(request)
+
     @api.doc(False)
     def get(self):
         return auth_utils.userid()

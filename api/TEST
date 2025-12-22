@@ -1,0 +1,4 @@
+http POST :8089/biomarker/search_init 
+http POST :8089/biomarker/search < queries/search.json
+
+

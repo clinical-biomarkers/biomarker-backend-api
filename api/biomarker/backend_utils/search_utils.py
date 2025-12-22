@@ -54,6 +54,21 @@ def init() -> Tuple[Dict, int]:
             {"id": "biomarker", "display": "Biomarker"},
             {"id": "condition", "display": "Condition"},
         ],
+        "data_source": [
+            "cgi"
+            ,"civic"
+            ,"clinvar"
+            ,"edrn"
+            ,"gwas"
+            ,"llm_glycan"
+            ,"markerdb"
+            ,"mw"
+            ,"oncomx"
+            ,"opentargets"
+            ,"PMC_biomarker_sets"
+            ,"sennet"
+            ,"upkb_reviewed_v2"
+        ]
     }
     return response_object, 200
 
@@ -109,6 +124,7 @@ def full_search(api_request: Request) -> Tuple[Dict, int]:
         return request_arguments, request_http_code
 
     mongo_query = _search_query_builder(request_arguments, False)
+
     return_object, query_http_code = db_utils.search_and_cache(
         request_object=request_arguments,
         query_object=mongo_query,
@@ -150,6 +166,7 @@ def _search_query_builder(request_object: Dict, simple_search_flag: bool) -> Dic
         "condition_name": "condition.recommended_name.name",
         "condition_synonym_id": "condition.synonyms.id",
         "condition_synonym_name": "condition.synonyms.name",
+        "data_source":"source_list"
     }
 
     query_list: List[Dict] = []
@@ -200,7 +217,7 @@ def _search_query_builder(request_object: Dict, simple_search_flag: bool) -> Dic
         mongo_query = {"$or": query_list} if query_list else {}
 
     else:
-        cleaned_reuest_object = {
+        cleaned_request_object = {
             key: utils.prepare_search_term(value, wrap=False)
             for key, value in request_object.items()
             if key in field_map
@@ -209,7 +226,7 @@ def _search_query_builder(request_object: Dict, simple_search_flag: bool) -> Dic
 
         query_list = [
             {field_map[key]: {"$regex": value, "$options": "i"}}
-            for key, value in cleaned_reuest_object.items()
+            for key, value in cleaned_request_object.items()
             if key in field_map
         ]
 
