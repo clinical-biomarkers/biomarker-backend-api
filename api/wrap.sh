@@ -1,5 +1,5 @@
-#srv="prd"
-srv="dev"
+srv="prd"
+#srv="dev"
 
 
 sudo systemctl stop docker-biomarker-api-$srv.service

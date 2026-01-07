@@ -113,6 +113,24 @@ class SearchFullSchema(Schema):
             }
         ),
     )
+    data_source = fields.Str(
+        required=False,
+        validate=validate.OneOf([
+            "cgi",
+            "civic",
+            "clinvar",
+            "edrn",
+            "gwas",
+            "llm_glycan",
+            "markerdb",
+            "mw",
+            "oncomx",
+            "opentargets",
+            "PMC_biomarker_sets",
+            "sennet",
+            "upkb_reviewed_v2"
+        ])
+    )
     condition_id = fields.Str(required=False)
     condition_name = fields.Str(required=False)
     publication_id = fields.Str(required=False)

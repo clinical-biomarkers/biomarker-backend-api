@@ -6,6 +6,21 @@
         "tst": "8089",
         "dev": "8089"
     },
+    "data_sources": [
+        "cgi",
+        "civic",
+        "clinvar",
+        "edrn",
+        "gwas",
+        "llm_glycan",
+        "markerdb",
+        "mw",
+        "oncomx",
+        "opentargets",
+        "PMC_biomarker_sets",
+        "sennet",
+        "upkb_reviewed_v2"
+    ],
     "data_path": "/data/shared/biomarkerdb/",
     "generated_path_segment": [
         "generated",

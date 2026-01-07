@@ -42,7 +42,7 @@ def home_init() -> Tuple[Dict, int]:
         entity_type = split["entity_type"]
         entity_type = (
             entity_type
-            if entity_type in {"miRNA", "RNA", "DNA"}
+            if entity_type in {"miRNA", "mRNA", "RNA", "DNA"}
             else entity_type.title()
         )
         entity_type_splits[entity_type] = split["count"]

@@ -27,6 +27,8 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     if request_http_code != 200:
         return request_arguments, request_http_code
 
+
+
     mongo_query, projection_object = _list_query_builder(request_arguments)
 
     custom_app = db_utils.cast_app(current_app)
@@ -65,6 +67,11 @@ def list(api_request: Request) -> Tuple[Dict, int]:
     cached_results = cache_utils.get_cached_pipeline_results(
         list_id=list_id, request_args=request_arguments, cache_info=cache_info
     )
+
+
+
+
+
 
     if cached_results is not None:
         perf_logger.end_timer(process_name="atttempt_ttl_cache_retrieval")
@@ -107,9 +114,13 @@ def list(api_request: Request) -> Tuple[Dict, int]:
         cache_info=cache_info,
     )
 
+    #return pipeline_result, request_http_code
+
+    
     filter_object = _format_filter_data(
         request_arguments.get("filters", []), pipeline_result
     )
+  
     perf_logger.start_timer(process_name="unroll_results")
     formatted_results = _unroll_results(pipeline_result.get("results", []))
     perf_logger.end_timer(process_name="unroll_results")
@@ -431,17 +442,22 @@ def _format_filter_data(applied_filters: List, pipeline_result: Dict) -> Dict:
     }
 
     for idx, entity_type in enumerate(pipeline_result.get("entity_type_counts", [])):
+        entity_type_lower = entity_type["type"].lower()
+        label = entity_type["type"] 
+        if len(entity_type["type"]) == 3:
+            label = entity_type["type"].upper()
+        elif entity_type_lower == "mirna":
+            label = "miRNA"
+        elif entity_type_lower == "mrna":
+            label = "mRNA"
         entity_type_entry = {
-            "id": entity_type["type"].lower(),
-            "label": (
-                entity_type["type"].upper()
-                if len(entity_type["type"]) == 3
-                else entity_type["type"].title()
-            ),
+            "id": entity_type_lower,
+            "label": label,
             "count": entity_type["count"],
             "order": idx + 1,
         }
         filter_object["available"][0]["options"].append(entity_type_entry)
+
 
     for idx, role_count in enumerate(pipeline_result.get("role_counts", [])):
         role_entry = {
