@@ -3,6 +3,7 @@ Defines Marshmallow schemas for validating API request and response data structu
 """
 
 from marshmallow import Schema, fields, EXCLUDE, validate
+from . import constants
 
 # --- Base Schemas ---
 
@@ -112,6 +113,10 @@ class SearchFullSchema(Schema):
                 "Response",
             }
         ),
+    )
+    data_source = fields.Str(
+        required=False,
+        validate=validate.OneOf(constants.DATA_SOURCES)
     )
     condition_id = fields.Str(required=False)
     condition_name = fields.Str(required=False)

@@ -3,10 +3,10 @@
 from flask import Request
 from typing import Tuple, Dict, List
 
+from . import constants
 from . import db as db_utils
 from . import utils as utils
 from . import SEARCH_CACHE_COLLECTION
-
 
 def init() -> Tuple[Dict, int]:
     # TODO : Update this docstring 
@@ -38,6 +38,7 @@ def init() -> Tuple[Dict, int]:
             origin="init",
         )
         return error_object, 500
+
     response_object = {
         "best_biomarker_role": [
             "prognostic",
@@ -54,21 +55,7 @@ def init() -> Tuple[Dict, int]:
             {"id": "biomarker", "display": "Biomarker"},
             {"id": "condition", "display": "Condition"},
         ],
-        "data_source": [
-            "cgi"
-            ,"civic"
-            ,"clinvar"
-            ,"edrn"
-            ,"gwas"
-            ,"llm_glycan"
-            ,"markerdb"
-            ,"mw"
-            ,"oncomx"
-            ,"opentargets"
-            ,"PMC_biomarker_sets"
-            ,"sennet"
-            ,"upkb_reviewed_v2"
-        ]
+        "data_source": constants.DATA_SOURCES,
     }
     return response_object, 200
 
