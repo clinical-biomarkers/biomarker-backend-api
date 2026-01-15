@@ -13,5 +13,6 @@ DATA_SOURCES = [
     "opentargets",
     "PMC_biomarker_sets",
     "sennet",
+    "top_50",
     "upkb_reviewed_v2",
 ]
