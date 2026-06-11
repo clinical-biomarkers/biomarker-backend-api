@@ -17,7 +17,10 @@ class OpenAILLM(LLM):
         max_retries: int = 2,
     ):
         super().__init__(api_key_name, max_tokens, max_retries)
-        self.instance = openai.OpenAI(api_key=self._api_key)
+        self.instance = openai.OpenAI(
+            api_key=self._api_key,
+            default_headers={"OpenAI-Disable-Logging": "true"}
+        )
         super().__init__(api_key_name)
 
     def advanced_search(self, query: str) -> Optional[Dict]:
