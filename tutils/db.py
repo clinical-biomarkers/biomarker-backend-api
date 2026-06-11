@@ -22,7 +22,7 @@ def get_database_handle(
     host: str = "mongodb://127.0.0.1:",
     auth_source: Optional[str] = None,
     auth_mechanism: str = "SCRAM-SHA-1",
-    timeout: int = 1_000,
+    timeout: int = 30_000, # previously 1_000
     logger: Optional[Logger] = None,
 ) -> Database | NoReturn:
     """Returns a database handle."""

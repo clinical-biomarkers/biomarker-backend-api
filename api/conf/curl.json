@@ -1,0 +1,39 @@
+{
+    "port":{
+        "dev":"4040",
+        "tst":"4040",
+        "beta":"4440",
+        "prd":"8089"
+    },  
+    "api":{
+        "auth_aisearch":{
+                "url":"http://localhost:%s/auth/aisearch/",
+                "file":"tests/examples/auth/auth_aisearch.json"
+        },
+		  "outreach_addnew":{
+                "url":"http://localhost:%s/outreach/addnew/",
+                "file":"tests/examples/outreach/outreach_addnew.json"
+        },
+        "outreach_update":{
+                "url":"http://localhost:%s/outreach/update/",
+                "file":"tests/examples/outreach/outreach_update.json"
+        },
+		  "event_addnew":{
+                "url":"http://localhost:%s/event/addnew/",
+                "file":"tests/examples/event/event_addnew.json"
+        },
+        "event_list":{
+                "url":"http://localhost:%s/event/list/",
+                "file":"queries/event_list.json"
+        },
+ 		  "event_delete":{
+                "url":"http://localhost:%s/event/delete/",
+                "file":"queries/event_delete.json"
+        },
+		  "video_addnew":{
+                "url":"http://localhost:%s/video/addnew/",
+                "file":"tests/examples/video/video_addnew.json"
+        }
+    }
+}
+

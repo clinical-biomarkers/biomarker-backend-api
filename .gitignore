@@ -1,3 +1,4 @@
+api/tmp/
 build/
 collision_reports/
 .coverage
@@ -7,6 +8,8 @@ dist/
 .env
 env/
 htmlcov/
+j.py
+j.sh
 junk
 *.log
 logs/

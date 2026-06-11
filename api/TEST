@@ -1,4 +1,15 @@
 http POST :8089/biomarker/search_init 
 http POST :8089/biomarker/search < queries/search.json
+http POST :8089/biomarker/search_simple < queries/search_simple.json
+http POST :8089/biomarker/list < queries/list.json
+
+http POST :8089/auth/login < queries/auth_login.json
+
+http POST :8089/event/addnew/ < queries/event_addnew.json
+http POST :8089/event/list/ < queries/event_list.json
+http POST :8089/event/detail/ < queries/event_detail.json
+http POST :8089/event/update/ < queries/event_update.json
+http POST :8089/event/delete/ < queries/event_delete.json
+
 
 
