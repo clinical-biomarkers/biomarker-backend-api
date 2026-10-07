@@ -153,6 +153,7 @@ def get_node_metadata(g, s):
 
     local = class_uri.split("/")[-1]
     return {
+        "iri": class_uri,
         "id": local.split("=")[-1] if "=" in local else local,
         "label": label,
         "definition": definition,
@@ -192,6 +193,7 @@ def process_owl_to_tree(path: str) -> list:
         children = child_parent.get(node, [])
         node_data = node_metadata.get(node, {})
         return {
+            "iri": node_data.get("iri", node),
             "id": node_data.get("id"),
             "label": node_data.get("label"),
             "metadata": {
