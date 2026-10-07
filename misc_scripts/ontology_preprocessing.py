@@ -122,12 +122,13 @@ def process_class_expression(g, node):
         return {"type": "class", "label": get_label(g, node)}
 
 
-def process_equivalence_axiom(g, class_node):
-    """Process equivalence axioms for a given class."""
-    equivalences = []
-    for s, p, o in g.triples((class_node, OWL.equivalentClass, None)):
-        equivalences.append(process_class_expression(g, o))
-    return equivalences
+def process_subclass_axiom(g, class_node):
+    """Process complex SubClass Of axioms (BNode targets) for a given class."""
+    subclasses = []
+    for s, p, o in g.triples((class_node, RDFS.subClassOf, None)):
+        if isinstance(o, BNode):
+            subclasses.append(process_class_expression(g, o))
+    return subclasses
 
 
 def get_node_metadata(g, s):
@@ -149,7 +150,7 @@ def get_node_metadata(g, s):
         if "synonym" in str(p):
             synonyms.append(str(o))
 
-    equivalences = process_equivalence_axiom(g, s)
+    subclasses = process_subclass_axiom(g, s)
 
     local = class_uri.split("/")[-1]
     return {
@@ -158,7 +159,7 @@ def get_node_metadata(g, s):
         "label": label,
         "definition": definition,
         "synonyms": synonyms,
-        "equivalent_to": [axiom_to_string(axiom) for axiom in equivalences],
+        "subclass_of": [axiom_to_string(axiom) for axiom in subclasses],
     }
 
 
@@ -199,7 +200,7 @@ def process_owl_to_tree(path: str) -> list:
             "metadata": {
                 "definition": node_data.get("definition"),
                 "synonyms": node_data.get("synonyms"),
-                "equivalent_to": node_data.get("equivalent_to"),
+                "subclass_of": node_data.get("subclass_of"),
             },
             "children": [build_tree(child) for child in children],
         }
