@@ -36,13 +36,12 @@ def get_label(g, node):
 
     return str(node).split("/")[-1]
 
-
 def get_property_info(g, prop_uri):
     """Helper function to get both ID and label for a property."""
-    prop_id = str(prop_uri).split("/")[-1]
+    local = str(prop_uri).split("/")[-1]
+    prop_id = local.split("=")[-1] if "=" in local else local
     prop_label = get_label(g, prop_uri)
     return {"id": prop_id, "label": prop_label}
-
 
 def axiom_to_string(axiom):
     """Convert an axiom structure to a Protégé-like string representation."""
@@ -152,8 +151,9 @@ def get_node_metadata(g, s):
 
     equivalences = process_equivalence_axiom(g, s)
 
+    local = class_uri.split("/")[-1]
     return {
-        "id": class_uri.split("/")[-1],
+        "id": local.split("=")[-1] if "=" in local else local,
         "label": label,
         "definition": definition,
         "synonyms": synonyms,
