@@ -123,11 +123,10 @@ def process_class_expression(g, node):
 
 
 def process_subclass_axiom(g, class_node):
-    """Process complex SubClass Of axioms (BNode targets) for a given class."""
+    """Process complex SubClass Of axioms for a given class."""
     subclasses = []
     for s, p, o in g.triples((class_node, RDFS.subClassOf, None)):
-        if isinstance(o, BNode):
-            subclasses.append(process_class_expression(g, o))
+        subclasses.append(process_class_expression(g, o))
     return subclasses
 
 
